@@ -1,8 +1,4 @@
-# using Plots
-# pyplot()
-# using Pkg
-# Pkg.add("Gadfly")
-# using Gadfly
+using Plots
 
 hwhj = "Hello World! Hello Julia"
 
@@ -12,20 +8,14 @@ function example(x, y)
     return sin.(x) .+ y
 end
 
-x0 = range(0, stop=pi, step=0.1)
-y0 = example(x0, 2)
+x0 = range(0, stop=5*pi, step=0.1)
+y0 = range(0, length=length(x0), step=0.1)
 
-# plot(x0, y0)
-# gui()
+plt = plot3d(1, xlim=(0,5), ylim=(0,5), zlim=(0,5),
+                title = "Simple Sine Offset", marker = 2)
 
-# using Plots
-# pyplot()
-# plot(rand(5,5), linewidth=2, title="MyPlot2")
-
-using Plots; pyplot()
-x=range(-2,stop=2,length=100)
-y=range(sqrt(2),stop=2,length=100)
-f(x,y) = x*y-x-y+1
-plot(x,y,f,st=:surface,camera=(-30,30))
+@gif for i=1:length(x0)
+    push!(plt, x0[i], y0[i], example(x0[i], y0[i]))
+end every 10
 
 println("Plotting Completed")
