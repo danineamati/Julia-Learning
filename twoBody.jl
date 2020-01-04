@@ -61,7 +61,7 @@ end
 # Now we set up the ODE
 # We the initial conditions as [x, y, z, dx, dy, dz]
 uInit = [0.99; 0.0; 0.0; 0.0; 0.87472940; 0.50502525]
-uInit2 = [0.99; 0.5];
+# uInit2 = [0.99; 0.5];
 
 # u0 = [1.0;0.0;0.0]
 # tspan = (0.0,100.0)
@@ -83,14 +83,15 @@ sol = solve(prob, reltol=1e-10, abstol=1e-10)
 # plot(sol,linewidth=2,xaxis="t",label=["x" "y" "z" "vx" "vy" "vz"],layout=(2,1))
 
 # USE THIS:
-# plot(sol, vars=(1,2,3))
+plot(sol, vars=(1,2,3))
 
 println("Solved the ODE, beginning plotting")
 
 plt = plot3d(1, xlim=(-2,2), ylim=(-2,2), zlim=(-2,2),
                 title = "Two Body Problem", marker = 2)
 
-@gif for i=length(sol)
+@gif for i=1:length(sol)
+    println("Step $i")
     push!(plt, sol.u[i][1], sol.u[i][2], sol.u[i][3])
 end every 10
 
