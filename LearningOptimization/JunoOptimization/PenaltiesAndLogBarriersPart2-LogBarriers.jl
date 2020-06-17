@@ -4,6 +4,8 @@ using Optim
 
 include("gradientDescent2D.jl")
 include("logBarrier.jl")
+include("logBarrierLine.jl")
+
 
 plotly()
 # pyplot()
@@ -24,7 +26,7 @@ function cMat(c, n)
 end
 
 cMatHere = cMat(4, 2)
-print(cMatHere)
+println(cMatHere)
 
 
 # First, get the base function f(x)
@@ -77,6 +79,11 @@ tolx1 = 0.001
 tolg1 = 0.001
 maxIt1 = 20
 
+
+
+println("Beginning Log Barrier with Line Search")
+# logBarrierLine(xInit, fFun, gFunArr, dfdx, dgdxArr, tolx, tolg,
+                                    # maxIter = 10, verbose = false)
 lbIters = logBarrier(xInit1, fhole2C, [g1, g2], dfhole2, [dgdx1, dgdx2],
                         tolx1, tolg1, maxIt1);
 

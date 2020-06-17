@@ -55,7 +55,7 @@ function backtrackLineSearch(xInit, dirΔ, f, dfdx, paramA, paramB, verbose = fa
 end
 
 
-runTest = true
+runTest = false
 
 if runTest
     # Test Script
