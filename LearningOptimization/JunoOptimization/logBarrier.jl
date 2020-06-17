@@ -1,5 +1,5 @@
 function logBarrier(xInit, fFun, gFunArr, dfdx, dgdxArr, tolx, tolg, maxIter = 10, verbose = false)
-    mu = 1.1
+    mu = 1
 
     veryLargeNum = (1/mu) * 10^10
 
@@ -103,9 +103,11 @@ function logBarrier(xInit, fFun, gFunArr, dfdx, dgdxArr, tolx, tolg, maxIter = 1
             # Using Gradient Descent
             gDIterMax = 10
 
+            alphaStepStart = 0.2 * mu
+
             iterations, steps = gradAdaptToler2Var(xNext,
                     x -> sumfglog(x, mu), x -> sumdfgdxlog(x, mu),
-                    0.1, tolx * 10, gDIterMax, false)
+                    alphaStepStart, tolx * 10, gDIterMax, false)
             xNext = iterations[length(iterations)]
         else
 

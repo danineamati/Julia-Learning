@@ -77,7 +77,8 @@ tolx1 = 0.001
 tolg1 = 0.001
 maxIt1 = 20
 
-lbIters = logBarrier(xInit1, fhole2C, [g1, g2], dfhole2, [dgdx1, dgdx2], tolx1, tolg1, maxIt1);
+lbIters = logBarrier(xInit1, fhole2C, [g1, g2], dfhole2, [dgdx1, dgdx2],
+                        tolx1, tolg1, maxIt1);
 
 function modLog(x)
     if x < 0
@@ -89,7 +90,8 @@ end
 
 muTest = 0.1
 
-@time result2 = optimize(x -> fhole2C(x) - muTest * modLog(-g1(x)) - muTest * modLog(-g2(x)), xInit1, BFGS())
+@time result2 = optimize(x -> fhole2C(x) - muTest * modLog(-g1(x)) -
+                        muTest * modLog(-g2(x)), xInit1, BFGS())
 
 function modLog(x)
     if x < 0
