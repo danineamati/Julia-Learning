@@ -1,9 +1,9 @@
 
 include("gradDescentLineSearch.jl")
+include("backtrackLineSearch.jl")
 
 
-
-function logBarrierLine(xInit, fFun, gFunArr, dfdx, dgdxArr, tolx, tolg, 
+function logBarrierLine(xInit, fFun, gFunArr, dfdx, dgdxArr, tolx, tolg,
                                     maxIter = 10, verbose = false)
     mu = 1
 
@@ -109,7 +109,7 @@ function logBarrierLine(xInit, fFun, gFunArr, dfdx, dgdxArr, tolx, tolg,
             # Using Gradient Descent
             gDIterMax = 10
 
-            alphaStepStart = 0.2 * mu
+            alphaStepStart = 0.2
 
             # gradDescentLineSearch(xInit, funcX, gradX, stepInit,
                     # tolerance = 0.5, maxIter = 10, verbose = false)
@@ -147,7 +147,7 @@ function logBarrierLine(xInit, fFun, gFunArr, dfdx, dgdxArr, tolx, tolg,
             println("x Error Met at $xError")
             condEnd = true
             for i in 1:length(gFunArr)
-                errG = abs(gFunArr[i](xNext))
+                errG = max(gFunArr[i](xNext), 0)
                 println("g$i Error Met at $errG")
                 met = (errG <= tolg)
                 condEnd = condEnd && met

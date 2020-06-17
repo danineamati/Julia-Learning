@@ -3,8 +3,9 @@ using LinearAlgebra
 using Optim
 
 include("gradientDescent2D.jl")
-include("logBarrier.jl")
+# include("logBarrier.jl")
 include("logBarrierLine.jl")
+include("backtrackLineSearch.jl")
 
 
 plotly()
@@ -77,14 +78,14 @@ sumdgdx(x) = dgdx1(x) + dgdx2(x)
 xInit1 = [0.5, -0.5]
 tolx1 = 0.001
 tolg1 = 0.001
-maxIt1 = 20
+maxIt1 = 10
 
 
 
 println("Beginning Log Barrier with Line Search")
 # logBarrierLine(xInit, fFun, gFunArr, dfdx, dgdxArr, tolx, tolg,
                                     # maxIter = 10, verbose = false)
-lbIters = logBarrier(xInit1, fhole2C, [g1, g2], dfhole2, [dgdx1, dgdx2],
+lbIters = logBarrierLine(xInit1, fhole2C, [g1, g2], dfhole2, [dgdx1, dgdx2],
                         tolx1, tolg1, maxIt1);
 
 function modLog(x)
