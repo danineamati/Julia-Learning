@@ -13,10 +13,9 @@ function gradDescentLineSearch(xInit, funcX, gradX, stepInit,
     @assert tolerance > 0
     xError = tolerance * 1000
 
-    # Step size
-    stepNext = stepInit
-    stepUpFactor = 1.2
-    stepDownFactor = 0.5
+    # Line Search Parameters
+    paramA = 0.05 # should be between 0.01 and 0.3
+    paramB = 0.4 # should be between 0.1 and 0.8
 
     # Save key data
     iterations = []
@@ -24,7 +23,9 @@ function gradDescentLineSearch(xInit, funcX, gradX, stepInit,
     push!(iterations, xInit)
     push!(steps, stepInit)
 
-    numIter = 1
+    stepNext = stepInit
+
+    numIter = 1 # Count the number of iterations to prevent stalling
 
     while xError > tolerance
 
@@ -35,50 +36,29 @@ function gradDescentLineSearch(xInit, funcX, gradX, stepInit,
         # ------------------
         # Begin Main part of Algorithm
         # ------------------
-        if verbose
-            println("Calculating the gradient")
-        end
-        # Calculate the gradient
-        g = gradX(xNext)
+
         if verbose
             println("Updating x-position")
         end
-        # Calcuclate the next step
-        xNextInConsideration = xPrev - stepNext * g / norm(g, 2)
+        # Calcuclate the next step direction
+        g = gradX(xPrev)
+        # dir = - stepInit * g  / norm(g, 2)
+        dir = - stepNext * g
 
-        # Adaptive Step Sizing
         if verbose
-            print("Moved to ")
-            print(funcX(xNextInConsideration))
-            print(" at ")
-            println(xNextInConsideration)
+            println("Direction: $dir")
         end
 
-        if funcX(xNextInConsideration) <= funcX(xPrev)
-            # Moved towards the minimum
+        # backtrackLineSearch(xInit, dirΔ, f, dfdx, paramA, paramB, verbose)
+        xNext, stepNext = backtrackLineSearch(xPrev, dir, funcX, gradX,
+                                    paramA, paramB, verbose)
 
-            # Increase Stepsize
-            stepNext = stepUpFactor * stepNext
-
-            # Accept Step
-            xNext = xNextInConsideration
-
-            # Update the error
-            xError = norm(xPrev - xNext, 2)
-
-            xPrev = xNext
-
-            if verbose
-                println("Accepted")
-            end
-        else
-            # Decrease Stepsize
-            stepNext = stepDownFactor * stepNext
-
-            # Reject Step
-            if verbose
-                println("*** Rejected ***")
-            end
+        # Display Chosen Step Sizing
+        if verbose
+            print("Moved to ")
+            print(funcX(xNext))
+            print(" at ")
+            println(xNext)
         end
 
         # ------------------
@@ -91,6 +71,9 @@ function gradDescentLineSearch(xInit, funcX, gradX, stepInit,
         # ------------------
         # End Criteria
         # ------------------
+
+        xError = norm(xNext - xPrev, 2)
+        xPrev = xNext
 
         # Prevent the while loop going forever
         # in case there is no convergence.
@@ -111,7 +94,7 @@ end
 
 
 
-runTest = true
+runTest = false
 
 if runTest
     # gradDescentLineSearch(xInit, funcX, gradX, stepInit,
@@ -125,7 +108,7 @@ if runTest
     maxNumIter = 100
 
     iterations, steps = gradDescentLineSearch(xInit1, fFun, dfdx,
-                                        stepInit, tolerance, maxNumIter, false)
+                                        stepInit, tolerance, maxNumIter, true)
     println(iterations)
 
     using Plots

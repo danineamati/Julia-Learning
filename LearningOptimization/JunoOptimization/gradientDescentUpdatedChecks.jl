@@ -1,8 +1,6 @@
 # Gradient Descent Code
 # Now with line searching
 
-include("backtrackLineSearch.jl")
-
 
 function gradDescentLineSearch(xInit, funcX, gradX, stepInit,
         tolerance = 0.5, maxIter = 10, verbose = false)
