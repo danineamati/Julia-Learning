@@ -36,6 +36,21 @@ function schurComplement(A, B, C, D)
 
 end
 
+function invWithSchurComplement(A, B, C, D)
+    # Uses the schur complement to produce the inverse
+
+    # First get the schurComplement
+    isc = schurComplement(A, B, C, D)
+    iD = inv(D)
+
+    topLeft = isc
+    topRight = - isc * B * iD
+    botLeft = - iD * C * isc
+    botRight = iD + iD * C * isc * B * iD
+
+    return [topLeft topRight; botLeft botRight]
+end
+
 # Now we test out the Schur Complement
 
 matA = [4 5 9; 3 2 1; 0 9 10]
@@ -46,6 +61,18 @@ matD = [4 5 2; 8 6 4; 1 2 3]
 println("Schur Complement Test")
 println("---------------------")
 println("Original Matrix: ")
-display([matA matB; matC matD])
+
+matM = [matA matB; matC matD]
+display(matM)
 println("Schur Complement is: ")
 display(schurComplement(matA, matB, matC, matD))
+println("Inverse using Schur Complement")
+ivFromSC = invWithSchurComplement(matA, matB, matC, matD)
+display(ivFromSC)
+
+println("Inverse Built-in")
+iwithoutSC = inv(matM)
+display(iwithoutSC)
+
+println("Comparison")
+display(ivFromSC - iwithoutSC)
