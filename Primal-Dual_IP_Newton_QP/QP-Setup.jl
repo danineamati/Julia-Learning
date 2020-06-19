@@ -14,6 +14,10 @@
 
 using LinearAlgebra
 
+showContoursObjective = true
+showPlotConstraints = true
+
+
 function checkPosDef(Q)
     # To check Positive Definite, we check that the eigenvals are positive
     # and that the determinant is positive.
@@ -42,6 +46,16 @@ xExample = [5; 3]
 print("Example evaluation of the objective function at $xExample: ")
 println(fObj(xExample))
 
+if showContoursObjective
+    using Plots
+    gr() # Its a very simple plot
+
+    xRange = -10:0.01:10
+    yRange = -2:0.01:10
+    cPlt = contour(xRange, yRange, (x, y) -> fObj([x; y]))
+    display(cPlt)
+end
+
 
 # ---------------------------
 # Constraint Function
@@ -50,4 +64,97 @@ println(fObj(xExample))
 # b is an mx1 vector
 # --------------------------
 
-AMat = []
+# 4x + 5y ≦ 20 and -4x + 5y ≦ 30 and y > -1
+AMat = [4 5; -4 5; 0 -1]
+bVec = [20; 30; 1]
+
+# --------------------------
+# Set the initial starting point
+# --------------------------
+
+x0 = [0; 0]
+
+if showPlotConstraints
+    using Plots
+    gr()
+
+    println("Beginning Ploting of Constraints")
+    xRange = -10:0.1:10
+
+    # plt = scatter(x0[1], x0[2])
+    # plt =
+
+    yMax = 14
+    yMin = -3
+
+    for i in 1:size(bVec, 1)
+        m = -AMat[i, 1] / AMat[i, 2]
+        b = bVec[i] / AMat[i, 2]
+        linFun(x) = m * x + b
+
+        # Determine fill up or down based on intial point
+        if x0[2] > linFun(x0[1])
+            # The point is above the line, fill up
+            yFill = yMax
+        else
+            yFill = yMin
+        end
+
+        plot!(xRange, linFun, fill = (yFill, 0.25, :auto),
+                        lw = 2, label = "g$i")
+    end
+
+    scatter!([x0[1]], [x0[2]], markersize = 5, label = "Initial pt")
+    ylims!((yMin, yMax))
+    xlabel!("X")
+    ylabel!("Y")
+    title!("Feasible Region")
+
+    display(plt)
+    println("Plotting Complete")
+end
+
+
+
+if showContoursObjective && showPlotConstraints
+    using Plots
+    gr() # Its a very simple plot
+
+    println("Beginning Ploting of Constraints with Objective")
+
+    xRange = -10:0.01:10
+    yMax = 14
+    yMin = -3
+
+    yRange = yMin:0.01:yMax
+    cPlt = contour(xRange, yRange, (x, y) -> fObj([x; y]))
+
+
+
+    for i in 1:size(bVec, 1)
+        m = -AMat[i, 1] / AMat[i, 2]
+        b = bVec[i] / AMat[i, 2]
+        linFun(x) = m * x + b
+
+        # Determine fill up or down based on intial point
+        if x0[2] > linFun(x0[1])
+            # The point is above the line, fill up
+            yFill = yMax
+        else
+            yFill = yMin
+        end
+
+        plot!(xRange, linFun, fill = (yFill, 0.25, :auto),
+                        lw = 2, label = "g$i")
+    end
+
+    scatter!([x0[1]], [x0[2]], markersize = 5, label = "Initial pt")
+    ylims!((yMin, yMax))
+    xlabel!("X")
+    ylabel!("Y")
+    title!("Feasible Region")
+
+    display(cPlt)
+    println("Plotting Complete")
+
+end
