@@ -81,7 +81,7 @@ if showPlotConstraints
     println("Beginning Ploting of Constraints")
     xRange = -10:0.1:10
 
-    # plt = scatter(x0[1], x0[2])
+    plt = scatter(x0[1], x0[2])
     # plt =
 
     yMax = 14
