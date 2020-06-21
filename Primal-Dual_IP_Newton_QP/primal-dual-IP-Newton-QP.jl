@@ -117,10 +117,29 @@ end
 function getQPrVec(Q, c, A, b, x, lambda, mu)
     # # r = (  ∇f(x) + λT ∇g(x) )  = (        Qx + c + λT A        )
     #       (-diag(λ) g(x) - μ 1)  = (-diag(λ) Ax - diag(λ) b - μ 1)
-    r1 = Q * x + c + lambda'A
+    @assert size(A, 1) == size(lambda, 1)
+    @assert size(x, 1) == size(c, 1)
+    @assert size(Q, 2) == size(x, 1)
+
+    r1 = Q * x + c + A'lambda
     r2 = - Diagonal(lambda) * A * x - Diagonal(lambda) * b - mu * ones(size(A, 1))
 
     return vcat(r1, r2)
+end
+
+function getQPGradrVec(Q, A, b, x, lambda)
+    # So ∇r = [A B; C D]
+    # Where:
+    # A = ∇^2 f(x) + λT ∇^2 g(x) = Q
+    # B = ∇g(x)^T                = A^T
+    # C = - diag(λ) ∇g(x)        = -diag(λ) A
+    # D = -diag(g(x))            = -diag(Ax - b)
+    Ar = Q
+    Br = A'
+    Cr = - Diagonal(lambda) * A
+    Dr = - Diagonal(A * x - b)
+
+    return (Ar, Br, Cr, Dr)
 end
 
 function newtonStep(gRA, gRB, gRC, gRD, rV)
@@ -153,6 +172,7 @@ println("Setting Up the QP")
 QMat, cVec, AMat, bVec, x0 = QPSetup()
 
 fObj(x) = (1/2) * x'QMat*x + cVec'x
+dfdx(x) = QMat * x + cVec
 
 println("Objective: f(x) = (1/2) x'Qx + c'x")
 println("Q = $QMat")
@@ -164,8 +184,19 @@ println("Initial Starting Point: $x0")
 
 println()
 println("Testing r Vec from QP-Setup")
+lambda = [1; 1; 1]
+mu = 1
+rVec = getQPrVec(QMat, cVec, AMat, bVec, x0, lambda, mu)
+grA, grB, grC, grD = getQPGradrVec(QMat, AMat, bVec, x0, lambda)
+println("r vec = $rVec")
+println("∇r =")
+display([grA grB; grC grD])
 
+dirNewton = newtonStep(grA, grB, grC, grD, rVec)
+println()
+println("First Newton Step: ")
+display(dirNewton)
 
-
+# stepAfterLineSearch = backtrackLineSearch()
 
 println("Completed")
