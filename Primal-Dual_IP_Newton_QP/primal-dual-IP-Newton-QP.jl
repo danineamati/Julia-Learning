@@ -74,4 +74,98 @@
 # Therefore we need two parts, the outer part that updates μ and
 # the inner part that runs the Newton Update
 #
-# This script is the outer part.
+# This script has the inner part first, then the outer part
+
+# ------------------
+# Schur complements for Matrix Inverse
+# -----------------
+
+using LinearAlgebra
+
+include("..\\LearningOptimization\\backtrackLineSearch.jl")
+include("QP-Setup.jl")
+
+
+
+function schurComplement(A, B, C, D)
+    # Takes Four Matrices A, B, C, D
+    # where the original Matrix is:
+    # [ A  B ]
+    # [ C  D ]
+    # The Schur Complement is
+    # inv(A - B inv(D) C)
+
+    return inv(A - B * inv(D) * C)
+
+end
+
+function invWithSchurComplement(A, B, C, D)
+    # Uses the schur complement to produce the inverse
+
+    # First get the schurComplement
+    isc = schurComplement(A, B, C, D)
+    iD = inv(D)
+
+    topLeft = isc
+    topRight = - isc * B * iD
+    botLeft = - iD * C * isc
+    botRight = iD + iD * C * isc * B * iD
+
+    return [topLeft topRight; botLeft botRight]
+end
+
+function getQPrVec(Q, c, A, b, x, lambda, mu)
+    # # r = (  ∇f(x) + λT ∇g(x) )  = (        Qx + c + λT A        )
+    #       (-diag(λ) g(x) - μ 1)  = (-diag(λ) Ax - diag(λ) b - μ 1)
+    r1 = Q * x + c + lambda'A
+    r2 = - Diagonal(lambda) * A * x - Diagonal(lambda) * b - mu * ones(size(A, 1))
+
+    return vcat(r1, r2)
+end
+
+function newtonStep(gRA, gRB, gRC, gRD, rV)
+    # h ← h + ∇r^{-1} r
+
+    gRInv = invWithSchurComplement(gRA, gRB, gRC, gRD)
+    return gRInv * rV
+end
+
+
+
+
+
+
+# Call functions
+println()
+println("Testing Newton Step on test matrix")
+matA = [4 5 9; 3 2 1; 0 9 10]
+matB = [2 4 5; 8 6 7; 1 4 2]
+matC = [8 5 7; 3 1 6; 4 9 2]
+matD = [4 5 2; 8 6 4; 1 2 3]
+
+rVec = [3; 4; 5; 9; 8; 7]
+
+nextStep = newtonStep(matA, matB, matC, matD, rVec)
+display(nextStep)
+
+println()
+println("Setting Up the QP")
+QMat, cVec, AMat, bVec, x0 = QPSetup()
+
+fObj(x) = (1/2) * x'QMat*x + cVec'x
+
+println("Objective: f(x) = (1/2) x'Qx + c'x")
+println("Q = $QMat")
+println("c = $cVec")
+println("Constraints: Ax ≦ b")
+println("A = $AMat")
+println("b = $bVec")
+println("Initial Starting Point: $x0")
+
+println()
+println("Testing r Vec from QP-Setup")
+
+
+
+
+println("Completed")
