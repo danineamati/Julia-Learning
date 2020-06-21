@@ -24,6 +24,40 @@ function checkPosDef(Q)
     return (eVals > vec(zeros(numRows, 1))) && (det(Q) > 0)
 end
 
+function objectiveContours(fObj, xRange = -10:0.01:10, yRange = -2:0.01:10)
+    cPlt = contour(xRange, yRange, (x, y) -> fObj([x; y]))
+    return cPlt
+end
+
+function constraintsPlot(A, bV, x0, xRange = -10:0.01:10, yMin = 2, yMax = 10)
+    plt = scatter(x0[1], x0[2])
+
+    for i in 1:size(bV, 1)
+        m = -A[i, 1] / A[i, 2]
+        b = bV[i] / A[i, 2]
+        linFun(x) = m * x + b
+
+        # Determine fill up or down based on intial point
+        if x0[2] > linFun(x0[1])
+            # The point is above the line, fill up
+            yFill = yMax
+        else
+            yFill = yMin
+        end
+
+        plot!(xRange, linFun, fill = (yFill, 0.25, :auto),
+                        lw = 2, label = "g$i")
+    end
+
+    scatter!([x0[1]], [x0[2]], markersize = 5, label = "Initial pt")
+    ylims!((yMin, yMax))
+    xlabel!("X")
+    ylabel!("Y")
+    title!("Feasible Region")
+
+    return plt
+end
+
 function QPSetup(showContoursObjective = false, showPlotConstraints = false)
     # ---------------------------
     # Objective Function
@@ -46,10 +80,9 @@ function QPSetup(showContoursObjective = false, showPlotConstraints = false)
     println(fObj(xExample))
 
     if showContoursObjective
-
         xRange = -10:0.01:10
         yRange = -2:0.01:10
-        cPlt = contour(xRange, yRange, (x, y) -> fObj([x; y]))
+        cPlt = objectiveContours(fObj, xRange, yRange)
         display(cPlt)
     end
 
@@ -76,34 +109,10 @@ function QPSetup(showContoursObjective = false, showPlotConstraints = false)
         println("Beginning Ploting of Constraints")
         xRange = -10:0.1:10
 
-        plt = scatter(x0[1], x0[2])
-        # plt =
-
         yMax = 14
         yMin = -3
 
-        for i in 1:size(bVec, 1)
-            m = -AMat[i, 1] / AMat[i, 2]
-            b = bVec[i] / AMat[i, 2]
-            linFun(x) = m * x + b
-
-            # Determine fill up or down based on intial point
-            if x0[2] > linFun(x0[1])
-                # The point is above the line, fill up
-                yFill = yMax
-            else
-                yFill = yMin
-            end
-
-            plot!(xRange, linFun, fill = (yFill, 0.25, :auto),
-                            lw = 2, label = "g$i")
-        end
-
-        scatter!([x0[1]], [x0[2]], markersize = 5, label = "Initial pt")
-        ylims!((yMin, yMax))
-        xlabel!("X")
-        ylabel!("Y")
-        title!("Feasible Region")
+        plt = constraintsPlot(AMat, bVec, x0, xRange, yMin, yMax)
 
         display(plt)
         println("Plotting Complete")
@@ -119,7 +128,8 @@ function QPSetup(showContoursObjective = false, showPlotConstraints = false)
         yMin = -3
 
         yRange = yMin:0.01:yMax
-        cPlt = contour(xRange, yRange, (x, y) -> fObj([x; y]))
+        cPlt = objectiveContours(fObj, xRange, yRange)
+        # contour(xRange, yRange, (x, y) -> fObj([x; y]))
 
 
 

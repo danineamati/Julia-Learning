@@ -149,54 +149,36 @@ function newtonStep(gRA, gRB, gRC, gRD, rV)
     return gRInv * rV
 end
 
+function newtonAndLineSearch(gRA, gRB, gRC, gRD, rV, x0, fObj, dfdx, A, b,
+                                paramA = 0.1, paramB = 0.5)
+    # First get the newton step
+    dirNewton = newtonStep(gRA, gRB, gRC, gRD, rV)
 
+    # Then get the line search recommendation
+    xSize = size(x0, 1)
+    rSize = size(rV, 1)
+    x0LS, stepLS = backtrackLineSearch(x0, dirNewton[1:xSize], fObj, dfdx,
+                                    paramA, paramB)
+    # Update the rVector
+    x0New = x0 + x0LS
+    lambdaNew = lambda + stepLS * rVec[xSize + 1:rSize]
+
+    rVec = vcat(x0New, lambdaNew)
+
+    # want to check that the conditions are satisfied
+    for lam in lambdaNew
+        @assert lam ≥ 0
+    end
+
+    for ind in 1:size(bVec, 1)
+        @assert A * x0New - b ≥ 0
+    end
+
+    return rVec
+
+end
 
 
 
 
 # Call functions
-println()
-println("Testing Newton Step on test matrix")
-matA = [4 5 9; 3 2 1; 0 9 10]
-matB = [2 4 5; 8 6 7; 1 4 2]
-matC = [8 5 7; 3 1 6; 4 9 2]
-matD = [4 5 2; 8 6 4; 1 2 3]
-
-rVec = [3; 4; 5; 9; 8; 7]
-
-nextStep = newtonStep(matA, matB, matC, matD, rVec)
-display(nextStep)
-
-println()
-println("Setting Up the QP")
-QMat, cVec, AMat, bVec, x0 = QPSetup()
-
-fObj(x) = (1/2) * x'QMat*x + cVec'x
-dfdx(x) = QMat * x + cVec
-
-println("Objective: f(x) = (1/2) x'Qx + c'x")
-println("Q = $QMat")
-println("c = $cVec")
-println("Constraints: Ax ≦ b")
-println("A = $AMat")
-println("b = $bVec")
-println("Initial Starting Point: $x0")
-
-println()
-println("Testing r Vec from QP-Setup")
-lambda = [1; 1; 1]
-mu = 1
-rVec = getQPrVec(QMat, cVec, AMat, bVec, x0, lambda, mu)
-grA, grB, grC, grD = getQPGradrVec(QMat, AMat, bVec, x0, lambda)
-println("r vec = $rVec")
-println("∇r =")
-display([grA grB; grC grD])
-
-dirNewton = newtonStep(grA, grB, grC, grD, rVec)
-println()
-println("First Newton Step: ")
-display(dirNewton)
-
-# stepAfterLineSearch = backtrackLineSearch()
-
-println("Completed")
