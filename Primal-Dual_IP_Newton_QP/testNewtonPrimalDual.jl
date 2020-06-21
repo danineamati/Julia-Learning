@@ -82,6 +82,7 @@ itersCoords = [x0, x0New, x0New2]
 xVals = [x[1] for x in itersCoords]
 yVals = [x[2] for x in itersCoords]
 
+xRange = -10:0.1:10
 yMax = 14
 yMin = -3
 
@@ -89,4 +90,33 @@ plt = constraintsPlot(AMat, bVec, x0, xRange, yMin, yMax)
 pltfollow = plot!(xVals, yVals, label = "Newton Steps Path")
 display(pltfollow)
 
+# Putting it all together
+println("Putting all together from the start: ")
+hCurr = vcat(x0, lambda)
+
+# (Q, c, A, b, h, fObj, dfdx)
+hVNew = newtonAndLineSearch(QMat, cVec, AMat, bVec, hCurr, fObj, dfdx)
+display(hVNew)
+println()
+# Putting it all together in loop
+println("Putting all together from the start: ")
+
+hStates = []
+push!(hStates, hCurr)
+
+for i in 1:5
+    # Update rVec at each iteration
+    global hCurr = newtonAndLineSearch(QMat, cVec, AMat, bVec, hCurr, fObj, dfdx)
+    push!(hStates, hCurr)
+end
+
+xVals = [h[1] for h in hStates]
+yVals = [h[2] for h in hStates]
+
+plot!(xVals, yVals, label = "Iterative")
+pltIter = scatter!(xVals, yVals, label = "Iterative")
+
+display(pltIter)
+
+println()
 println("Completed")

@@ -149,32 +149,54 @@ function newtonStep(gRA, gRB, gRC, gRD, rV)
     return gRInv * rV
 end
 
-function newtonAndLineSearch(gRA, gRB, gRC, gRD, rV, x0, fObj, dfdx, A, b,
-                                paramA = 0.1, paramB = 0.5)
+function newtonAndLineSearch(Q, c, A, b, hV, fObj, dfdx,
+                                paramA = 0.1, paramB = 0.5, verbose = false)
+    # Current state
+    xSize = size(Q, 1)
+
+    xCurr = hV[1:xSize]
+    lamCurr = hV[xSize + 1:end]
+
+    # Get current r Vector and gradient of r Vector
+    rV = getQPrVec(Q, c, A, b, xCurr, lamCurr, mu)
+    gRA, gRB, gRC, gRD = getQPGradrVec(Q, A, b, xCurr, lamCurr)
+
     # First get the newton step
     dirNewton = newtonStep(gRA, gRB, gRC, gRD, rV)
+    println("Direction: $dirNewton")
 
     # Then get the line search recommendation
-    xSize = size(x0, 1)
-    rSize = size(rV, 1)
     x0LS, stepLS = backtrackLineSearch(x0, dirNewton[1:xSize], fObj, dfdx,
                                     paramA, paramB)
-    # Update the rVector
-    x0New = x0 + x0LS
-    lambdaNew = lambda + stepLS * rVec[xSize + 1:rSize]
+    println("x0LS = $x0LS and step = $stepLS")
 
-    rVec = vcat(x0New, lambdaNew)
+    # Update the rVector
+    x0New = xCurr + x0LS
+    lambdaNew = lamCurr + stepLS * rV[xSize + 1:end]
+
+    display(x0New)
+    display(lambdaNew)
+
+    hVNew = vcat(x0New, lambdaNew)
 
     # want to check that the conditions are satisfied
-    for lam in lambdaNew
-        @assert lam ≥ 0
+    if verbose
+        print("Check lambda: ")
+        for lam in lambdaNew
+            print(lam ≤ 0)
+            print(", ")
+        end
+        println()
+
+        print("Check Constraints: ")
+        for ind in 1:size(bVec, 1)
+            print(A[ind, :]'x0New - b[ind] ≤ 0)
+            print(", ")
+        end
+        println()
     end
 
-    for ind in 1:size(bVec, 1)
-        @assert A * x0New - b ≥ 0
-    end
-
-    return rVec
+    return hVNew
 
 end
 
