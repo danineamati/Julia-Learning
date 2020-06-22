@@ -149,11 +149,62 @@ function newtonStep(gRA, gRB, gRC, gRD, rV)
     return gRInv * rV
 end
 
-function newtonAndLineSearch(Q, c, A, b, hV, fObj, dfdx,
+function checkConditions(hVec, A, b, verbose = false)
+    # Need to check that:
+    # λ ≤ 0 (Based on problem formulation)
+    # Ax ≤ b → Ax - b ≤ 0
+
+    # A single wrong condition will render this false,
+    # but this enables all checks printed out for debugging
+    testsPassed = true
+
+    consSize = size(b, 1)
+    xSize = size(hVec, 1) - consSize
+    xVec = hVec[1:xSize]
+    lambdaVec = hVec[xSize + 1:end]
+
+    if verbose
+        print("Check lambda: ")
+    end
+
+    for lam in lambdaVec
+        check = (lam ≤ 0)
+        testsPassed = testsPassed && check
+
+        if verbose
+            print(check)
+            print(", ")
+        end
+    end
+
+    if verbose
+        println()
+        print("Check Constraints: ")
+    end
+
+    for ind in 1:size(b, 1)
+        check = (A[ind, :]'xVec - b[ind] ≤ 0)
+        testsPassed = testsPassed && check
+
+        if verbose
+            print(check)
+            print(", ")
+        end
+    end
+
+    if verbose
+        println()
+    end
+
+    return testsPassed
+end
+
+function newtonAndLineSearch(Q, c, A, b, hV, mu, fObj, dfdx,
                                 paramA = 0.1, paramB = 0.5, verbose = false)
     # Current state
     xSize = size(Q, 1)
-
+    println("μ = $mu")
+    @assert mu > 0
     xCurr = hV[1:xSize]
     lamCurr = hV[xSize + 1:end]
 
@@ -164,36 +215,45 @@ function newtonAndLineSearch(Q, c, A, b, hV, fObj, dfdx,
     # First get the newton step
     dirNewton = newtonStep(gRA, gRB, gRC, gRD, rV)
     println("Direction: $dirNewton")
-
     # Then get the line search recommendation
-    x0LS, stepLS = backtrackLineSearch(x0, dirNewton[1:xSize], fObj, dfdx,
-                                    paramA, paramB)
+    x0LS, stepLS = backtrackLineSearch(x0, dirNewton[1:xSize],
+                                    fObj, dfdx, paramA, paramB)
     println("x0LS = $x0LS and step = $stepLS")
 
-    # Update the rVector
-    x0New = xCurr + x0LS
-    lambdaNew = lamCurr + stepLS * rV[xSize + 1:end]
+    testsPassed = false
+    reduct = 1 # No reduction to start
 
-    display(x0New)
-    display(lambdaNew)
-
-    hVNew = vcat(x0New, lambdaNew)
+    maxIters = 10
+    numIters = 1
 
     # want to check that the conditions are satisfied
-    if verbose
-        print("Check lambda: ")
-        for lam in lambdaNew
-            print(lam ≤ 0)
-            print(", ")
-        end
-        println()
+    while !testsPassed
+        # Update the rVector
+        global x0New = xCurr + reduct * x0LS
+        global lambdaNew = lamCurr + reduct * stepLS * rV[xSize + 1:end]
+        global hVNew = vcat(x0New, lambdaNew)
 
-        print("Check Constraints: ")
-        for ind in 1:size(bVec, 1)
-            print(A[ind, :]'x0New - b[ind] ≤ 0)
-            print(", ")
+        if verbose
+            println("Reduction Factor: $reduct")
+            println("x0New = $x0New")
         end
-        println()
+
+        testsPassed = checkConditions(hVNew, A, b, true)
+        reduct = reduct * paramB
+
+        if numIters ≥ maxIters
+            break
+        else
+            numIters += 1
+        end
+    end
+
+    if verbose
+        reduct = reduct / paramB # Go back one step
+
+        println("Ended at iteration $numIters with $reduct factor")
+        display(x0New)
+        display(lambdaNew)
     end
 
     return hVNew
