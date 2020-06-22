@@ -122,6 +122,11 @@ end
 xVals = [h[1] for h in hStates]
 yVals = [h[2] for h in hStates]
 
+xCorrect = [-2.04348]
+yCorrect = [1.65217]
+
+plot!(xCorrect, yCorrect, label = "Minimum", markershape = :xcross)
+
 plot!(xVals, yVals, label = "Iterative")
 pltIter = scatter!(xVals, yVals, label = "Iterative")
 
