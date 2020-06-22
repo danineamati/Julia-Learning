@@ -31,7 +31,7 @@ function objectiveContours(fObj, xRange = -10:0.01:10, yRange = -2:0.01:10)
 end
 
 function constraintsPlot(A, bV, x0, xRange = -10:0.01:10, yMin = 2, yMax = 10)
-    plt = scatter(x0[1], x0[2])
+    plt = scatter([x0[1]], [x0[2]])
 
     for i in 1:size(bV, 1)
         m = -A[i, 1] / A[i, 2]
@@ -104,7 +104,7 @@ function QPSetup(showContoursObjective = false, showPlotConstraints = false)
     # Set the initial starting point
     # --------------------------
 
-    x0 = [0; 0]
+    x0 = [-2.0; 0.5]
 
     if showPlotConstraints
 
