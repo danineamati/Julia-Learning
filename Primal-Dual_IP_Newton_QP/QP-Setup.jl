@@ -14,7 +14,8 @@
 
 using LinearAlgebra
 using Plots
-gr() # Its a very simple plot
+# gr() # Its a very simple plot
+pyplot()
 
 function checkPosDef(Q)
     # To check Positive Definite, we check that the eigenvals are positive
@@ -49,7 +50,8 @@ function constraintsPlot(A, bV, x0, xRange = -10:0.01:10, yMin = 2, yMax = 10)
                         lw = 2, label = "g$i")
     end
 
-    scatter!([x0[1]], [x0[2]], markersize = 5, label = "Initial pt")
+    scatter!([x0[1]], [x0[2]], markersize = 5, label = "Initial pt",
+                                markershape = :rect)
     ylims!((yMin, yMax))
     xlabel!("X")
     ylabel!("Y")
@@ -150,7 +152,8 @@ function QPSetup(showContoursObjective = false, showPlotConstraints = false)
                             lw = 2, label = "g$i")
         end
 
-        scatter!([x0[1]], [x0[2]], markersize = 5, label = "Initial pt")
+        scatter!([x0[1]], [x0[2]], markersize = 5, label = "Initial pt",
+                                    markershape = :rect)
         ylims!((yMin, yMax))
         xlabel!("X")
         ylabel!("Y")

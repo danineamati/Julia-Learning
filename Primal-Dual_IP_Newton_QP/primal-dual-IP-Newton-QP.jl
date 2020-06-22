@@ -117,12 +117,12 @@ end
 function getQPrVec(Q, c, A, b, x, lambda, mu)
     # # r = (  ∇f(x) + λT ∇g(x) )  = (        Qx + c + λT A        )
     #       (-diag(λ) g(x) - μ 1)  = (-diag(λ) Ax - diag(λ) b - μ 1)
-    @assert size(A, 1) == size(lambda, 1)
-    @assert size(x, 1) == size(c, 1)
-    @assert size(Q, 2) == size(x, 1)
+    # @assert size(A, 1) == size(lambda, 1)
+    # @assert size(x, 1) == size(c, 1)
+    # @assert size(Q, 2) == size(x, 1)
 
     r1 = Q * x + c + A'lambda
-    r2 = - Diagonal(lambda) * A * x - Diagonal(lambda) * b - mu * ones(size(A, 1))
+    r2 = - Diagonal(lambda) * (A * x - b) - mu * ones(size(A, 1))
 
     return vcat(r1, r2)
 end
@@ -143,7 +143,8 @@ function getQPGradrVec(Q, A, b, x, lambda)
 end
 
 function newtonStep(gRA, gRB, gRC, gRD, rV)
-    # h ← h + ∇r^{-1} r
+    # h ← h - ∇r^{-1} r
+    # Here we return ∇r^{-1} r
 
     gRInv = invWithSchurComplement(gRA, gRB, gRC, gRD)
     return gRInv * rV
@@ -151,8 +152,8 @@ end
 
 function checkConditions(hVec, A, b, verbose = false)
     # Need to check that:
-    # λ ≤ 0 (Based on problem formulation)
-    # Ax ≤ b → Ax - b ≤ 0
+    # λ ≥ 0 (Based on problem formulation)
+    # Ax ≤ b → Ax - b ≤ 0 (Based on problem formulation)
 
     # A single wrong condition will render this false,
     # but this enables all checks printed out for debugging
@@ -168,7 +169,7 @@ function checkConditions(hVec, A, b, verbose = false)
     end
 
     for lam in lambdaVec
-        check = (lam ≤ 0)
+        check = (lam >= 0)
         testsPassed = testsPassed && check
 
         if verbose
@@ -204,7 +205,7 @@ function newtonAndLineSearch(Q, c, A, b, hV, mu, fObj, dfdx,
     # Current state
     xSize = size(Q, 1)
     println("μ = $mu")
-    @assert mu > 0
+    # @assert mu > 0
     xCurr = hV[1:xSize]
     lamCurr = hV[xSize + 1:end]
 
@@ -213,7 +214,7 @@ function newtonAndLineSearch(Q, c, A, b, hV, mu, fObj, dfdx,
     gRA, gRB, gRC, gRD = getQPGradrVec(Q, A, b, xCurr, lamCurr)
 
     # First get the newton step
-    dirNewton = newtonStep(gRA, gRB, gRC, gRD, rV)
+    dirNewton = -newtonStep(gRA, gRB, gRC, gRD, rV)
     println("Direction: $dirNewton")
     # Then get the line search recommendation
     x0LS, stepLS = backtrackLineSearch(x0, dirNewton[1:xSize],
@@ -229,6 +230,7 @@ function newtonAndLineSearch(Q, c, A, b, hV, mu, fObj, dfdx,
     # want to check that the conditions are satisfied
     while !testsPassed
         # Update the rVector
+        # Negative Sign Accounted Above
         global x0New = xCurr + reduct * x0LS
         global lambdaNew = lamCurr + reduct * stepLS * rV[xSize + 1:end]
         global hVNew = vcat(x0New, lambdaNew)

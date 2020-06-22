@@ -13,7 +13,12 @@ matD = [4 5 2; 8 6 4; 1 2 3]
 rVec = [3; 4; 5; 9; 8; 7]
 
 nextStep = newtonStep(matA, matB, matC, matD, rVec)
-display(nextStep)
+# display(nextStep)
+# println("Expected: ")
+expectedStep = inv([matA matB; matC matD]) * rVec
+# display(expectedStep)
+println("Error: ")
+display(nextStep - expectedStep)
 
 println()
 println("Setting Up the QP")
@@ -32,7 +37,7 @@ println("Initial Starting Point: $x0")
 
 println()
 println("Testing r Vec from QP-Setup")
-lambda = [1; 1; 1]
+lambda = [1/20; 1/30; 1]
 mu = 1
 rVec = getQPrVec(QMat, cVec, AMat, bVec, x0, lambda, mu)
 grA, grB, grC, grD = getQPGradrVec(QMat, AMat, bVec, x0, lambda)
@@ -40,7 +45,7 @@ println("r vec = $rVec")
 println("∇r =")
 display([grA grB; grC grD])
 
-dirNewton = newtonStep(grA, grB, grC, grD, rVec)
+dirNewton = -newtonStep(grA, grB, grC, grD, rVec)
 println()
 println("First Newton Step: ")
 display(dirNewton)
@@ -90,47 +95,51 @@ println("Final Deduced Step Direction: $x0LS at α = $stepLS")
 # pltfollow = plot!(xVals, yVals, label = "Newton Steps Path")
 # display(pltfollow)
 
-# Putting it all together
-println("Putting all together from the start: ")
-hCurr = vcat(x0, lambda)
+if true
+    # Putting it all together
+    println("Putting all together from the start: ")
+    hCurr = vcat(x0, lambda)
 
-# (Q, c, A, b, h, mu, fObj, dfdx)
-mu = 1
-hVNew = newtonAndLineSearch(QMat, cVec, AMat, bVec, hCurr, mu, fObj, dfdx)
-display(hVNew)
-println()
-# Putting it all together in loop
-println("Putting all together from the start iteratively: ")
+    # (Q, c, A, b, h, mu, fObj, dfdx)
+    mu = 1
+    hVNew = newtonAndLineSearch(QMat, cVec, AMat, bVec, hCurr, mu, fObj, dfdx)
+    display(hVNew)
+    println()
+    # Putting it all together in loop
+    println("Putting all together from the start iteratively: ")
 
-hStates = []
-push!(hStates, hCurr)
-
-paramA = 0.1
-paramB = 0.5
-
-mu = 1
-muReduct = 0.1
-
-for i in 1:10
-    # Update rVec at each iteration
-    global hCurr = newtonAndLineSearch(QMat, cVec, AMat, bVec, hCurr, mu,
-                                    fObj, dfdx, paramA, paramB, true)
+    hStates = []
     push!(hStates, hCurr)
-    global mu = mu * muReduct
+
+    paramA = 0.1
+    paramB = 0.5
+
+    mu = 1
+    muReduct = 0.1
+
+    for i in 1:10
+        # Update rVec at each iteration
+        global hCurr = newtonAndLineSearch(QMat, cVec, AMat, bVec, hCurr, mu,
+                                        fObj, dfdx, paramA, paramB, true)
+        push!(hStates, hCurr)
+        global mu = mu * muReduct
+    end
+
+    xVals = [h[1] for h in hStates]
+    yVals = [h[2] for h in hStates]
+
+    xCorrect = [-2.04348]
+    yCorrect = [1.65217]
+
+    scatter!(xCorrect, yCorrect, label = "Minimum", markershape = :xcross,
+                markercolor = :red, markersize = 10)
+
+    plot!(xVals, yVals, label = "Iterative")
+    pltIter = scatter!(xVals, yVals, label = "Iterative")
+    title!("Primal-Dual Newton Progression")
+
+    display(pltIter)
+
+    println()
 end
-
-xVals = [h[1] for h in hStates]
-yVals = [h[2] for h in hStates]
-
-xCorrect = [-2.04348]
-yCorrect = [1.65217]
-
-plot!(xCorrect, yCorrect, label = "Minimum", markershape = :xcross)
-
-plot!(xVals, yVals, label = "Iterative")
-pltIter = scatter!(xVals, yVals, label = "Iterative")
-
-display(pltIter)
-
-println()
 println("Completed")
