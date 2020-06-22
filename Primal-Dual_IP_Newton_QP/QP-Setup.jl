@@ -72,7 +72,9 @@ function QPSetup(showContoursObjective = false, showPlotConstraints = false)
     print("Q Matrix is Positive Definite: ")
     println(checkPosDef(QMat))
 
-    cVec = [4; -3]
+    # For an Interior Point, try [4; -3]
+    # For an Exterior Point, try [-30; 70]
+    cVec = [-30; 70] # [-30; 70] # [4; -3]
 
     # Input x as a COLUMN vector (i.e. x = [4; 3])
     fObj(x) = (1/2) * x'QMat*x + cVec'x
@@ -85,6 +87,9 @@ function QPSetup(showContoursObjective = false, showPlotConstraints = false)
         xRange = -10:0.01:10
         yRange = -2:0.01:10
         cPlt = objectiveContours(fObj, xRange, yRange)
+        xlabel!("x")
+        ylabel!("y")
+        title!("Contours of the Objective Function")
         display(cPlt)
     end
 
@@ -104,7 +109,7 @@ function QPSetup(showContoursObjective = false, showPlotConstraints = false)
     # Set the initial starting point
     # --------------------------
 
-    x0 = [4.8; -0.9]
+    x0 = [2; 2]
 
     if showPlotConstraints
 
