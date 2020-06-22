@@ -104,7 +104,7 @@ function QPSetup(showContoursObjective = false, showPlotConstraints = false)
     # Set the initial starting point
     # --------------------------
 
-    x0 = [-2.0; 0.5]
+    x0 = [4.8; -0.9]
 
     if showPlotConstraints
 

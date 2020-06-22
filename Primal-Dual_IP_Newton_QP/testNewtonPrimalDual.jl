@@ -55,7 +55,8 @@ paramA = 0.1
 paramB = 0.5
 x0LS, stepLS = backtrackLineSearch(x0, dirNewton[1:2], fObj, dfdx,
                                 paramA, paramB)
-println("Final Deduced Step Direction: $x0LS at α = $stepLS")
+xDed = stepLS * dirNewton[1:2]
+println("Final Deduced Step Direction: $xDed at α = $stepLS")
 
 # # Update the rVector
 # x0New = x0 + x0LS
@@ -97,6 +98,7 @@ println("Final Deduced Step Direction: $x0LS at α = $stepLS")
 
 if true
     # Putting it all together
+    println()
     println("Putting all together from the start: ")
     hCurr = vcat(x0, lambda)
 

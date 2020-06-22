@@ -219,7 +219,7 @@ function newtonAndLineSearch(Q, c, A, b, hV, mu, fObj, dfdx,
     # Then get the line search recommendation
     x0LS, stepLS = backtrackLineSearch(x0, dirNewton[1:xSize],
                                     fObj, dfdx, paramA, paramB)
-    println("x0LS = $x0LS and step = $stepLS")
+    println("Line Search step = $stepLS")
 
     testsPassed = false
     reduct = 1 # No reduction to start
@@ -231,8 +231,8 @@ function newtonAndLineSearch(Q, c, A, b, hV, mu, fObj, dfdx,
     while !testsPassed
         # Update the rVector
         # Negative Sign Accounted Above
-        global x0New = xCurr + reduct * x0LS
-        global lambdaNew = lamCurr + reduct * stepLS * rV[xSize + 1:end]
+        global x0New = xCurr + reduct * stepLS * dirNewton[1:xSize]
+        global lambdaNew = lamCurr + reduct * stepLS * dirNewton[xSize + 1:end]
         global hVNew = vcat(x0New, lambdaNew)
 
         if verbose
@@ -244,6 +244,7 @@ function newtonAndLineSearch(Q, c, A, b, hV, mu, fObj, dfdx,
         reduct = reduct * paramB
 
         if numIters ≥ maxIters
+            println("MAX ITERS REACHED")
             break
         else
             numIters += 1
