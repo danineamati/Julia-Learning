@@ -6,19 +6,19 @@
 # minimize_x f(x)
 # subject to Ax ≦ b
 #
-# We rewrite this as f(x) - λT g(x)
-# Where g(x) are the constraints such that c(x) ≧ 0 and λ ≧ 0
+# We rewrite this as f(x) + λT g(x)
+# Where g(x) are the constraints such that c(x) ≦ 0 and λ ≧ 0
 # The first-order condition of the KKT is
-# ∇f(x) - λT ∇g(x) = 0
+# ∇f(x) + λT ∇g(x) = 0
 #
 # Now we want to use a Primal-Dual trick for an Augmented Lagrangian
 # (i.e. squared penalty + lagrange multiplier). We have
 #
-# minimize_x f(x) + μ Σ ||g_i(x)||_2^2 + Σ λ_i g_i(x)
+# minimize_x f(x) + μ Σ ||g_i(x)||_2^2 + Σ ρ_i g_i(x)
 # The first-order condition of the KKT is
-# ∇f(x) + μ Σ g_i(x) * ∇g_i(x) + Σ λ_i ∇g_i(x) = 0
-#∇f(x) + Σ (μ g_i(x) + λ_i) * ∇g_i(x) + Σ∇g_i(x) = 0
-# So, λT = μ / g(x)
+# ∇f(x) + μ Σ g_i(x) * ∇g_i(x) + Σ ρ_i ∇g_i(x) = 0
+#∇f(x) + Σ (μ g_i(x) + ρ_i) * ∇g_i(x) + Σ∇g_i(x) = 0
+# So, μ g_i(x) + ρ_i = λ_i
 #
 # -------------------------
 #
@@ -27,15 +27,15 @@
 # We make a vector h = [x λ]T and r = r(x, λ) and we update h as
 # h ← h + ∇r^{-1} r
 # Where
-# r = (∇f(x) + λT ∇g(x))
-#     ( -diag(λ) g(x) - μ 1)
+# r = (     ∇f(x) + λT ∇g(x)     )
+#     ( g_i(x) + (1/μ)(ρ_i - λ_i))
 #
 # So ∇r = [A B; C D]
 # Where:
 # A = ∇^2 f(x) + λT ∇^2 g(x)
 # B = ∇g(x)^T
-# C = - diag(λ) ∇g(x)
-# D = -diag(g(x))
+# C = ∇g(x)
+# D = -(1/μ)
 #
 # --------------------------
 #
@@ -60,15 +60,15 @@
 # ∇^2g(x) = 0
 #
 # Thus,
-# # r = (  ∇f(x) + λT ∇g(x) )  = (        Qx + c + λT A        )
-#       (-diag(λ) g(x) - μ 1)  = (-diag(λ) Ax - diag(λ) b - μ 1)
+# r = (     ∇f(x) + λT ∇g(x)     ) = (    Qx + c + λT * A   )
+#     ( g_i(x) + (1/μ)(ρ_i - λ_i)) = ( Ax - b + (1/μ)(ρ - λ))
 #
 # So ∇r = [A B; C D]
 # Where:
 # A = ∇^2 f(x) + λT ∇^2 g(x) = Q
 # B = ∇g(x)^T                = A^T
-# C = - diag(λ) ∇g(x)        = -diag(λ) A
-# D = -diag(g(x))            = -diag(Ax - b)
+# C = ∇g(x)                  = A
+# D = -(1/μ)                 = -(1/μ)
 #
 # ----------------------------
 # Therefore we need two parts, the outer part that updates μ and
@@ -114,30 +114,30 @@ function invWithSchurComplement(A, B, C, D)
     return [topLeft topRight; botLeft botRight]
 end
 
-function getQPrVecIP(Q, c, A, b, x, lambda, mu)
-    # # r = (  ∇f(x) + λT ∇g(x) )  = (        Qx + c + λT A        )
-    #       (-diag(λ) g(x) - μ 1)  = (-diag(λ) Ax - diag(λ) b - μ 1)
+function getQPrVecAL(Q, c, A, b, x, lambda, mu, rho)
+    # r = (     ∇f(x) + λT ∇g(x)     ) = (    Qx + c + λT * A   )
+    #     ( g_i(x) + (1/μ)(ρ_i - λ_i)) = ( Ax - b + (1/μ)(ρ - λ))
     # @assert size(A, 1) == size(lambda, 1)
     # @assert size(x, 1) == size(c, 1)
     # @assert size(Q, 2) == size(x, 1)
 
     r1 = Q * x + c + A'lambda
-    r2 = - Diagonal(lambda) * (A * x - b) - mu * ones(size(A, 1))
+    r2 = (A * x - b) + (1/mu) * (rho - lambda)
 
     return vcat(r1, r2)
 end
 
-function getQPGradrVecIP(Q, A, b, x, lambda)
+function getQPGradrVecAL(Q, A, b, x, mu)
     # So ∇r = [A B; C D]
     # Where:
     # A = ∇^2 f(x) + λT ∇^2 g(x) = Q
     # B = ∇g(x)^T                = A^T
-    # C = - diag(λ) ∇g(x)        = -diag(λ) A
-    # D = -diag(g(x))            = -diag(Ax - b)
+    # C = ∇g(x)                  = A
+    # D = -(1/μ)                 = -(1/μ)
     Ar = Q
     Br = A'
-    Cr = - Diagonal(lambda) * A
-    Dr = - Diagonal(A * x - b)
+    Cr = A
+    Dr = - (1/mu) * Diagonal(ones(size(A,1)))
 
     return (Ar, Br, Cr, Dr)
 end
@@ -213,8 +213,8 @@ function newtonAndLineSearch(Q, c, A, b, hV, mu, fObj, dfdx,
     lamCurr = hV[xSize + 1:end]
 
     # Get current r Vector and gradient of r Vector
-    rV = getQPrVecIP(Q, c, A, b, xCurr, lamCurr, mu)
-    gRA, gRB, gRC, gRD = getQPGradrVecIP(Q, A, b, xCurr, lamCurr)
+    rV = getQPrVecAL(Q, c, A, b, xCurr, lamCurr, mu)
+    gRA, gRB, gRC, gRD = getQPGradrVecAL(Q, A, b, xCurr, lamCurr)
 
     # First get the newton step
     dirNewton = -newtonStep(gRA, gRB, gRC, gRD, rV)
