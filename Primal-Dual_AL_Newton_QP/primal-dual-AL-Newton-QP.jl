@@ -1,6 +1,6 @@
-# Primal-Dual Interior Point Newton Method
+# Primal-Dual Augmented Lagrangian Newton Method
 #
-# This is specifically for QPs and Interior Point
+# This is specifically for QPs and Augmented Lagrangian
 #
 #
 # minimize_x f(x)
@@ -11,13 +11,13 @@
 # The first-order condition of the KKT is
 # ∇f(x) - λT ∇g(x) = 0
 #
-# Now we want to use a Primal-Dual trick for a Log-Barrier
-# (i.e. Interior Point). We have
+# Now we want to use a Primal-Dual trick for an Augmented Lagrangian
+# (i.e. squared penalty + lagrange multiplier). We have
 #
-# minimize_x f(x) - μ log(g(x))
+# minimize_x f(x) + μ Σ ||g_i(x)||_2^2 + Σ λ_i g_i(x)
 # The first-order condition of the KKT is
-# ∇f(x) - μ ∇g(x) / g(x) = 0
-#
+# ∇f(x) + μ Σ g_i(x) * ∇g_i(x) + Σ λ_i ∇g_i(x) = 0
+#∇f(x) + Σ (μ g_i(x) + λ_i) * ∇g_i(x) + Σ∇g_i(x) = 0
 # So, λT = μ / g(x)
 #
 # -------------------------
@@ -77,10 +77,11 @@
 # This script has the inner part first, then the outer part
 
 
+
 using LinearAlgebra
 
 include("..\\LearningOptimization\\backtrackLineSearch.jl")
-include("QP-Setup.jl")
+include("..\\Primal-Dual_IP_Newton_QP\\QP-Setup.jl")
 
 # ------------------
 # Schur complements for Matrix Inverse
