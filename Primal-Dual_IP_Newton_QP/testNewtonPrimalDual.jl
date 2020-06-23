@@ -39,8 +39,8 @@ println()
 println("Testing r Vec from QP-Setup")
 lambda = [1/20; 1/30; 1]
 mu = 1
-rVec = getQPrVec(QMat, cVec, AMat, bVec, x0, lambda, mu)
-grA, grB, grC, grD = getQPGradrVec(QMat, AMat, bVec, x0, lambda)
+rVec = getQPrVecIP(QMat, cVec, AMat, bVec, x0, lambda, mu)
+grA, grB, grC, grD = getQPGradrVecIP(QMat, AMat, bVec, x0, lambda)
 println("r vec = $rVec")
 println("∇r =")
 display([grA grB; grC grD])
@@ -72,22 +72,27 @@ if true
     # Putting it all together in loop
     println("Putting all together from the start iteratively: ")
 
-    hStates = []
-    push!(hStates, hCurr)
-
-    paramA = 0.1
-    paramB = 0.5
+    # hStates = []
+    # push!(hStates, hCurr)
+    #
+    # paramA = 0.1
+    # paramB = 0.5
+    #
+    # mu = 1
+    # muReduct = 0.1
+    #
+    # for i in 1:10
+    #     # Update rVec at each iteration
+    #     global hCurr = newtonAndLineSearch(QMat, cVec, AMat, bVec, hCurr, mu,
+    #                                     fObj, dfdx, paramA, paramB, true)
+    #     push!(hStates, hCurr)
+    #     global mu = mu * muReduct
+    # end
 
     mu = 1
-    muReduct = 0.1
+    hStates = pdIPNewtonQPmain(QMat, cVec, AMat, bVec, x0, lambda, mu,
+                                    fObj, dfdx)
 
-    for i in 1:10
-        # Update rVec at each iteration
-        global hCurr = newtonAndLineSearch(QMat, cVec, AMat, bVec, hCurr, mu,
-                                        fObj, dfdx, paramA, paramB, true)
-        push!(hStates, hCurr)
-        global mu = mu * muReduct
-    end
 
     xVals = [h[1] for h in hStates]
     yVals = [h[2] for h in hStates]

@@ -114,7 +114,7 @@ function invWithSchurComplement(A, B, C, D)
     return [topLeft topRight; botLeft botRight]
 end
 
-function getQPrVec(Q, c, A, b, x, lambda, mu)
+function getQPrVecIP(Q, c, A, b, x, lambda, mu)
     # # r = (  ∇f(x) + λT ∇g(x) )  = (        Qx + c + λT A        )
     #       (-diag(λ) g(x) - μ 1)  = (-diag(λ) Ax - diag(λ) b - μ 1)
     # @assert size(A, 1) == size(lambda, 1)
@@ -127,7 +127,7 @@ function getQPrVec(Q, c, A, b, x, lambda, mu)
     return vcat(r1, r2)
 end
 
-function getQPGradrVec(Q, A, b, x, lambda)
+function getQPGradrVecIP(Q, A, b, x, lambda)
     # So ∇r = [A B; C D]
     # Where:
     # A = ∇^2 f(x) + λT ∇^2 g(x) = Q
@@ -204,22 +204,29 @@ function newtonAndLineSearch(Q, c, A, b, hV, mu, fObj, dfdx,
                                 paramA = 0.1, paramB = 0.5, verbose = false)
     # Current state
     xSize = size(Q, 1)
-    println("μ = $mu")
-    # @assert mu > 0
+    if verbose
+        println("μ = $mu")
+        # @assert mu > 0
+    end
+
     xCurr = hV[1:xSize]
     lamCurr = hV[xSize + 1:end]
 
     # Get current r Vector and gradient of r Vector
-    rV = getQPrVec(Q, c, A, b, xCurr, lamCurr, mu)
-    gRA, gRB, gRC, gRD = getQPGradrVec(Q, A, b, xCurr, lamCurr)
+    rV = getQPrVecIP(Q, c, A, b, xCurr, lamCurr, mu)
+    gRA, gRB, gRC, gRD = getQPGradrVecIP(Q, A, b, xCurr, lamCurr)
 
     # First get the newton step
     dirNewton = -newtonStep(gRA, gRB, gRC, gRD, rV)
-    println("Direction: $dirNewton")
+    if verbose
+        println("Direction: $dirNewton")
+    end
     # Then get the line search recommendation
     x0LS, stepLS = backtrackLineSearch(x0, dirNewton[1:xSize],
                                     fObj, dfdx, paramA, paramB)
-    println("Line Search step = $stepLS")
+    if verbose
+        println("Line Search step = $stepLS")
+    end
 
     testsPassed = false
     reduct = 1 # No reduction to start
@@ -240,7 +247,7 @@ function newtonAndLineSearch(Q, c, A, b, hV, mu, fObj, dfdx,
             println("x0New = $x0New")
         end
 
-        testsPassed = checkConditions(hVNew, A, b, true)
+        testsPassed = checkConditions(hVNew, A, b, verbose)
         reduct = reduct * paramB
 
         if numIters ≥ maxIters
@@ -263,7 +270,28 @@ function newtonAndLineSearch(Q, c, A, b, hV, mu, fObj, dfdx,
 
 end
 
+function pdIPNewtonQPmain(Q, c, A, b, x0, lambda, mu, fObj, dfdx,
+                        paramA = 0.1, paramB = 0.5, verbose = false)
+    hCurr = vcat(x0, lambda)
+    hStates = []
+    push!(hStates, hCurr)
 
+    paramA = 0.1
+    paramB = 0.5
+
+    mu = 1
+    muReduct = 0.1
+
+    for i in 1:10
+        # Update rVec at each iteration
+        hCurr = newtonAndLineSearch(Q, c, A, b, hCurr, mu,
+                                        fObj, dfdx, paramA, paramB, verbose)
+        push!(hStates, hCurr)
+        mu = mu * muReduct
+    end
+
+    return hStates
+end
 
 
 # Call functions
