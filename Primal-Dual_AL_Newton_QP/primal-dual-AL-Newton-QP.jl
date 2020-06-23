@@ -14,7 +14,7 @@
 # Now we want to use a Primal-Dual trick for an Augmented Lagrangian
 # (i.e. squared penalty + lagrange multiplier). We have
 #
-# minimize_x f(x) + μ Σ ||g_i(x)||_2^2 + Σ ρ_i g_i(x)
+# minimize_x f(x) + (μ/2) Σ ||g_i(x)||_2^2 + Σ ρ_i g_i(x)
 # The first-order condition of the KKT is
 # ∇f(x) + μ Σ g_i(x) * ∇g_i(x) + Σ ρ_i ∇g_i(x) = 0
 #∇f(x) + Σ (μ g_i(x) + ρ_i) * ∇g_i(x) + Σ∇g_i(x) = 0
