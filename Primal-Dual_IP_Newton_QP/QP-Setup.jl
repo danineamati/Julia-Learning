@@ -50,7 +50,7 @@ function constraintsPlot(A, bV, x0, xRange = -10:0.01:10, yMin = 2, yMax = 10)
                         lw = 2, label = "g$i")
     end
 
-    scatter!([x0[1]], [x0[2]], markersize = 5, label = "Initial pt",
+    scatter!([x0[1]], [x0[2]], markersize = 8, label = "Initial pt",
                                 markershape = :rect)
     ylims!((yMin, yMax))
     xlabel!("X")

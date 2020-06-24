@@ -139,22 +139,28 @@ function newtonMethodLineSearch(x, fObj, dfdx, Q, c, A, b, rho, lambda,
     for i in 1:maxIters
 
         # compute ∇φ(x)
-        println("x = $xCurr")
-        println("c_+(x) = $(cPlus(A, xCurr, b))")
-        println("∇c_+(x) = $(cPlusD(A, xCurr, b))")
+        if verbose
+            println("x = $xCurr")
+            println("c_+(x) = $(cPlus(A, xCurr, b))")
+            println("∇c_+(x) = $(cPlusD(A, xCurr, b))")
+        end
         phiD = getQPgradPhiAL(xCurr, Q, c, A, b, rho, lambda)
 
         # Note the negative sign!
         dirNewton = -newtonStep(phiDDinv, phiD)
 
-        println("Newton Direction: $dirNewton")
+        if verbose
+            println("Newton Direction: $dirNewton")
+        end
 
         # Then get the line search recommendation
         x0LS, stepLS = backtrackLineSearch(xCurr, dirNewton, fObj, dfdx,
                                             paramA, paramB)
 
-        println("Recommended Line Search Step: $stepLS")
-        println("Expected x = $x0LS ?= $(xCurr + stepLS * dirNewton)")
+        if verbose
+            println("Recommended Line Search Step: $stepLS")
+            println("Expected x = $x0LS ?= $(xCurr + stepLS * dirNewton)")
+        end
 
         if norm(xCurr - x0LS, 2) < xtol
             break
@@ -184,26 +190,25 @@ function ALNewtonQPmain(x0, fObj, dfdx, Q, c, A, b, rho, lambda,
         dPhidx(x) = getQPgradPhiAL(x, Q, c, A, b, rho, lambda)
 
         # Update x at each iteration
-        println()
-        println("Next Full Update starting at $x0")
+        if verbose
+            println()
+            println("Next Full Update starting at $x0")
+        end
         xNew = newtonMethodLineSearch(x0, phi, dPhidx, Q, c, A, b, rho, lambda,
                             xtol, maxIters, paramA, paramB, verbose)
         push!(xStates, xNew)
-
-        println("New state added")
 
         # Determine the new lambda and rho
         # λ ← λ + ρ c(x_k*)       - Which is to say update with prior x*
         # ρ ← min(ρ * 10, 10^6)   - Which is to say we bound ρ's growth by 10^6
         lambda = lambda + rho * (A * xNew - b)
-
-        println("Lambda Updated: $lambda")
-
         rho = min(rho * rhoIncrease, rhoMax)
 
-        println("rho updated: $rho")
-
-        println("Checking tolerance")
+        if verbose
+            println("New state added")
+            println("Lambda Updated: $lambda")
+            println("rho updated: $rho")
+        end
 
         if norm(xNew - x0, 2) < xtol
             break
