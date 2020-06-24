@@ -4,7 +4,7 @@
 #
 #
 # minimize_x f(x)
-# subject to Ax ≦ b
+# subject to Ax ≤ b
 #
 # We rewrite this as f(x) + λT g(x)
 # Where g(x) are the constraints such that c(x) ≦ 0 and λ ≧ 0
@@ -14,11 +14,12 @@
 # Now we want to use a Primal-Dual trick for an Augmented Lagrangian
 # (i.e. squared penalty + lagrange multiplier). We have
 #
-# minimize_x f(x) + (μ/2) Σ ||g_i(x)||_2^2 + Σ ρ_i g_i(x)
+# minimize_x f(x) + (ρ/2) Σ ||g_i(x)||_2^2 + Σ ν_i g_i(x)
 # The first-order condition of the KKT is
-# ∇f(x) + μ Σ g_i(x) * ∇g_i(x) + Σ ρ_i ∇g_i(x) = 0
-#∇f(x) + Σ (μ g_i(x) + ρ_i) * ∇g_i(x) + Σ∇g_i(x) = 0
-# So, μ g_i(x) + ρ_i = λ_i
+# ∇f(x) + ρ Σ g_i(x) * ∇g_i(x) + Σ ν_i ∇g_i(x) = 0
+#∇f(x) + Σ (ρ g_i(x) + ν_i) * ∇g_i(x) + Σ∇g_i(x) = 0
+# So, ρ g_i(x) + ν_i = λ_i
+# Or, equivalently, g(x) + (1/ρ) (ν - λ) = 0
 #
 # -------------------------
 #
@@ -27,22 +28,22 @@
 # We make a vector h = [x λ]T and r = r(x, λ) and we update h as
 # h ← h + ∇r^{-1} r
 # Where
-# r = (     ∇f(x) + λT ∇g(x)     )
-#     ( g_i(x) + (1/μ)(ρ_i - λ_i))
+# r = (  ∇f(x) + λT ∇g(x)  )
+#     ( g(x) + (1/ρ)(ν - λ))
 #
 # So ∇r = [A B; C D]
 # Where:
 # A = ∇^2 f(x) + λT ∇^2 g(x)
 # B = ∇g(x)^T
 # C = ∇g(x)
-# D = -(1/μ)
+# D = -(1/ρ)
 #
 # --------------------------
 #
 # We can simplify with the QP assumption
 #
 # minimize_x (1/2) xT Q x + cT x
-# subject to Ax ⩽ B
+# subject to Ax ≤ B
 #
 # where (all are Real)
 # Q is an nxn Symmetric Matrix (that is positive definite for convex)
@@ -60,15 +61,15 @@
 # ∇^2g(x) = 0
 #
 # Thus,
-# r = (     ∇f(x) + λT ∇g(x)     ) = (    Qx + c + λT * A   )
-#     ( g_i(x) + (1/μ)(ρ_i - λ_i)) = ( Ax - b + (1/μ)(ρ - λ))
+# r = (  ∇f(x) + λT ∇g(x)  ) = (    Qx + c + λT * A   )
+#     ( g(x) + (1/ρ)(ν - λ)) = ( Ax - b + (1/ρ)(ν - λ))
 #
 # So ∇r = [A B; C D]
 # Where:
 # A = ∇^2 f(x) + λT ∇^2 g(x) = Q
 # B = ∇g(x)^T                = A^T
 # C = ∇g(x)                  = A
-# D = -(1/μ)                 = -(1/μ)
+# D = -(1/μ) * I             = -(1/μ) * I
 #
 # ----------------------------
 # Therefore we need two parts, the outer part that updates μ and
@@ -114,30 +115,64 @@ function invWithSchurComplement(A, B, C, D)
     return [topLeft topRight; botLeft botRight]
 end
 
-function getQPrVecAL(Q, c, A, b, x, lambda, mu, rho)
+function cPlus(A, x, b)
+    # This function is for a constraint of the form Ax ≤ b.
+    # When Ax - b ≤ 0, we return 0 (Constraint satisfied). When Ax - b > 0
+    # We return Ax - b
+    #vec([max(ci, 0) for ci in (A * x - b)])
+    return max.((A*x - b), 0.0)
+end
+
+function cPlusD(A, x, b)
+    # If c(x) > 0, then ∇c_+(x) = ∇c(x) = A
+    # Else, ∇c_+(x) = 0
+    cX = A * x - b
+    ANew = deepcopy(A)
+    for row in 1:size(A, 1)
+        if cX[row] ≤ 0
+            # Constraint passed
+            ANew[row, :] = zeros(size(A, 2))
+        end
+    end
+
+    return ANew
+end
+
+function getQPgradPhiAL(x, Q, c, A, b, rho, lambda)
+    APost = cPlusD(A, x, b)
+    return (Q * x + c) + APost' * (rho * cPlus(A, x, b) + lambda)
+end
+
+function getQPrVecAL(Q, c, A, b, x, lambda, rho, nu)
     # r = (     ∇f(x) + λT ∇g(x)     ) = (    Qx + c + λT * A   )
     #     ( g_i(x) + (1/μ)(ρ_i - λ_i)) = ( Ax - b + (1/μ)(ρ - λ))
     # @assert size(A, 1) == size(lambda, 1)
     # @assert size(x, 1) == size(c, 1)
     # @assert size(Q, 2) == size(x, 1)
 
-    r1 = Q * x + c + A'lambda
-    r2 = (A * x - b) + (1/mu) * (rho - lambda)
+    APost = cPlusD(A, x, b)
+
+    r1 = (Q * x + c) + APost'lambda
+    r2 = cPlus(A, x, b) + (1/rho) * (nu - lambda)
 
     return vcat(r1, r2)
 end
 
-function getQPGradrVecAL(Q, A, b, x, mu)
+function getQPGradrVecAL(Q, A, b, x, rho)
     # So ∇r = [A B; C D]
     # Where:
     # A = ∇^2 f(x) + λT ∇^2 g(x) = Q
     # B = ∇g(x)^T                = A^T
     # C = ∇g(x)                  = A
     # D = -(1/μ)                 = -(1/μ)
+
+    # Note that the APost matrix is used to account for inequality constraints
+    APost = cPlusD(A, x, b)
+
     Ar = Q
-    Br = A'
-    Cr = A
-    Dr = - (1/mu) * Diagonal(ones(size(A,1)))
+    Br = APost'
+    Cr = APost
+    Dr = - (1/rho) * Diagonal(ones(size(A,1)))
 
     return (Ar, Br, Cr, Dr)
 end
@@ -150,127 +185,54 @@ function newtonStep(gRA, gRB, gRC, gRD, rV)
     return gRInv * rV
 end
 
-function checkConditions(hVec, A, b, verbose = false)
-    # Need to check that:
-    # λ ≥ 0 (Based on problem formulation)
-    # Ax ≤ b → Ax - b ≤ 0 (Based on problem formulation)
-
-    # A single wrong condition will render this false,
-    # but this enables all checks printed out for debugging
-    testsPassed = true
-
-    consSize = size(b, 1)
-    xSize = size(hVec, 1) - consSize
-    xVec = hVec[1:xSize]
-    lambdaVec = hVec[xSize + 1:end]
-
-    if verbose
-        print("Check lambda: ")
-    end
-
-    for lam in lambdaVec
-        check = (lam >= 0)
-        testsPassed = testsPassed && check
-
-        if verbose
-            print(check)
-            print(", ")
-        end
-    end
-
-    if verbose
-        println()
-        print("Check Constraints: ")
-    end
-
-    for ind in 1:size(b, 1)
-        check = (A[ind, :]'xVec - b[ind] ≤ 0)
-        testsPassed = testsPassed && check
-
-        if verbose
-            print(check)
-            print(", ")
-        end
-    end
-
-    if verbose
-        println()
-    end
-
-    return testsPassed
-end
-
-function newtonAndLineSearch(Q, c, A, b, hV, mu, fObj, dfdx,
+function newtonAndLineSearch(Q, c, A, b, hV, rho, nu, phiObj, dphidx,
                                 paramA = 0.1, paramB = 0.5, verbose = false)
     # Current state
     xSize = size(Q, 1)
     if verbose
-        println("μ = $mu")
-        # @assert mu > 0
+        println("ρ = $rho")
+        # @assert rho > 0
     end
 
     xCurr = hV[1:xSize]
     lamCurr = hV[xSize + 1:end]
 
     # Get current r Vector and gradient of r Vector
-    rV = getQPrVecAL(Q, c, A, b, xCurr, lamCurr, mu)
-    gRA, gRB, gRC, gRD = getQPGradrVecAL(Q, A, b, xCurr, lamCurr)
+    rV = getQPrVecAL(Q, c, A, b, xCurr, lamCurr, rho, nu)
+    gRA, gRB, gRC, gRD = getQPGradrVecAL(Q, A, b, xCurr, rho)
 
     # First get the newton step
+    # NOTICE the negative sign
     dirNewton = -newtonStep(gRA, gRB, gRC, gRD, rV)
     if verbose
         println("Direction: $dirNewton")
     end
     # Then get the line search recommendation
+    # Note that phiObj is the full Augmented Lagrangian
     x0LS, stepLS = backtrackLineSearch(x0, dirNewton[1:xSize],
-                                    fObj, dfdx, paramA, paramB)
+                                    phiObj, dphidx, paramA, paramB)
     if verbose
         println("Line Search step = $stepLS")
     end
 
-    testsPassed = false
-    reduct = 1 # No reduction to start
+    # Update the rVector
+    # Negative Sign Accounted Above
+    x0New = xCurr + stepLS * dirNewton[1:xSize]
+    lambdaNew = lamCurr + stepLS * dirNewton[xSize + 1:end]
+    hVNew = vcat(x0New, lambdaNew)
 
-    maxIters = 10
-    numIters = 1
-
-    # want to check that the conditions are satisfied
-    while !testsPassed
-        # Update the rVector
-        # Negative Sign Accounted Above
-        global x0New = xCurr + reduct * stepLS * dirNewton[1:xSize]
-        global lambdaNew = lamCurr + reduct * stepLS * dirNewton[xSize + 1:end]
-        global hVNew = vcat(x0New, lambdaNew)
-
-        if verbose
-            println("Reduction Factor: $reduct")
-            println("x0New = $x0New")
-        end
-
-        testsPassed = checkConditions(hVNew, A, b, verbose)
-        reduct = reduct * paramB
-
-        if numIters ≥ maxIters
-            println("MAX ITERS REACHED")
-            break
-        else
-            numIters += 1
-        end
-    end
+    # ONLY reason for the separation is for printing.
 
     if verbose
-        reduct = reduct / paramB # Go back one step
-
-        println("Ended at iteration $numIters with $reduct factor")
-        display(x0New)
-        display(lambdaNew)
+        println("x0New = $x0New")
+        println("LambdaNew = $lambdaNew")
     end
 
     return hVNew
 
 end
 
-function pdIPNewtonQPmain(Q, c, A, b, x0, lambda, mu, fObj, dfdx,
+function pdALNewtonQPmain(Q, c, A, b, x0, lambda, rho, nu, fObj, dfdx,
                         paramA = 0.1, paramB = 0.5, verbose = false)
     hCurr = vcat(x0, lambda)
     hStates = []
@@ -279,19 +241,33 @@ function pdIPNewtonQPmain(Q, c, A, b, x0, lambda, mu, fObj, dfdx,
     paramA = 0.1
     paramB = 0.5
 
-    mu = 1
-    muReduct = 0.1
+    rho = 1
+    rhoIncrease = 10
 
     for i in 1:10
         # Update rVec at each iteration
-        hCurr = newtonAndLineSearch(Q, c, A, b, hCurr, mu,
-                                        fObj, dfdx, paramA, paramB, verbose)
+        # φ(x) = f(x) + (ρ/2) c(x)'c(x) + λ c(x)
+        phi(x) = fObj(x) + (rho / 2) * cPlus(A, x, b)'cPlus(A, x, b) +
+                        lambda' * cPlus(A, x, b)
+        dPhidx(x) = getQPgradPhiAL(x, Q, c, A, b, rho, lambda)
+
+        hCurr = newtonAndLineSearch(Q, c, A, b, hCurr, rho, nu,
+                                        phi, dPhidx, paramA, paramB, verbose)
         push!(hStates, hCurr)
-        mu = mu * muReduct
+
+        # Determine the new lambda and rho
+        # ν ← ν + ρ c(x_k*)       - Which is to say update with prior x*
+        # ρ ← min(ρ * 10, 10^6)   - Which is to say we bound ρ's growth by 10^6
+        xNew = hCurr[1:size(x0, 1)]
+        nu = nu + rho * (A * xNew - b)
+        rho = rho * rhoIncrease
+
+        if verbose
+            println("New state added: $xNew with value φ(x) = $(phi(xNew))")
+            println("Lambda Updated: $lambda")
+            println("rho updated: $rho")
+        end
     end
 
     return hStates
 end
-
-
-# Call functions
