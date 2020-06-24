@@ -12,31 +12,6 @@
 # which we can write:
 # f(x) + (ρ/2) c(x)'c(x) + λ c(x)
 #
-#
-# ------------------------------------
-# Note that due to the nature of the inequality, we only want to penalize
-# when the constraint is violated. (i.e. c(x) > 0)
-# Thus, we define a c_+(x) = max(c(x), 0). In this formulation, we need a
-# piecewise definition of ∇c_+(x):
-# If c(x) > 0, then ∇c_+(x) = ∇c(x)
-# Else, ∇c_+(x) = 0
-#
-# Now, we mix this with the quadratic part, i.e. ||c(x)||_2^2 = c(x)'c(x)
-# We have c_+(x)'c_+(x), so
-# If c(x) > 0, then ∇[c_+(x)'c_+(x)] = ∇[c(x)'c(x)] = 2 c(x) ∇c(x)
-# Else, ∇[c_+(x)'c_+(x)] = 0
-#
-# Notice that the gradient is continuous since at the transition point, since
-# c(x) = 0 at the transition (as specified by the piecewise)
-#
-# Lastly, we take one more gradient, (ρ c(x) + λ) ∇^2c(x) + ρ ∇c(x) * ∇c(x)
-# If c(x) > 0, then we have (ρ c(x) + λ) ∇^2c(x) + ρ ∇c(x) * ∇c(x)
-# Else, (ρ c_+(x) + λ) ∇^2c_+(x) + ρ ∇c_+(x) * ∇c_+(x) = 0
-#
-# Notice that the hessian is not continuous. At the transition point, c(x) = 0
-# which yields λ ∇^2c(x) + ρ ∇c(x) * ∇c(x) ≠ 0
-# ----------------------
-#
 # Note that we solve this problem sequentially. At each iteration, we hold
 # ρ and λ fixed and solve minimize_x φ(x).
 # At the end of the iteration,
@@ -55,7 +30,7 @@
 # Thus, we have: x ← x - [∇^2φ(x)]^-1 ∇φ(x)
 #
 # We now ask: What is ∇^2φ(x)? (The nxn Hessian)
-# ∇^2φ(x) = ∇^2f(x) + ((ρ c(x) + λ) ∇^2c(x) + ρ ∇c(x) * ∇c(x))
+# ∇^2φ(x) = ∇^2f(x) + ((ρ c(x) + λ) ∇^2c(x) + ρ ∇c(x) ⊗ ∇c(x))
 # Where the outer product is equivalently ∇c(x) * ∇c(x)'
 #
 # -------------------------
@@ -86,24 +61,6 @@
 using LinearAlgebra
 
 include("..\\LearningOptimization\\backtrackLineSearch.jl")
-
-function cPlus(A, x, b)
-    # This function is for a constraint of the form Ax ≤ b.
-    # When Ax - b ≤ 0, we return 0 (Constraint satisfied). When Ax - b > 0
-    # We return Ax - b
-    return vec([max(ci, 0) for ci in (A * x - b)])
-end
-
-function cPlusD(A, x, b)
-    # If c(x) > 0, then ∇c_+(x) = ∇c(x) = A
-    # Else, ∇c_+(x) = 0
-    cX = A * x - b
-    if cX > 0
-        return A
-    else
-        return  0
-    end
-end
 
 function getQPgradPhiAL(x, Q, c, A, b, rho, lambda)
     return (Q * x + c) + A' * (rho * (A * x - b) + lambda)
