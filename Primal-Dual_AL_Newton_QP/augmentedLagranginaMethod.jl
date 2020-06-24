@@ -111,11 +111,13 @@ function cPlusD(A, x, b)
 end
 
 function getQPgradPhiAL(x, Q, c, A, b, rho, lambda)
-    return (Q * x + c) + A' * (rho * (A * x - b) + lambda)
+    APost = cPlusD(A, x, b)
+    return (Q * x + c) + APost' * (rho * cPlus(A, x, b) + lambda)
 end
 
-function getQPhessPhiAL(Q, A, rho)
-    return Q + rho * A'A
+function getQPhessPhiAL(x, Q, A, b, rho)
+    APost = cPlusD(A, x, b)
+    return Q + rho * APost'APost
 end
 
 function newtonStep(phiDDinv, phiD)
@@ -125,17 +127,21 @@ function newtonStep(phiDDinv, phiD)
 end
 
 function newtonMethodLineSearch(x, fObj, dfdx, Q, c, A, b, rho, lambda,
-    xtol = 10^-10, maxIters = 5, paramA = 0.1, paramB = 0.5, verbose = false)
+    xtol = 10^-5, maxIters = 5, paramA = 0.1, paramB = 0.5, verbose = false)
     # Note that the [∇^2φ(x)]^-1 is INDEPENDENT of x. So we solve it once and
     # store it.
 
-    phiDDinv = inv(getQPhessPhiAL(Q, A, rho))
+    phiDDinv = inv(getQPhessPhiAL(x, Q, A, b, rho))
 
     xCurr = x
 
     # Now, we run through the iterations
     for i in 1:maxIters
+
         # compute ∇φ(x)
+        println("x = $xCurr")
+        println("c_+(x) = $(cPlus(A, xCurr, b))")
+        println("∇c_+(x) = $(cPlusD(A, xCurr, b))")
         phiD = getQPgradPhiAL(xCurr, Q, c, A, b, rho, lambda)
 
         # Note the negative sign!
@@ -163,17 +169,24 @@ function newtonMethodLineSearch(x, fObj, dfdx, Q, c, A, b, rho, lambda,
 end
 
 function ALNewtonQPmain(x0, fObj, dfdx, Q, c, A, b, rho, lambda,
-    xtol = 10^-10, maxIters = 5, paramA = 0.1, paramB = 0.5, verbose = false)
+    xtol = 10^-6, maxIters = 5, paramA = 0.1, paramB = 0.5, verbose = false)
 
     xStates = []
     push!(xStates, x0)
 
-    rhoIncrease = 10
+    rhoIncrease = 100
     rhoMax = 10^6
 
     for i in 1:maxIters
+
+        # φ(x) = f(x) + (ρ/2) c(x)'c(x) + λ c(x)
+        phi(x) = fObj(x) + (rho / 2) * cPlus(A, x, b)'cPlus(A, x, b) + lambda' * cPlus(A, x, b)
+        dPhidx(x) = getQPgradPhiAL(x, Q, c, A, b, rho, lambda)
+
         # Update x at each iteration
-        xNew = newtonMethodLineSearch(x0, fObj, dfdx, Q, c, A, b, rho, lambda,
+        println()
+        println("Next Full Update starting at $x0")
+        xNew = newtonMethodLineSearch(x0, phi, dPhidx, Q, c, A, b, rho, lambda,
                             xtol, maxIters, paramA, paramB, verbose)
         push!(xStates, xNew)
 
@@ -184,9 +197,11 @@ function ALNewtonQPmain(x0, fObj, dfdx, Q, c, A, b, rho, lambda,
         # ρ ← min(ρ * 10, 10^6)   - Which is to say we bound ρ's growth by 10^6
         lambda = lambda + rho * (A * xNew - b)
 
-        println("Lambda Updated")
+        println("Lambda Updated: $lambda")
 
         rho = min(rho * rhoIncrease, rhoMax)
+
+        println("rho updated: $rho")
 
         println("Checking tolerance")
 
