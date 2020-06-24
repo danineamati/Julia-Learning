@@ -275,10 +275,6 @@ function pdIPNewtonQPmain(Q, c, A, b, x0, lambda, mu, fObj, dfdx,
     hStates = []
     push!(hStates, hCurr)
 
-    paramA = 0.1
-    paramB = 0.5
-
-    mu = 1
     muReduct = 0.1
 
     for i in 1:10
