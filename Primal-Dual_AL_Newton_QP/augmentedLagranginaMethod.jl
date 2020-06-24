@@ -91,18 +91,23 @@ function cPlus(A, x, b)
     # This function is for a constraint of the form Ax ≤ b.
     # When Ax - b ≤ 0, we return 0 (Constraint satisfied). When Ax - b > 0
     # We return Ax - b
-    return vec([max(ci, 0) for ci in (A * x - b)])
+    #vec([max(ci, 0) for ci in (A * x - b)])
+    return max.((A*x - b), 0.0)
 end
 
 function cPlusD(A, x, b)
     # If c(x) > 0, then ∇c_+(x) = ∇c(x) = A
     # Else, ∇c_+(x) = 0
     cX = A * x - b
-    if cX > 0
-        return A
-    else
-        return  0
+    ANew = deepcopy(A)
+    for row in 1:size(A, 1)
+        if cX[row] ≤ 0
+            # Constraint passed
+            ANew[row, :] = zeros(size(A, 2))
+        end
     end
+
+    return ANew
 end
 
 function getQPgradPhiAL(x, Q, c, A, b, rho, lambda)
