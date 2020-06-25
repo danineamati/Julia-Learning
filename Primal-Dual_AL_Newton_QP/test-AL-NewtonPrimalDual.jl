@@ -44,93 +44,84 @@ println("A = $AMat")
 println("b = $bVec")
 println("Initial Starting Point: $x0")
 
-println()
-println("Testing r Vec from QP-Setup")
+if false
+    println()
+    println("Testing r Vec from QP-Setup")
 
-# getQPrVecAL(Q, c, A, b, x, lambda, rho, nu)
-rVec = getQPrVecAL(QMat, cVec, AMat, bVec, x0, lambda, rho, nu)
+    # getQPrVecAL(Q, c, A, b, x, lambda, rho, nu)
+    rVec = getQPrVecAL(QMat, cVec, AMat, bVec, x0, lambda, rho, nu)
 
-# getQPGradrVecAL(Q, A, b, x, rho)
-grA, grB, grC, grD = getQPGradrVecAL(QMat, AMat, bVec, x0, rho)
-println("r vec = $rVec")
-println("∇r =")
-display([grA grB; grC grD])
+    # getQPGradrVecAL(Q, A, b, x, rho)
+    grA, grB, grC, grD = getQPGradrVecAL(QMat, AMat, bVec, x0, rho)
+    println("r vec = $rVec")
+    println("∇r =")
+    display([grA grB; grC grD])
 
-dirNewton = -newtonStep(grA, grB, grC, grD, rVec)
-println()
-println("First Newton Step: ")
-display(dirNewton)
+    dirNewton = -newtonStep(grA, grB, grC, grD, rVec)
+    println()
+    println("First Newton Step: ")
+    display(dirNewton)
 
-# backtrackLineSearch(xInit, dirΔ, f, dfdx, paramA, paramB, verbose = false)
-paramA = 0.1
-paramB = 0.5
-x0LS, stepLS = backtrackLineSearch(x0, dirNewton[1:2], phiFun, dPhidx,
-                                paramA, paramB)
-xDed = stepLS * dirNewton[1:2]
-println("Final Deduced Step Direction: $xDed at α = $stepLS")
+    # backtrackLineSearch(xInit, dirΔ, f, dfdx, paramA, paramB, verbose = false)
+    paramA = 0.1
+    paramB = 0.5
+    x0LS, stepLS = backtrackLineSearch(x0, dirNewton[1:2], phiFun, dPhidx,
+                                    paramA, paramB)
+    xDed = stepLS * dirNewton[1:2]
+    println("Final Deduced Step Direction: $xDed at α = $stepLS")
+end
 
 # Now running the full function
-println()
-println("Full Augmented Lagrangian Method")
-
-xStates = pdALNewtonQPmain(QMat, cVec, AMat, bVec, x0, lambda, rho, nu,
-                fObj, dfdx, 0.1, 0.5, true)
-
-display(xStates)
-
 if false
-    # Putting it all together
     println()
-    println("Putting all together from the start: ")
-    hCurr = vcat(x0, lambda)
+    println("Full Augmented Lagrangian Method")
 
-    # (Q, c, A, b, h, mu, fObj, dfdx)
-    mu = 1
-    hVNew = newtonAndLineSearch(QMat, cVec, AMat, bVec, hCurr, mu, fObj, dfdx)
-    display(hVNew)
-    println()
-    # Putting it all together in loop
-    println("Putting all together from the start iteratively: ")
+    xStates = pdALNewtonQPmain(QMat, cVec, AMat, bVec, x0, lambda, rho, nu,
+                    fObj, dfdx, 0.1, 0.5, true)
 
-    # hStates = []
-    # push!(hStates, hCurr)
-    #
-    # paramA = 0.1
-    # paramB = 0.5
-    #
-    # mu = 1
-    # muReduct = 0.1
-    #
-    # for i in 1:10
-    #     # Update rVec at each iteration
-    #     global hCurr = newtonAndLineSearch(QMat, cVec, AMat, bVec, hCurr, mu,
-    #                                     fObj, dfdx, paramA, paramB, true)
-    #     push!(hStates, hCurr)
-    #     global mu = mu * muReduct
-    # end
-
-    mu = 1
-    hStates = pdIPNewtonQPmain(QMat, cVec, AMat, bVec, x0, lambda, mu,
-                                    fObj, dfdx)
-
-
-    xVals = [h[1] for h in hStates]
-    yVals = [h[2] for h in hStates]
-
-    if cVec == [4; -3]
-        xCorrect = [-2.04348]
-        yCorrect = [1.65217]
-
-        scatter!(xCorrect, yCorrect, label = "Minimum", markershape = :xcross,
-                    markercolor = :red, markersize = 10)
-    end
-
-    plot!(xVals, yVals, label = "Iterative")
-    pltIter = scatter!(xVals, yVals, label = "Iterative")
-    title!("Primal-Dual Newton Progression")
-
-    display(pltIter)
-
-    println()
+    display(xStates)
 end
+
+yMin = -2
+yMax = 10
+
+xMin = -10
+xMax = 10
+xMCMax = 5 # To avoid overlap with the legend
+
+xRange = xMin:0.01:xMCMax
+yRange = yMin:0.01:yMax
+
+numPoints = 5
+
+xList = rand(xRange, numPoints)
+yList = rand(yRange, numPoints)
+xyList = vcat(x0', hcat(xList, yList))
+
+rho = 1
+nu = zeros(size(AMat, 1))
+lambda = ones(size(AMat, 1))
+
+# Run as Monte Carlo
+println("Running Monte Carlo")
+for ind in 1:size(xyList, 1)
+    println("Starting run $ind")
+    xStart = xyList[ind, :]
+    scatter!([xStart[1]], [xStart[2]], markersize = 8,
+                                label = "Initial pt $ind",
+                                markershape = :rect)
+
+    xStates = pdALNewtonQPmain(QMat, cVec, AMat, bVec, xStart, lambda, rho, nu,
+                    fObj, dfdx, 0.1, 0.5, false)
+
+    xVals = [x[1] for x in xStates]
+    yVals = [x[2] for x in xStates]
+    plt = plot!(xVals, yVals, markershape = :circle, label = "Iterations $ind")
+    ylims!(yMin, yMax)
+    xlims!(xMin, xMax)
+    display(plt)
+    title!("Monte Carlo runs for PD-AL QP Solver")
+    savefig("success$ind-PDAL-Up")
+end
+
 println("Completed")

@@ -213,7 +213,7 @@ function newtonAndLineSearch(Q, c, A, b, hV, rho, nu, phiObj, dphidx,
     # Then get the line search recommendation
     # Note that phiObj is the full Augmented Lagrangian
     x0LS, stepLS = backtrackLineSearch(xCurr, dirNewton[1:xSize],
-                                    phiObj, dphidx, paramA, paramB, true)
+                                    phiObj, dphidx, paramA, paramB, false)
     if verbose
         println("Line Search step = $stepLS")
     end
