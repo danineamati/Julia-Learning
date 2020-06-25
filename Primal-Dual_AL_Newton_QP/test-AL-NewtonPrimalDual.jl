@@ -1,6 +1,6 @@
 # Test the Newton Update part of the Primal-Dual Scheme
 
-include("primal-dual-IP-Newton-QP.jl")
+include("primal-dual-AL-Newton-QP.jl")
 
 
 println()
@@ -58,7 +58,7 @@ x0LS, stepLS = backtrackLineSearch(x0, dirNewton[1:2], fObj, dfdx,
 xDed = stepLS * dirNewton[1:2]
 println("Final Deduced Step Direction: $xDed at α = $stepLS")
 
-if true
+if false
     # Putting it all together
     println()
     println("Putting all together from the start: ")

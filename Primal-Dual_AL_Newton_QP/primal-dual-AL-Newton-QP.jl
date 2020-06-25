@@ -204,8 +204,11 @@ function newtonAndLineSearch(Q, c, A, b, hV, rho, nu, phiObj, dphidx,
     # First get the newton step
     # NOTICE the negative sign
     dirNewton = -newtonStep(gRA, gRB, gRC, gRD, rV)
+
+    xMax = xCurr + dirNewton[1:xSize]
     if verbose
         println("Direction: $dirNewton")
+        println("Max x = $xMax at φ(x) = $(phiObj(xMax))")
     end
     # Then get the line search recommendation
     # Note that phiObj is the full Augmented Lagrangian
