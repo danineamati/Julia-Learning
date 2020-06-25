@@ -270,7 +270,7 @@ function newtonAndLineSearchIP(Q, c, A, b, hV, mu, fObj, dfdx,
         end
 
         reductNew(t) = safeReduct * t + (1 - t) * notSafeReduct
-        tSlide = 0.2 # 0.5 is the average, but we can also skew safe or risky
+        tSlide = 0.1 # 0.5 is the average, but we can also skew safe or risky
 
         for ind in 1:maxIters
             redCurr = reductNew(tSlide)

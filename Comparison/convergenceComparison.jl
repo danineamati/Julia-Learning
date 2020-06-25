@@ -6,6 +6,7 @@
 
 include("..\\Primal-Dual_IP_Newton_QP\\QP-Setup.jl")
 include("..\\Primal-Dual_IP_Newton_QP\\primal-dual-IP-Newton-QP-2.jl")
+# include("..\\Primal-Dual_IP_Newton_QP\\primal-dual-IP-Newton-QP.jl")
 include("..\\Primal-Dual_AL_Newton_QP\\primal-dual-AL-Newton-QP.jl")
 include("..\\Primal-Dual_AL_Newton_QP\\augmentedLagrangianMethod.jl")
 
@@ -22,7 +23,10 @@ function calcPerpNormResiduals(xArr)
 
     # Notice "Magic Numbers" of the correct value to prevent storing it as a
     # variable (for now. i.e. will be changed)
-    res = [norm([xs[ind], ys[ind]] - [-5/4, 5])^2 for ind in 1:size(xs,1)]
+    # [-5/4; 5] - UP configuration
+    # [-47/23; 38/23] - Interior configuration
+    # [35/6; -1] - Far Exterior configuration
+    res = [norm([xs[ind]; ys[ind]] - [35/6; -1])^2 for ind in 1:size(xs,1)]
     return res
 end
 
@@ -41,7 +45,7 @@ dfdx(x) = QMat * x + cVec
 # Change the initial Point here!
 # -----------------------
 
-x0 = [-1.0; 4.0]
+x0 = [1.0; 2.0]
 
 # For the Interior Point Method
 mu = 1
@@ -112,7 +116,7 @@ xlabel!("Recorded Point in Solver")
 ylabel!("Square of Norm Residuals")
 title!("Comparison of three Solvers")
 
-savefig(plt, "solverComparison6_0-2")
+savefig(plt, "solverComparison12_0-1-FarExtMin")
 
 display(plt)
 
