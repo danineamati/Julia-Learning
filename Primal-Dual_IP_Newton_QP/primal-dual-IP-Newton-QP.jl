@@ -199,7 +199,7 @@ function checkConditions(hVec, A, b, verbose = false)
     return testsPassed
 end
 
-function newtonAndLineSearch(Q, c, A, b, hV, mu, fObj, dfdx,
+function newtonAndLineSearchIP(Q, c, A, b, hV, mu, fObj, dfdx,
                                 paramA = 0.1, paramB = 0.5, verbose = false)
     # Current state
     xSize = size(Q, 1)
@@ -279,7 +279,7 @@ function pdIPNewtonQPmain(Q, c, A, b, x0, lambda, mu, fObj, dfdx,
 
     for i in 1:10
         # Update rVec at each iteration
-        hCurr = newtonAndLineSearch(Q, c, A, b, hCurr, mu,
+        hCurr = newtonAndLineSearchIP(Q, c, A, b, hCurr, mu,
                                         fObj, dfdx, paramA, paramB, verbose)
         push!(hStates, hCurr)
         mu = mu * muReduct
