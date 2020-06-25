@@ -212,8 +212,8 @@ function newtonAndLineSearch(Q, c, A, b, hV, rho, nu, phiObj, dphidx,
     end
     # Then get the line search recommendation
     # Note that phiObj is the full Augmented Lagrangian
-    x0LS, stepLS = backtrackLineSearch(x0, dirNewton[1:xSize],
-                                    phiObj, dphidx, paramA, paramB)
+    x0LS, stepLS = backtrackLineSearch(xCurr, dirNewton[1:xSize],
+                                    phiObj, dphidx, paramA, paramB, true)
     if verbose
         println("Line Search step = $stepLS")
     end
@@ -251,8 +251,14 @@ function pdALNewtonQPmain(Q, c, A, b, x0, lambda, rho, nu, fObj, dfdx,
         # Update rVec at each iteration
         # φ(x) = f(x) + (ρ/2) c(x)'c(x) + λ c(x)
         phi(x) = fObj(x) + (rho / 2) * cPlus(A, x, b)'cPlus(A, x, b) +
-                        lambda' * cPlus(A, x, b)
-        dPhidx(x) = getQPgradPhiAL(x, Q, c, A, b, rho, lambda)
+                        nu' * cPlus(A, x, b)
+        dPhidx(x) = getQPgradPhiAL(x, Q, c, A, b, rho, nu)
+
+        if verbose
+            xStart = hCurr[1:size(x0, 1)]
+            println("---------")
+            println("Starting Outer at: $xStart with value φ(x) = $(phi(xStart))")
+        end
 
         hCurr = newtonAndLineSearch(Q, c, A, b, hCurr, rho, nu,
                                         phi, dPhidx, paramA, paramB, verbose)
@@ -262,13 +268,17 @@ function pdALNewtonQPmain(Q, c, A, b, x0, lambda, rho, nu, fObj, dfdx,
         # ν ← ν + ρ c(x_k*)       - Which is to say update with prior x*
         # ρ ← min(ρ * 10, 10^6)   - Which is to say we bound ρ's growth by 10^6
         xNew = hCurr[1:size(x0, 1)]
+
+        if verbose
+            println("New state added: $xNew with value φ(x) = $(phi(xNew))")
+        end
+
         nu = nu + rho * (A * xNew - b)
         rho = rho * rhoIncrease
 
         if verbose
-            println("New state added: $xNew with value φ(x) = $(phi(xNew))")
-            println("Lambda Updated: $lambda")
-            println("rho updated: $rho")
+            println("ν Updated: $nu")
+            println("ρ updated: $rho")
         end
     end
 

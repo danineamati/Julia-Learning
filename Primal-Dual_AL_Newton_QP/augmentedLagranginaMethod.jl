@@ -186,7 +186,8 @@ function ALNewtonQPmain(x0, fObj, dfdx, Q, c, A, b, rho, lambda,
     for i in 1:maxIters
 
         # φ(x) = f(x) + (ρ/2) c(x)'c(x) + λ c(x)
-        phi(x) = fObj(x) + (rho / 2) * cPlus(A, x, b)'cPlus(A, x, b) + lambda' * cPlus(A, x, b)
+        phi(x) = fObj(x) + (rho / 2) * cPlus(A, x, b)'cPlus(A, x, b) +
+                            lambda' * cPlus(A, x, b)
         dPhidx(x) = getQPgradPhiAL(x, Q, c, A, b, rho, lambda)
 
         # Update x at each iteration

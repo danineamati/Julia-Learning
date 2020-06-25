@@ -7,7 +7,7 @@ function backtrackLineSearch(xInit, dirΔ, f, dfdx, paramA, paramB, verbose = fa
         println("\nBeginning Line Search")
         println("xInit = $xInit")
         println("dirΔ = $dirΔ")
-        println("objective function = $f")
+        println("objective function (current x) = $(f(xInit))")
         println("Parameters: $paramA and $paramB")
         println("Verbose = $verbose \n")
     end

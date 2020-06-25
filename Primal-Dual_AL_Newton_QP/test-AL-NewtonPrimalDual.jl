@@ -27,20 +27,31 @@ QMat, cVec, AMat, bVec, x0 = QPSetup(true, true)
 fObj(x) = (1/2) * x'QMat*x + cVec'x
 dfdx(x) = QMat * x + cVec
 
+rho = 1
+nu = zeros(size(AMat, 1))
+lambda = ones(size(AMat, 1))
+
+# φ(x) = f(x) + (ρ/2) c(x)'c(x) + λ c(x)
+phiFun(x) = fObj(x) + (rho / 2) * cPlus(AMat, x, bVec)'cPlus(AMat, x, bVec) +
+                lambda' * cPlus(AMat, x, bVec)
+dPhidx(x) = getQPgradPhiAL(x, QMat, cVec, AMat, bVec, rho, lambda)
+
 println("Objective: f(x) = (1/2) x'Qx + c'x")
 println("Q = $QMat")
 println("c = $cVec")
-println("Constraints: Ax ≦ b")
+println("Constraints: Ax ≤ b")
 println("A = $AMat")
 println("b = $bVec")
 println("Initial Starting Point: $x0")
 
 println()
 println("Testing r Vec from QP-Setup")
-lambda = [1/20; 1/30; 1]
-mu = 1
-rVec = getQPrVecIP(QMat, cVec, AMat, bVec, x0, lambda, mu)
-grA, grB, grC, grD = getQPGradrVecIP(QMat, AMat, bVec, x0, lambda)
+
+# getQPrVecAL(Q, c, A, b, x, lambda, rho, nu)
+rVec = getQPrVecAL(QMat, cVec, AMat, bVec, x0, lambda, rho, nu)
+
+# getQPGradrVecAL(Q, A, b, x, rho)
+grA, grB, grC, grD = getQPGradrVecAL(QMat, AMat, bVec, x0, rho)
 println("r vec = $rVec")
 println("∇r =")
 display([grA grB; grC grD])
@@ -53,10 +64,19 @@ display(dirNewton)
 # backtrackLineSearch(xInit, dirΔ, f, dfdx, paramA, paramB, verbose = false)
 paramA = 0.1
 paramB = 0.5
-x0LS, stepLS = backtrackLineSearch(x0, dirNewton[1:2], fObj, dfdx,
+x0LS, stepLS = backtrackLineSearch(x0, dirNewton[1:2], phiFun, dPhidx,
                                 paramA, paramB)
 xDed = stepLS * dirNewton[1:2]
 println("Final Deduced Step Direction: $xDed at α = $stepLS")
+
+# Now running the full function
+println()
+println("Full Augmented Lagrangian Method")
+
+xStates = pdALNewtonQPmain(QMat, cVec, AMat, bVec, x0, lambda, rho, nu,
+                fObj, dfdx, 0.1, 0.5, true)
+
+display(xStates)
 
 if false
     # Putting it all together
