@@ -5,7 +5,7 @@
 #   - Augmented Lagrangian (Primal)
 
 include("..\\Primal-Dual_IP_Newton_QP\\QP-Setup.jl")
-include("..\\Primal-Dual_IP_Newton_QP\\primal-dual-IP-Newton-QP.jl")
+include("..\\Primal-Dual_IP_Newton_QP\\primal-dual-IP-Newton-QP-2.jl")
 include("..\\Primal-Dual_AL_Newton_QP\\primal-dual-AL-Newton-QP.jl")
 include("..\\Primal-Dual_AL_Newton_QP\\augmentedLagrangianMethod.jl")
 
@@ -36,6 +36,12 @@ QMat, cVec, AMat, bVec, x0 = QPSetup(false, false)
 
 fObj(x) = (1/2) * x'QMat*x + cVec'x
 dfdx(x) = QMat * x + cVec
+
+# ------------------------
+# Change the initial Point here!
+# -----------------------
+
+x0 = [-1.0; 4.0]
 
 # For the Interior Point Method
 mu = 1
@@ -106,10 +112,10 @@ xlabel!("Recorded Point in Solver")
 ylabel!("Square of Norm Residuals")
 title!("Comparison of three Solvers")
 
-savefig(plt, "solverComparison")
+savefig(plt, "solverComparison6_0-2")
 
 display(plt)
 
 # CSV.write("testSave.csv", DataFrame(xStates), writeheader = false)
 
-println("Complete")
+println("\n * Complete *")
