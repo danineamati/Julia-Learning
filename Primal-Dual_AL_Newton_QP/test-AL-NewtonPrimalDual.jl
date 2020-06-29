@@ -92,7 +92,10 @@ xMCMax = 5 # To avoid overlap with the legend
 xRange = xMin:0.01:xMCMax
 yRange = yMin:0.01:yMax
 
-numPoints = 5
+numPoints = 1
+xtol, maxIter, paramA, paramB = 10^-10, 10, 0.1, 0.5 # For line search
+currVerbose = true # True = Print a lot of information for debugging
+savePlots = false
 
 xList = rand(xRange, numPoints)
 yList = rand(yRange, numPoints)
@@ -112,7 +115,7 @@ for ind in 1:size(xyList, 1)
                                 markershape = :rect)
 
     xStates = pdALNewtonQPmain(QMat, cVec, AMat, bVec, xStart, lambda, rho, nu,
-                    fObj, dfdx, 0.1, 0.5, false)
+                    fObj, dfdx, maxIter, paramA, paramB, currVerbose)
 
     xVals = [x[1] for x in xStates]
     yVals = [x[2] for x in xStates]
@@ -121,7 +124,10 @@ for ind in 1:size(xyList, 1)
     xlims!(xMin, xMax)
     display(plt)
     title!("Monte Carlo runs for PD-AL QP Solver")
-    savefig("success$ind-PDAL-Up")
+
+    if savePlots
+        savefig("success$ind-PDAL-Up")
+    end
 end
 
 println("Completed")

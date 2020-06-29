@@ -70,7 +70,7 @@ function QPSetup(showContoursObjective = false, showPlotConstraints = false)
 
     # Option 1: Symmetric([6 5; 0 8])
     # Option 2: Symmetric([5 -0.5; 0 10])
-    QMat = Symmetric([5 -0.5; 0 10])
+    QMat = Symmetric([6 5; 0 8])
     print("Q Matrix is Positive Definite: ")
     println(checkPosDef(QMat))
 
@@ -79,7 +79,7 @@ function QPSetup(showContoursObjective = false, showPlotConstraints = false)
     # For an Exterior Point, try [-30; 70]
     # With Option 2
     # For an Exterior Point, try [12, -70]
-    cVec = [12, -70]
+    cVec = [4; -3]
 
     # Input x as a COLUMN vector (i.e. x = [4; 3])
     fObj(x) = (1/2) * x'QMat*x + cVec'x

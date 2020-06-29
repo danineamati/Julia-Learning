@@ -177,6 +177,13 @@ end
 function ALNewtonQPmain(x0, fObj, dfdx, Q, c, A, b, rho, lambda,
     xtol = 10^-6, maxIters = 5, paramA = 0.1, paramB = 0.5, verbose = false)
 
+    # Print Options to check:
+    println("X Tol = $xtol")
+    println("Max # iters = $maxIters")
+    println("ParamA = $paramA")
+    println("ParamB = $paramB")
+    println("Verbose = $verbose")
+
     xStates = []
     push!(xStates, x0)
 
@@ -196,7 +203,7 @@ function ALNewtonQPmain(x0, fObj, dfdx, Q, c, A, b, rho, lambda,
             println("Next Full Update starting at $x0")
         end
         xNew = newtonMethodLineSearch(x0, phi, dPhidx, Q, c, A, b, rho, lambda,
-                            xtol, maxIters, paramA, paramB, verbose)
+                            xtol, 1, paramA, paramB, verbose)
         push!(xStates, xNew)
 
         # Determine the new lambda and rho

@@ -236,7 +236,7 @@ function newtonAndLineSearch(Q, c, A, b, hV, rho, nu, phiObj, dphidx,
 end
 
 function pdALNewtonQPmain(Q, c, A, b, x0, lambda, rho, nu, fObj, dfdx,
-                        paramA = 0.1, paramB = 0.5, verbose = false)
+                    maxIters = 10, paramA = 0.1, paramB = 0.5, verbose = false)
     hCurr = vcat(x0, lambda)
     hStates = []
     push!(hStates, hCurr)
@@ -244,7 +244,7 @@ function pdALNewtonQPmain(Q, c, A, b, x0, lambda, rho, nu, fObj, dfdx,
     rho = 1
     rhoIncrease = 10
 
-    for i in 1:10
+    for i in 1:maxIters
         # Update rVec at each iteration
         # φ(x) = f(x) + (ρ/2) c(x)'c(x) + λ c(x)
         phi(x) = fObj(x) + (rho / 2) * cPlus(A, x, b)'cPlus(A, x, b) +

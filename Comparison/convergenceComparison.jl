@@ -26,7 +26,7 @@ function calcPerpNormResiduals(xArr)
     # [-5/4; 5] - UP configuration
     # [-47/23; 38/23] - Interior configuration
     # [35/6; -1] - Far Exterior configuration
-    res = [norm([xs[ind]; ys[ind]] - [-5/4; 5])^2 for ind in 1:size(xs,1)]
+    res = [norm([xs[ind]; ys[ind]] - [-47/23; 38/23])^2 for ind in 1:size(xs,1)]
     return res
 end
 
@@ -53,11 +53,15 @@ mu = 1
 # For the Augmented Lagrangian (Primal-Dual)
 rho = 1
 nu = zeros(size(AMat, 1))
-lambda = zeros(size(AMat, 1))
+lambda = ones(size(AMat, 1))
 
 # For general Line Search
 paramA = 0.1
 paramB = 0.5
+
+# Number of iterations
+maxIters = 10
+xTol = 10^-10
 
 # φ(x) = f(x) + (ρ/2) c(x)'c(x) + λ c(x)
 phiFun(x) = fObj(x) + (rho / 2) * cPlus(AMat, x, bVec)'cPlus(AMat, x, bVec) +
@@ -78,7 +82,7 @@ println("Initial Starting Point: $x0")
 
 println("Starting Primal-Dual with Interior Point")
 hStatesPDIP = pdIPNewtonQPmain(QMat, cVec, AMat, bVec, x0, lambda, mu,
-                                fObj, dfdx)
+                                fObj, dfdx, maxIters, paramA, paramB, false)
 resPDIP = calcPerpNormResiduals(hStatesPDIP)
 println("Completed Primal-Dual with Interior Point")
 
@@ -88,7 +92,7 @@ println("Completed Primal-Dual with Interior Point")
 
 println("Starting Primal-Dual with Augmented Lagrangian")
 hStatesPDAL = pdALNewtonQPmain(QMat, cVec, AMat, bVec, x0, lambda, rho, nu,
-                fObj, dfdx, paramA, paramB, false)
+                fObj, dfdx, maxIters, paramA, paramB, false)
 resPDAL = calcPerpNormResiduals(hStatesPDAL)
 println("Completed Primal-Dual with Augmented Lagrangian")
 
@@ -100,7 +104,7 @@ rhoStart = 1
 lambdaStart = ones(size(AMat, 1))
 
 xStatesALP = ALNewtonQPmain(x0, fObj, dfdx, QMat, cVec, AMat, bVec,
-                                rhoStart, lambdaStart)
+            rhoStart, lambdaStart, xTol, maxIters, paramA, paramB, false)
 resALP = calcPerpNormResiduals(xStatesALP)
 println("Completed Augemented Lagrangian (Primal)")
 

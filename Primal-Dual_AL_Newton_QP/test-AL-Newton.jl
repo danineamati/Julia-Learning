@@ -1,6 +1,6 @@
 # Test the Augemented Lagrangian Monte Carlo Style
 
-include("augmentedLagranginaMethod.jl")
+include("augmentedLagrangianMethod.jl")
 include("..\\Primal-Dual_IP_Newton_QP\\QP-Setup.jl")
 
 QMat, cVec, AMat, bVec, x0 = QPSetup(true, true)
@@ -22,7 +22,10 @@ xMCMax = 5 # To avoid overlap with the legend
 xRange = xMin:0.01:xMCMax
 yRange = yMin:0.01:yMax
 
-numPoints = 5
+numPoints = 1
+xtol, maxIter, paramA, paramB = 10^-10, 10, 0.1, 0.5 # For line search
+currVerbose = true # True = Print a lot of information for debugging
+savePlots = false
 
 xList = rand(xRange, numPoints)
 yList = rand(yRange, numPoints)
@@ -38,12 +41,15 @@ for ind in 1:size(xyList, 1)
                                 markershape = :rect)
 
     xStates = ALNewtonQPmain(xStart, fObj, dfdx, QMat, cVec, AMat, bVec,
-                                    rhoStart, lambdaStart)
+           rhoStart, lambdaStart, xtol, maxIter, paramA, paramB, currVerbose)
     xVals = [x[1] for x in xStates]
     yVals = [x[2] for x in xStates]
     plt = plot!(xVals, yVals, markershape = :circle, label = "Iterations $ind")
     ylims!(yMin, yMax)
     xlims!(xMin, xMax)
     display(plt)
-    savefig("success$ind-AL-Up")
+
+    if savePlots
+        savefig("success$ind-AL-Up")
+    end
 end

@@ -318,14 +318,14 @@ function newtonAndLineSearchIP(Q, c, A, b, hV, mu, fObj, dfdx,
 end
 
 function pdIPNewtonQPmain(Q, c, A, b, x0, lambda, mu, fObj, dfdx,
-                        paramA = 0.1, paramB = 0.5, verbose = false)
+                maxIters = 10, paramA = 0.1, paramB = 0.5, verbose = false)
     hCurr = vcat(x0, lambda)
     hStates = []
     push!(hStates, hCurr)
 
     muReduct = 0.1
 
-    for i in 1:10
+    for i in 1:maxIters
         # Update rVec at each iteration
         hCurr = newtonAndLineSearchIP(Q, c, A, b, hCurr, mu,
                                         fObj, dfdx, paramA, paramB, verbose)
