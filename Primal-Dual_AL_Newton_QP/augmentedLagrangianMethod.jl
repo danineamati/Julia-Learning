@@ -180,7 +180,7 @@ function ALNewtonQPmain(x0, fObj, dfdx, Q, c, A, b, rho, lambda,
     xStates = []
     push!(xStates, x0)
 
-    rhoIncrease = 100
+    rhoIncrease = 10
     rhoMax = 10^6
 
     for i in 1:maxIters

@@ -241,9 +241,6 @@ function pdALNewtonQPmain(Q, c, A, b, x0, lambda, rho, nu, fObj, dfdx,
     hStates = []
     push!(hStates, hCurr)
 
-    paramA = 0.1
-    paramB = 0.5
-
     rho = 1
     rhoIncrease = 10
 

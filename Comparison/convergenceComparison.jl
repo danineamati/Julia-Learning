@@ -26,7 +26,7 @@ function calcPerpNormResiduals(xArr)
     # [-5/4; 5] - UP configuration
     # [-47/23; 38/23] - Interior configuration
     # [35/6; -1] - Far Exterior configuration
-    res = [norm([xs[ind]; ys[ind]] - [35/6; -1])^2 for ind in 1:size(xs,1)]
+    res = [norm([xs[ind]; ys[ind]] - [-5/4; 5])^2 for ind in 1:size(xs,1)]
     return res
 end
 
@@ -53,7 +53,7 @@ mu = 1
 # For the Augmented Lagrangian (Primal-Dual)
 rho = 1
 nu = zeros(size(AMat, 1))
-lambda = ones(size(AMat, 1))
+lambda = zeros(size(AMat, 1))
 
 # For general Line Search
 paramA = 0.1
@@ -97,7 +97,7 @@ println("Completed Primal-Dual with Augmented Lagrangian")
 # -----------------
 println("Starting Augmented Lagrangian (Primal)")
 rhoStart = 1
-lambdaStart = zeros(size(AMat, 1))
+lambdaStart = ones(size(AMat, 1))
 
 xStatesALP = ALNewtonQPmain(x0, fObj, dfdx, QMat, cVec, AMat, bVec,
                                 rhoStart, lambdaStart)
@@ -116,7 +116,7 @@ xlabel!("Recorded Point in Solver")
 ylabel!("Square of Norm Residuals")
 title!("Comparison of three Solvers")
 
-savefig(plt, "solverComparison12_0-1-FarExtMin")
+savefig(plt, "solverComparison14_Fix-Up")
 
 display(plt)
 
