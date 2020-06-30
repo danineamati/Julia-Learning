@@ -106,7 +106,7 @@ end
 
 
 
-runTests = true
+runTests = false
 
 if runTests
     println("\n")
