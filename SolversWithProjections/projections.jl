@@ -76,8 +76,33 @@ function projAffineIneq(a, b, x)
     return x
 end
 
+function projSecondOrderCone(v, s)
+    #=
+    Projection for Second-Order Cone (AKA quadratic cone or the Lorentz cone)
 
-# Projection for Second-Order Cone
+    The second-order cone is C = {(x, t) ∈ R^n+1 | ||x||2 ≤ t}. Using the
+    2-norm. Projection onto it is given by
+
+    proj(v, s) =
+    0                                   for ||v|| ≤ -s  (Below the tip)
+    (v, s)                              for ||v|| ≤ s   (In the cone)
+    (1/2)(1 + s/||v||)(v, ||v||)        for ||v|| ≥ |s| (Onto the cone)
+
+    Note that (|s| = absolute value of s)
+    =#
+
+    if norm(v, 2) ≤ -s
+        return zeros(size([v; s]))
+    elseif norm(v, 2) ≤ s
+        return [v; s]
+    elseif norm(v, 2) ≥ s
+        return (1/2) * (1 + s / norm(v, 2)) * [v; norm(v, 2)]
+    end
+
+    println("Second Order Cone Conditions ERROR")
+    return -1
+
+end
 
 
 
@@ -101,5 +126,42 @@ if runTests
     pt2Test = [5; -3; -100; 0]
     projpt2Test = projPosOrth(pt2Test)
     println("$pt2Test -> $projpt2Test : Passed? $(projpt2Test .≥ 0)")
+
+    println()
+    print("Next up is an affine constraint: ")
+    aTest = [5; 4; 3]
+    bTest = 4
+    pt3Test = [10; 10; 17]
+    projpt3Test = projAffineEq(aTest, bTest, pt3Test)
+    xp = pt3Test - projpt3Test
+    println("$pt3Test -> $projpt3Test")
+    print("On Hyperplane : $(aTest'projpt3Test == bTest), ")
+    println("Min Dist : $(xp'aTest == norm(xp) * norm(aTest))")
+
+    println()
+    println("Lastly is the second order cone")
+    println("The first cone is the simplest unit cone at the origin")
+    sTest1 = 6
+    pt4Test = [3; 4; 5]
+    projpt4Test = projSecondOrderCone(pt4Test, sTest1)
+    print("$pt4Test, $sTest1 -> $projpt4Test, ")
+    println("Base norm = $(norm(pt4Test))")
+    sTest2 = 10
+    projpt4Test = projSecondOrderCone(pt4Test, sTest2)
+    print("$pt4Test, $sTest1 -> $projpt4Test, ")
+    println("Base norm = $(norm(pt4Test))")
+    sTest3 = -10
+    projpt4Test = projSecondOrderCone(pt4Test, sTest2)
+    print("$pt4Test, $sTest1 -> $projpt4Test, ")
+    println("Base norm = $(norm(pt4Test))")
+
+    print("The second cone now is offeset with v -> Ax - b -> ")
+    AMat = [4 5; -4 5; 0 -1]
+    bVec = [20; 30; 1]
+    xTest = [3; 4]
+    sTest2 = 10
+    projpt5Test = projSecondOrderCone(AMat * xTest - bVec, sTest2)
+    println(" $(AMat * xTest - bVec) for x = $xTest")
+    println("Proj -> $projpt5Test")
 
 end
