@@ -117,7 +117,7 @@ function getGradC(r::AL_AffineInequality, x)
     APost = zeros(size(r.A))
     rowPassed = whichSatisfied(r, x)
     for row in 1:size(r.A, 1)
-        if !rowPassed
+        if !rowPassed[row]
             # Constraint is not met
             APost[row, :] = r.A[row, :]
         end
@@ -140,23 +140,50 @@ if runTests
     println()
     println("Affine Equality Constraints:")
     dT = AL_AffineEquality([5], [10])
-    println("Simplest")
+    println("** Simplest")
     println("On line  (True) : $(satisfied(dT, 2))")
     println("Off line (False): $(satisfied(dT, 4)) and $(satisfied(dT, 0))")
     dT2 = AL_AffineEquality([5 0; 0 6], [10; 12])
-    println("2D")
+    println("** 2D")
     println("On Intesection (True)        : $(satisfied(dT2, [2; 2]))")
     println("Check which not (True, False): $(whichSatisfied(dT2, [2; 4]))")
+    println("** Testing the projections and violations")
+    testpt = [10; 12]
+    println("Point $testpt not at intersetion : $(!satisfied(dT2, testpt))")
+    println("Projection onto constraints : $(getProjVecs(dT2, testpt))")
+    gN = getNormToProjVals(dT2, testpt)
+    println("Violation is : $gN")
+    println("Total Violation is : $(gN'gN)")
+    println("** Testing Calculus")
+    println("Grad = $(getGradC(dT2)) and Hessian = $(getHessC(dT2))")
 
     println("\nAffine Inequality Constraints")
     diT = AL_AffineInequality([5], [10])
+    println("** Simplest")
     println("On line    (True) : $(satisfied(diT, 2))")
     println("Above line (False): $(satisfied(diT, 4))")
     println("Under line (True) : $(satisfied(diT, 0))")
     diT2 = AL_AffineInequality([5 0; 0 6], [10; 12])
-    println("2D")
+    println("** 2D")
     println("On Intesection (True)        : $(satisfied(diT2, [2; 2]))")
     println("Check which not (True, False): $(whichSatisfied(diT2, [2; 4]))")
     println("Check which not (True, True) : $(whichSatisfied(diT2, [2; 0]))")
+    println("** Testing the projections and violations")
+    testpt = [10; 12]
+    println("Point $testpt not at in region : $(!satisfied(diT2, testpt))")
+    println("Projection onto feasible region : $(getProjVecs(diT2, testpt))")
+    gN = getNormToProjVals(diT2, testpt)
+    println("Violation is : $gN")
+    println("Total Violation is : $(gN'gN)")
+    testpt2 = [-10; -12]
+    println("Point $testpt2 in feasible region : $(satisfied(diT2, testpt2))")
+    println("Projection onto feasible region : $(getProjVecs(diT2, testpt2))")
+    gN2 = getNormToProjVals(diT2, testpt2)
+    println("Violation is : $gN2")
+    println("Total Violation is : $(gN2'gN2)")
+    println("** Testing Calculus")
+    println("Hessian = $(getHessC(diT2))")
+    println("Grad at $testpt = $(getGradC(diT2, testpt))")
+    println("Grad at $testpt2 = $(getGradC(diT2, testpt2))")
 
 end
