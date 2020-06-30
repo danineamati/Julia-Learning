@@ -10,46 +10,128 @@ include("projections.jl")
 # ---------------------
 # Equality constraints
 # ---------------------
-struct ALQP_AffineEquality
+struct AL_AffineEquality
     A
     b
 end
 
 # Check that a constraint is satisfied (Ax - b = 0)
-satisfied(r::ALQP_AffineEquality, x) = (r.A * x == r.b)
-whichSatisfied(r::ALQP_AffineEquality, x) = (r.A * x .== r.b)
+satisfied(r::AL_AffineEquality, x) = (r.A * x == r.b)
+whichSatisfied(r::AL_AffineEquality, x) = (r.A * x .== r.b)
 
 # Evaluate the constraint.
 # Raw = Evaluate the function without projection
-getRaw(r::ALQP_AffineEquality, x) = r.A * x - r.b
-function getProjVals(r::ALQP_AffineEquality, x)
-    # We want to project each constraint
-    # We write Ax = b
-    # But this is equivalent to a1'x = b1, a2'x = b2, ..., am'x = bm
-    # Where ak is the row k in A
-    projVec = []
+getRaw(r::AL_AffineEquality, x) = r.A * x - r.b
+function getProjVecs(r::AL_AffineEquality, x)
+    #=
+    We want to project each constraint
+    We write Ax = b
+    But this is equivalent to a1'x = b1, a2'x = b2, ..., am'x = bm
+    Where ak is the row k in A
+    =#
+    projVecs = []
     for ind in 1:size(r.b, 1)
         aI = r.A[ind, :]
         bI = r.b[ind]
-        push!(projVec, projAffineEq(aI, bI, x))
+        push!(projVecs, projAffineEq(aI, bI, x))
     end
 
-    return projVec
+    return projVecs
+end
+
+function getNormToProjVals(r::AL_AffineEquality, x)
+    #=
+    We want to get the projected vector and calculate the distance between the
+    original point and the constraint.
+    =#
+    projVecs = getProjVecs(r, x)
+    pvsDiff = [pv - x for pv in projVecs]
+    return norm.(pvsDiff, 2)
+end
+
+# Lastly, we do some calculus
+function getGradC(r::AL_AffineEquality)
+    #=
+    We want the gradient of the constraints. This is piecewise in the
+    inequality case. But it is a single function in the equality case
+    =#
+    return r.A
+end
+
+function getHessC(r::AL_AffineEquality)
+    #=
+    We want the hessian of the constraints. This is just zero for affine
+    constraints, but we need to match the dimensions.
+    =#
+    return zeros(size(r.A, 2), size(r.A, 2))
 end
 
 # -----------------------
 # Inequality constraints
 # -----------------------
-struct ALQP_AffineInequality
+struct AL_AffineInequality
     A
     b
 end
 
 # Check that a constraint is satisfied (Ax - b ≤ 0)
-satisfied(r::ALQP_AffineInequality, x) = isFeasiblePolyHedron(r.A, r.b, x)
-whichSatisfied(r::ALQP_AffineInequality, x) = (r.A * x .≤ r.b)
+satisfied(r::AL_AffineInequality, x) = isFeasiblePolyHedron(r.A, r.b, x)
+whichSatisfied(r::AL_AffineInequality, x) = (r.A * x .≤ r.b)
 
+# Evaluate the constraint.
+# Raw = Evaluate the function without projection
+getRaw(r::AL_AffineInequality, x) = r.A * x - r.b
+function getProjVecs(r::AL_AffineInequality, x)
+    #=
+    We want to project each constraint
+    We write Ax = b
+    But this is equivalent to a1'x = b1, a2'x = b2, ..., am'x = bm
+    Where ak is the row k in A
+    =#
+    projVecs = []
+    for ind in 1:size(r.b, 1)
+        aI = r.A[ind, :]
+        bI = r.b[ind]
+        push!(projVecs, projAffineIneq(aI, bI, x))
+    end
 
+    return projVecs
+end
+
+function getNormToProjVals(r::AL_AffineInequality, x)
+    #=
+    We want to get the projected vector and calculate the distance between the
+    original point and the constraint.
+    =#
+    projVecs = getProjVecs(r, x)
+    pvsDiff = [pv - x for pv in projVecs]
+    return norm.(pvsDiff, 2)
+end
+
+# Lastly, we do some calculus
+function getGradC(r::AL_AffineInequality, x)
+    #=
+    We want the gradient of the constraints. This is piecewise in the
+    inequality case. But it is a single function in the equality case
+    =#
+    APost = zeros(size(r.A))
+    rowPassed = whichSatisfied(r, x)
+    for row in 1:size(r.A, 1)
+        if !rowPassed
+            # Constraint is not met
+            APost[row, :] = r.A[row, :]
+        end
+    end
+    return APost
+end
+
+function getHessC(r::AL_AffineInequality)
+    #=
+    We want the hessian of the constraints. This is just zero for affine
+    constraints, but we need to match the dimensions.
+    =#
+    return zeros(size(r.A, 2), size(r.A, 2))
+end
 
 
 runTests = true
@@ -57,21 +139,21 @@ runTests = true
 if runTests
     println()
     println("Affine Equality Constraints:")
-    dT = ALQP_AffineEquality([5], [10])
+    dT = AL_AffineEquality([5], [10])
     println("Simplest")
     println("On line  (True) : $(satisfied(dT, 2))")
     println("Off line (False): $(satisfied(dT, 4)) and $(satisfied(dT, 0))")
-    dT2 = ALQP_AffineEquality([5 0; 0 6], [10; 12])
+    dT2 = AL_AffineEquality([5 0; 0 6], [10; 12])
     println("2D")
     println("On Intesection (True)        : $(satisfied(dT2, [2; 2]))")
     println("Check which not (True, False): $(whichSatisfied(dT2, [2; 4]))")
 
     println("\nAffine Inequality Constraints")
-    diT = ALQP_AffineInequality([5], [10])
+    diT = AL_AffineInequality([5], [10])
     println("On line    (True) : $(satisfied(diT, 2))")
     println("Above line (False): $(satisfied(diT, 4))")
     println("Under line (True) : $(satisfied(diT, 0))")
-    diT2 = ALQP_AffineInequality([5 0; 0 6], [10; 12])
+    diT2 = AL_AffineInequality([5 0; 0 6], [10; 12])
     println("2D")
     println("On Intesection (True)        : $(satisfied(diT2, [2; 2]))")
     println("Check which not (True, False): $(whichSatisfied(diT2, [2; 4]))")

@@ -1,4 +1,5 @@
 
+using LinearAlgebra
 
 # Covers how to consider a square violation
 function sqrDistEuclid(pt, projFunc)
