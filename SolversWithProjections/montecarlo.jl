@@ -5,8 +5,11 @@ using Distributions
 
 function getPoint(minVec, maxVec)
     #=
-    returns a random point in the rectangle specified by the min and max
+    Returns a random point in the rectangle specified by the min and max
     vectors
+
+    In this case, a uniform distribution is used. In future work, a different
+    distribution could be used without loss of generality.
     =#
     pt = zeros(size(minVec))
     for dimen in 1:size(minVec, 1)
@@ -18,7 +21,14 @@ end
 function montecarlo(minVec, maxVec, numPoints = 10, funcCheck = x -> true)
     #=
     This function takes a given range and randomly selects a point in that
-    range.s
+    range. It then checks if that point passes a check before adding it.
+    The result is a list of random points.
+
+    In general, the check function is for the feasible set.
+    Ex: x -> isFeasiblePolyHedron(A1, b1, x)
+
+    If the check function is left as default, all points pass and are added
+    to the list.
     =#
 
     listPoints = []
@@ -32,4 +42,30 @@ function montecarlo(minVec, maxVec, numPoints = 10, funcCheck = x -> true)
     end
 
     return listPoints
+end
+
+
+
+runTests = false
+
+if runTests
+    println("\n")
+    print("Generating a 3D point: ")
+    pt1 = getPoint([3; 2; -5], [10; 100; 0.5])
+    println(pt1)
+    print("Checking that the point is in the bounds: ")
+    print("$(10 > pt1[1] > 3) & $(100 > pt1[2] > 2)")
+    println(" & $(0.5 > pt1[3] > -5)")
+
+    println("Generating 3 Random 4D Points")
+    display(montecarlo([3; 2; -5; -0.01], [10; 100; 0.5; 0.01], 3))
+
+    println("Generating 2 Random Points in a smaller [0, 1] box")
+    function inBox(x2D)
+        if (1 > x2D[1] > 0) && (1 > x2D[2] > 0)
+            return true
+        end
+        return false
+    end
+    display(montecarlo([-20; -20], [20; 20], 2, inBox))
 end

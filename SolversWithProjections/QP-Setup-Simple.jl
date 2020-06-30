@@ -20,7 +20,7 @@ include("feasibleCheck.jl")
 
 
 function checkPosDef(Q)
-    # To check Positive Definite, we check that the eigenvals are positive
+    # To check Positive Definite, we check that the eigenvalues are positive
     # and that the determinant is positive.
     eVals = eigvals(Q)
     numRows = size(Q, 1)
@@ -39,6 +39,14 @@ x0 = [-1; 0.5]
 # Q is an nxn Symmetric Matrix (that is positive definite for convex
 # c is an nx1 vector
 # --------------------------
+
+# Examples used:
+#           Q               |       c      |       x*        | name
+# -----------------------------------------------------------------------
+# Symmetric([6 5; 0 8])     |    [4; -3]   | [-47/23; 38/23] |  Interior
+# Symmetric([6 5; 0 8])     |   [-30; 70]  |   [35/6; -1]    |  Far Ext. (Edge)
+# Symmetric([5 -0.5; 0 10]) |   [12, -70]  |   [-5/4; 5]     |  Up  (Vertex)
+
 
 # Option 1: Symmetric([6 5; 0 8])
 # Option 2: Symmetric([5 -0.5; 0 10])
@@ -79,4 +87,13 @@ println(isFeasiblePolyHedron(AMat, bVec, x0))
 
 # --------------------------
 # Lagrangian
+# φ(x) = f(x) + (ρ/2) ||c(x)||_2^2 + λ c(x)
+#      = f(x) + (ρ/2) c(x)'c(x)    + λ c(x)
 # --------------------------
+# lambdaInit = zeros(size(fObj(x0)))
+# rhoInit = 1
+# phi(x) = fObj(x) + (rhoInit / 2) * cPlus(A, x, b)'cPlus(A, x, b) +
+#                             lambdaInit' * cPlus(A, x, b)
+#
+# print("Example evaluation of the lagrangian at $x0: ")
+# println(phi(x0))
