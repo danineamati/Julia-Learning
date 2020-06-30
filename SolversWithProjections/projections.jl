@@ -32,15 +32,17 @@ function projPosOrth(pt)
     projection is distance to the positive orthant
     =#
 
-    # This first check sees if all elements are in the positive orthant
-    # if so, it can immediately return the point
-    # if sum(pt .≥ 0) == size(pt, 1)
-    #     return pt
-    # end
-
     return max.(pt, 0)
 end
 
+
+# Projection for Affine Equality Case (Ax = b)
+
+
+# Projection for Affine Inequality Case (Ax ≤ b)
+
+
+# Projection for Second-Order Cone
 
 
 
@@ -59,5 +61,10 @@ if runTests
     print("$optTest ?= [0.6; -0.2] : Passed? ")
     println(" $(optTest == [0.6; -0.2])")
 
+    println()
+    print("Now we try a projection onto the positive orthant: ")
+    pt2Test = [5; -3; -100; 0]
+    projpt2Test = projPosOrth(pt2Test)
+    println("$pt2Test -> $projpt2Test : Passed? $(projpt2Test .≥ 0)")
 
 end
