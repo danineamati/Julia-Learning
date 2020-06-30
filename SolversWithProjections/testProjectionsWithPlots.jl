@@ -94,7 +94,10 @@ savefig(plt5, "proj2ConeSimpleSurface")
 xRange = -15:0.1:15
 yRange = -5:0.1:15
 # Trying the plot in x ∈ R, t ∈ R
-plt6 = contour(xRange, yRange, (x, y) -> projSecondOrderCone(x, y)[1])
+plt6 = heatmap(xRange, yRange, (x, y) -> projSecondOrderCone(x, y)[1],
+        fill = true, seriesalpha = 0.75, fillalpha = 0.75)
+
+contour!(xRange, yRange, (x, y) -> projSecondOrderCone(x, y)[1], levels = 50)
 plot!(xRange, x -> abs(x), linecolor = :black, label = "Cone Surface")
 xlabel!("X")
 ylabel!("s")
@@ -107,9 +110,13 @@ xRange = -70:0.1:10
 yRange = -5:0.1:15
 aTest = 1/5
 bTest = -6
-plt7 = contour(xRange, yRange,
-            (x, y) -> projSecondOrderCone(aTest * x - bTest, y)[1])
-plot!(xRange, x -> abs(aTest * x - bTest), linecolor = :black, label = "Cone Surface")
+plt7 = heatmap(xRange, yRange,
+            (x, y) -> projSecondOrderCone(aTest * x - bTest, y)[1],
+            fill = true, seriesalpha = 0.75, fillalpha = 0.75)
+contour!(xRange, yRange,
+            (x, y) -> projSecondOrderCone(aTest * x - bTest, y)[1], levels = 50)
+plot!(xRange, x -> abs(aTest * x - bTest), linecolor = :black,
+            label = "Cone Surface")
 xlabel!("X")
 ylabel!("s")
 title!("1D 2nd Order Cone Projections from Affine (Ax - b)")
