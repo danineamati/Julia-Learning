@@ -28,8 +28,8 @@ distSqrPosOrth(x, y) = sqrDistEuclid([x; y], pt -> projPosOrth(pt))
 
 rectangle(w, h, x, y) = Shape(x .+ [0,w,w,0], y .+ [0,0,h,h])
 
-plt2 = plot(rectangle(10,8,0,0), opacity = 0.25, label = "Positive Orthant")
-contour!(xRange, yRange, distSqrPosOrth, label = "Sqr Distance to Line")
+plt2 = plot(rectangle(10,8,0,0), fillalpha = 0.3, label = "Positive Orthant")
+contour!(xRange, yRange, distSqrPosOrth, opacity = 1, label = "Sqr Distance to Line")
 title!("Square of Distance to Positive Orthant")
 xlabel!("X")
 ylabel!("Y")
@@ -65,21 +65,31 @@ sTest = 6
 distSqr2Cone(x, y) = sqrDistEuclid([x; y],
                             pt -> projSecondOrderCone([x; y], sTest)[1:2])
 
-xRange = -15:0.1:15
+xRange = -24:0.1:24
 yRange = -15:0.1:15
-# plt4 = contour(xRange, yRange, (x, y) -> norm([x; y]))
-plt4 = contour(xRange, yRange, distSqr2Cone)
-title!("Square of Distance to Cone at s = $sTest slice")
-xlabel!("X")
-ylabel!("Z")
-display(plt4)
-savefig(plt4, "proj2ConeSimple")
 
-plt5 = surface(xRange, yRange, (x, y) -> norm([x; y]),
-                    xlabel = "X", ylabel = "Y", zlabel = "t")
+function circleShape(h, k, r)
+    # From Julia Lang Discourse
+    t = LinRange(0, 2 * π, 100)
+    return h .+ r * sin.(t), k .+ r*cos.(t)
+end
+
+# plt4 = contour(xRange, yRange, (x, y) -> norm([x; y]))
+plt4 = plot(circleShape(0, 0, sTest), seriestype = [:shape,],
+        linecolor = :black, fillalpha = 0.2)
+contour!(xRange, yRange, distSqr2Cone)
+title!("Square of Distance to Cone at s = $sTest slice", aspect_ratio = :equal)
+xlabel!("X")
+ylabel!("Y")
+display(plt4)
+savefig(plt4, "proj2ConeContours")
+
+xRange = -15:0.1:15
+plt5 = surface(xRange, xRange, (x, y) -> norm([x; y]),
+                    xlabel = "X", ylabel = "Y", zlabel = "s")
 title!("Second Order Cone")
 display(plt5)
-savefig(plt5, "proj2ConeContours")
+savefig(plt5, "proj2ConeSimpleSurface")
 
 xRange = -15:0.1:15
 yRange = -5:0.1:15
@@ -87,13 +97,13 @@ yRange = -5:0.1:15
 plt6 = contour(xRange, yRange, (x, y) -> projSecondOrderCone(x, y)[1])
 plot!(xRange, x -> abs(x), linecolor = :black, label = "Cone Surface")
 xlabel!("X")
-ylabel!("t")
+ylabel!("s")
 title!("1D 2nd Order Cone Projections")
 display(plt6)
 savefig(plt6, "proj2Cone1D")
 
 # Repeat, but now with an affine input
-xRange = -50:0.1:10
+xRange = -70:0.1:10
 yRange = -5:0.1:15
 aTest = 1/5
 bTest = -6
@@ -101,7 +111,7 @@ plt7 = contour(xRange, yRange,
             (x, y) -> projSecondOrderCone(aTest * x - bTest, y)[1])
 plot!(xRange, x -> abs(aTest * x - bTest), linecolor = :black, label = "Cone Surface")
 xlabel!("X")
-ylabel!("t")
+ylabel!("s")
 title!("1D 2nd Order Cone Projections from Affine (Ax - b)")
 display(plt7)
 savefig(plt7, "proj2Cone1DAffine.png")

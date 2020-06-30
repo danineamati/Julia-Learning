@@ -134,7 +134,7 @@ function getHessC(r::AL_AffineInequality)
 end
 
 
-runTests = true
+runTests = false
 
 if runTests
     println()
