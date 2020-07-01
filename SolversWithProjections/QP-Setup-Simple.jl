@@ -51,7 +51,7 @@ function solParamPrint(sp::solverParams)
     println("(Penalty)     : Δρ = $(sp.penaltyStep), ρMax = $(sp.penaltyMax)")
 end
 
-currSolveParams = solverParams(0.1, 0.5, 10, 1, 10^-8, 10, 10^6)
+currSolveParams = solverParams(0.1, 0.5, 16, 2, 10^-10, 10, 10^6)
 solParamPrint(currSolveParams)
 
 # --------------------------
@@ -92,7 +92,7 @@ println(checkPosDef(QMat))
 # For an Exterior Point, try [-30; 70]
 # With Option 2
 # For an Exterior Point, try [12, -70]
-cVec = [4; -3]
+cVec = [-30; 70]
 
 # Generate the Struct
 thisQP = objectiveQP(QMat, cVec)
@@ -141,7 +141,7 @@ println(satisfied(thisConstr, x0))
 # print("Example evaluation of the lagrangian at $x0: ")
 # println(phi(x0))
 
-struct augLagQP_AffineIneq
+mutable struct augLagQP_AffineIneq
     obj::objectiveQP
     constraints::AL_AffineInequality
     rho
@@ -168,7 +168,7 @@ function evalHessAl(alQP::augLagQP_AffineIneq, x)
 end
 
 
-alTest = augLagQP_AffineIneq(thisQP, thisConstr, 1, ones(size(bVec)))
+alTest = augLagQP_AffineIneq(thisQP, thisConstr, 1, zeros(size(bVec)))
 print("Evaluating the Augmented Lagrangian at the starting value of $x0: ")
 println(evalAL(alTest, x0))
 println("Evaluating the AL gradient: $(evalGradAL(alTest, x0))")

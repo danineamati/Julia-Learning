@@ -95,18 +95,21 @@ function newtonStep(x0, al::augLagQP_AffineIneq)
     returns [∇^2φ(x)]^-1 ∇φ(x) and ∇φ(x)
     since [∇^2φ(x)]^-1 ∇φ(x) is the step and ∇φ(x) is the residual
     =#
-    phiDDinv = inv(evalHessAl(al, x))
+    phiDDinv = inv(evalHessAl(al, x0))
     phiD = evalGradAL(al, x0)
     # Note the negative sign!
-    return (-phiDDinv * phiD, phiD)
+    return -phiDDinv * phiD, phiD
 end
 
 function newtonMethodLineSearch(x0, al::augLagQP_AffineIneq, sp::solverParams,
                                             verbose = false)
     xNewtStates = []
     residNewt = []
-    push!(xNewtStates, x0)
+    # push!(xNewtStates, x0)
     xCurr = x0
+
+    # For printing
+    early = false
 
     lineSearchObj(x) = evalAL(al, x)
     lineSearchdfdx(x) = evalGradAL(al, x)
@@ -115,6 +118,7 @@ function newtonMethodLineSearch(x0, al::augLagQP_AffineIneq, sp::solverParams,
     for i in 1:(sp.maxNewtonSteps)
         # Negative sign addressed above
         (dirNewton, residual) = newtonStep(xCurr, al)
+        push!(residNewt, residual)
 
         if verbose
             println("Newton Direction: $dirNewton")
@@ -129,7 +133,11 @@ function newtonMethodLineSearch(x0, al::augLagQP_AffineIneq, sp::solverParams,
             println("Expected x = $x0LS ?= $(xCurr + stepLS * dirNewton)")
         end
 
-        if norm(xCurr - x0LS, 2) < xtol
+        push!(xNewtStates, x0LS)
+
+        if norm(xCurr - x0LS, 2) < sp.xTol
+            println("Ended from tolerance at $i Newton steps")
+            early = true
             break
         else
             xCurr = x0LS
@@ -137,7 +145,11 @@ function newtonMethodLineSearch(x0, al::augLagQP_AffineIneq, sp::solverParams,
 
     end
 
-    return xCurr
+    if !early
+        println("Ended from max steps in $(sp.maxNewtonSteps) Newton Steps")
+    end
+
+    return xNewtStates, residNewt
 
 end
 
@@ -171,6 +183,14 @@ function ALPrimalNewtonQPmain(x0, al::augLagQP_AffineIneq, sp::solverParams,
         # ρ ← min(ρ * 10, 10^6)   - Which is to say we bound ρ's growth by 10^6
         xNewest = xNewStates[end]
         APost = getGradC(al.constraints, xNewest)
+
+        if verbose
+            println()
+            println("APost = $APost")
+            println("xStates = $xStates")
+            println("xNewest = $xNewest")
+            println("All residuals = $residuals")
+        end
         al.lambda = al.lambda + al.rho * (APost * xNewest - al.constraints.b)
         al.rho = min(al.rho * sp.penaltyStep, sp.penaltyMax)
 
@@ -181,11 +201,12 @@ function ALPrimalNewtonQPmain(x0, al::augLagQP_AffineIneq, sp::solverParams,
         end
 
         if norm(xNewest - x0, 2) < sp.xTol
+            println("Ended early at $i outer steps")
             break
         else
-            x0 = xNew
+            x0 = xNewest
         end
     end
 
-    return xStates
+    return xStates, residuals
 end
