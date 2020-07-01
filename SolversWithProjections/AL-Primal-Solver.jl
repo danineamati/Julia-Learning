@@ -89,42 +89,40 @@ include("backtrackLineSearch.jl")
 include("constraints.jl")
 
 
-function newtonStep(phiDDinv, phiD)
-    # x ← x - [∇^2φ(x)]^-1 ∇φ(x)
-    # returns [∇^2φ(x)]^-1 ∇φ(x)
-    return phiDDinv * phiD
+function newtonStep(x0, al::augLagQP_AffineIneq)
+    #=
+    x ← x - [∇^2φ(x)]^-1 ∇φ(x)
+    returns [∇^2φ(x)]^-1 ∇φ(x) and ∇φ(x)
+    since [∇^2φ(x)]^-1 ∇φ(x) is the step and ∇φ(x) is the residual
+    =#
+    phiDDinv = inv(evalHessAl(al, x))
+    phiD = evalGradAL(al, x0)
+    # Note the negative sign!
+    return (-phiDDinv * phiD, phiD)
 end
 
 function newtonMethodLineSearch(x0, al::augLagQP_AffineIneq, sp::solverParams,
                                             verbose = false)
-    # Note that the [∇^2φ(x)]^-1 is INDEPENDENT of x. So we solve it once and
-    # store it.
+    xNewtStates = []
+    residNewt = []
+    push!(xNewtStates, x0)
+    xCurr = x0
 
-    phiDDinv = inv(getQPhessPhiAL(x, Q, A, b, rho))
-
-    xCurr = x
+    lineSearchObj(x) = evalAL(al, x)
+    lineSearchdfdx(x) = evalGradAL(al, x)
 
     # Now, we run through the iterations
-    for i in 1:maxIters
-
-        # compute ∇φ(x)
-        if verbose
-            println("x = $xCurr")
-            println("c_+(x) = $(cPlus(A, xCurr, b))")
-            println("∇c_+(x) = $(cPlusD(A, xCurr, b))")
-        end
-        phiD = getQPgradPhiAL(xCurr, Q, c, A, b, rho, lambda)
-
-        # Note the negative sign!
-        dirNewton = -newtonStep(phiDDinv, phiD)
+    for i in 1:(sp.maxNewtonSteps)
+        # Negative sign addressed above
+        (dirNewton, residual) = newtonStep(xCurr, al)
 
         if verbose
             println("Newton Direction: $dirNewton")
         end
 
         # Then get the line search recommendation
-        x0LS, stepLS = backtrackLineSearch(xCurr, dirNewton, fObj, dfdx,
-                                            paramA, paramB)
+        x0LS, stepLS = backtrackLineSearch(xCurr, dirNewton,
+                        lineSearchObj, lineSearchdfdx, sp.paramA, sp.paramB)
 
         if verbose
             println("Recommended Line Search Step: $stepLS")
@@ -143,7 +141,7 @@ function newtonMethodLineSearch(x0, al::augLagQP_AffineIneq, sp::solverParams,
 
 end
 
-function ALNewtonQPmain(x0, al::augLagQP_AffineIneq, sp::solverParams,
+function ALPrimalNewtonQPmain(x0, al::augLagQP_AffineIneq, sp::solverParams,
                                             verbose = false)
 
     # (x0, fObj, dfdx, Q, c, A, b, rho, lambda,
@@ -171,16 +169,18 @@ function ALNewtonQPmain(x0, al::augLagQP_AffineIneq, sp::solverParams,
         # Determine the new lambda and rho
         # λ ← λ + ρ c(x_k*)       - Which is to say update with prior x*
         # ρ ← min(ρ * 10, 10^6)   - Which is to say we bound ρ's growth by 10^6
-        lambda = lambda + rho * (A * xNew - b)
-        rho = min(rho * rhoIncrease, rhoMax)
+        xNewest = xNewStates[end]
+        APost = getGradC(al.constraints, xNewest)
+        al.lambda = al.lambda + al.rho * (APost * xNewest - al.constraints.b)
+        al.rho = min(al.rho * sp.penaltyStep, sp.penaltyMax)
 
         if verbose
             println("New state added")
-            println("Lambda Updated: $lambda")
-            println("rho updated: $rho")
+            println("Lambda Updated: $(al.lambda)")
+            println("rho updated: $(al.rho)")
         end
 
-        if norm(xNew - x0, 2) < xtol
+        if norm(xNewest - x0, 2) < sp.xTol
             break
         else
             x0 = xNew
