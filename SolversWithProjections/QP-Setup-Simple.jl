@@ -16,7 +16,7 @@
 
 using LinearAlgebra
 
-include("feasibleCheck.jl")
+include("constraints.jl")
 
 
 function checkPosDef(Q)
@@ -26,6 +26,33 @@ function checkPosDef(Q)
     numRows = size(Q, 1)
     return (eVals > vec(zeros(numRows, 1))) && (det(Q) > 0)
 end
+
+# -------------------------
+# Solver Parameters
+# -------------------------
+
+struct solverParams
+    paramA::Float16         # Used in Line Search, should be [0.01, 0.3]
+    paramB::Float16         # Used in Line Search, should be [0.1, 0.8]
+    maxOuterIters::Int32    # Number of Outer Loop iterations
+    maxNewtonSteps::Int32   # Number of Newton Steps per Outer Loop iterations
+    xTol::Float64           # When steps are within xTol, loop will stop.
+    penaltyStep::Float16    # Multiplies the penalty parameter per outer loop
+    penaltyMax::Float64     # Maximum value of the penalty parameter
+end
+
+function solParamPrint(sp::solverParams)
+    println()
+    println("Beginning solver with parameters: ")
+    println("(Line Search) : a = $(sp.paramA), b = $(sp.paramB)")
+    print("(Loop #)      : Outer = $(sp.maxOuterIters), ")
+    println("Newton = $(sp.maxNewtonSteps)")
+    println("(or End at)   : Δx = $(sp.xTol)")
+    println("(Penalty)     : Δρ = $(sp.penaltyStep), ρMax = $(sp.penaltyMax)")
+end
+
+currSolveParams = solverParams(0.1, 0.5, 10, 1, 10^-8, 10, 10^6)
+solParamPrint(currSolveParams)
 
 # --------------------------
 # Set an example initial starting point
@@ -40,6 +67,11 @@ x0 = [-1; 0.5]
 # c is an nx1 vector
 # --------------------------
 
+struct objectiveQP
+    Q
+    c
+end
+
 # Examples used:
 #           Q               |       c      |       x*        | name
 # -----------------------------------------------------------------------
@@ -51,7 +83,7 @@ x0 = [-1; 0.5]
 # Option 1: Symmetric([6 5; 0 8])
 # Option 2: Symmetric([5 -0.5; 0 10])
 QMat = Symmetric([6 5; 0 8])
-println("\n")
+println()
 print("Q Matrix is Positive Definite: ")
 println(checkPosDef(QMat))
 
@@ -62,12 +94,20 @@ println(checkPosDef(QMat))
 # For an Exterior Point, try [12, -70]
 cVec = [4; -3]
 
+# Generate the Struct
+thisQP = objectiveQP(QMat, cVec)
+
 # Input x as a COLUMN vector (i.e. x = [4; 3])
-fObj(x) = (1/2) * x'QMat*x + cVec'x
-dfObjdx(x) = QMat*x + cVec
+function fObjQP(qp::objectiveQP, x)
+    return (1/2) * x' * (qp.Q) * x + (qp.c)' * x
+end
+
+function dfdxQP(qp::objectiveQP, x)
+    return (qp.Q) * x + qp.c
+end
 
 print("Example evaluation of the objective function at $x0: ")
-println(fObj(x0))
+println(fObjQP(thisQP, x0))
 
 
 # ---------------------------
@@ -81,9 +121,12 @@ println(fObj(x0))
 AMat = [4 5; -4 5; 0 -1]
 bVec = [20; 30; 1]
 
+# Generate the struct
+thisConstr = AL_AffineInequality(AMat, bVec)
+
 # Check if the initial point is feasible
 print("Is the initial point feasible? ")
-println(isFeasiblePolyHedron(AMat, bVec, x0))
+println(satisfied(thisConstr, x0))
 
 # --------------------------
 # Lagrangian
@@ -97,3 +140,36 @@ println(isFeasiblePolyHedron(AMat, bVec, x0))
 #
 # print("Example evaluation of the lagrangian at $x0: ")
 # println(phi(x0))
+
+struct augLagQP_AffineIneq
+    obj::objectiveQP
+    constraints::AL_AffineInequality
+    rho
+    lambda
+end
+
+function evalAL(alQP::augLagQP_AffineIneq, x)
+    fCurr = fObjQP(alQP.obj, x)
+    cCurr = getNormToProjVals(alQP.constraints, x)
+
+    return fCurr + (alQP.rho / 2) * cCurr'cCurr + (alQP.lambda)' * cCurr
+end
+
+function evalGradAL(alQP::augLagQP_AffineIneq, x)
+    gradfCurr = dfdxQP(alQP.obj, x)           # This is Qx + c
+    cCurr = getNormToProjVals(alQP.constraints, x)
+    gradcCurr = getGradC(alQP.constraints, x) # The adjusted A matrix
+    return gradfCurr + gradcCurr' * (alQP.rho * cCurr + alQP.lambda)
+end
+
+function evalHessAl(alQP::augLagQP_AffineIneq, x)
+    gradcCurr = getGradC(alQP.constraints, x) # The adjusted A matrix
+    return alQP.obj.Q + alQP.rho * gradcCurr'gradcCurr
+end
+
+
+alTest = augLagQP_AffineIneq(thisQP, thisConstr, 1, ones(size(bVec)))
+print("Evaluating the Augmented Lagrangian at the starting value of $x0: ")
+println(evalAL(alTest, x0))
+println("Evaluating the AL gradient: $(evalGradAL(alTest, x0))")
+println("Evaluating the AL hessian: $(evalHessAl(alTest, x0))")
