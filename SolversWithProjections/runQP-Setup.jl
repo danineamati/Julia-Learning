@@ -31,7 +31,7 @@ x0 = [-5; 20]
 # Symmetric([6 5; 0 8])     |   [-30; 70]  |   [35/6; -1]    |  Far Ext. (Edge)
 # Symmetric([5 -0.5; 0 10]) |   [12, -70]  |   [-5/4; 5]     |  Up  (Vertex)
 
-QPName = "Far Exterior"
+QPName = "Interior"
 
 # Option 1: Symmetric([6 5; 0 8])
 # Option 2: Symmetric([5 -0.5; 0 10])
@@ -45,7 +45,7 @@ println(checkPosDef(QMat))
 # For an Exterior Point, try [-30; 70]
 # With Option 2
 # For an Exterior Point, try [12, -70]
-cVec = [-30; 70]
+cVec = [4; -3]
 
 # Generate the Struct
 thisQP = objectiveQP(QMat, cVec)

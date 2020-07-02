@@ -50,6 +50,7 @@ ptList = montecarlo(minVec, maxVec, numPoints)
 xPt = [x[1] for x in ptList]
 yPt = [x[2] for x in ptList]
 
+println("Saving points for plotting")
 plt = scatter(xPt, yPt, markershape = :rect, label = "Starting Points",
                     markersize = 6)
 
@@ -59,7 +60,8 @@ println("*    Running the Solvers    *")
 println("*****************************")
 
 
-alClean = augLagQP_AffineIneq(thisQP, thisConstr, alTest.rho, zeros(size(bVec)))
+alClean = augLagQP_AffineIneq(thisQP, thisConstr,
+                        currSolveParams.penaltyMax, zeros(size(bVec)))
 
 xOverallBinALP = []
 residOverallBinALP = []
@@ -101,30 +103,35 @@ end
 
 println()
 println("*****************************")
-println("*   Plotting the Results    *")
+println("*  Plotting Resulting Path  *")
 println("*****************************")
 
 function plotPath(xArr, thismarker = :circle, thislabel = "Path",
-                        linestyle = :dash)
+                        thislinestyle = :dash)
     xVals = [x[1] for x in xArr]
     yVals = [x[2] for x in xArr]
     plot!(xVals, yVals, markershape = thismarker, markersize = 5,
-            markerstrokewidth = 0, label = thislabel)
+        markerstrokewidth = 0, linestyle = thislinestyle, label = thislabel)
 end
 
-function plotAllPaths(alpPath, alpdPath, filename = "Path")
+function plotAllPaths(alpPath, alpdPath, filename = "Path", plotEach = true)
     numPaths = min(size(alpPath, 1), size(alpdPath, 1))
 
     for i in 1:numPaths
         plotPath(alpPath[i], :circle, "AL Primal $i", :dash)
-        savefig(plt, fileName * "-$i-1")
+        if plotEach
+            savefig(plt, string(fileName * "-$i-1"))
+        end
         plotPath(alpdPath[i], :star4, "AL Primal-Dual $i", :dot)
-        savefig(plt, fileName * "-$i-2")
+        if plotEach
+            savefig(plt, string(fileName * "-$i-2"))
+        end
     end
 end
 
-fileName = "MCpathPlot-$(QPName)-$(currTimeFormat)"
-scatter!([35/6], [-1], markershape = :xcross, label = "Optimal Point",
+currTimeFormat = Dates.format(Dates.now(), "yymmdd-HHMMSS")
+fileName = string("MCpathPlot-$(QPName)-$(currTimeFormat)")
+scatter!([-47/23], [38/23], markershape = :xcross, label = "Optimal Point",
             legend = :outertopright, markersize = 8, markercolor = :red)
 
 xyBuff = 2
@@ -134,11 +141,47 @@ xlims!(minVec[1] - xyBuff, maxVec[1] + xyBuff * 4)
 ylims!(minVec[2] - xyBuff * 4, maxVec[2] + xyBuff)
 title!("Monte Carlo Simulation for $(QPName) QP")
 
-savefig(plt, fileName * "-0")
+savefig(plt, string(fileName * "-0"))
 
-plotAllPaths(xOverallBinALP, xOverallBinALPD, fileName)
+plotAllPaths(xOverallBinALP, xOverallBinALPD, fileName, true)
 
 display(plt)
 
-currTimeFormat = Dates.format(Dates.now(), "yymmdd-HHMMSS")
-savefig(plt, fileName * "-Final")
+savefig(plt, string(fileName * "-Final"))
+
+println()
+println("*****************************")
+println("*    Plotting Residuals     *")
+println("*****************************")
+
+function plotAllRes(alpRes, alpdRes, filename = "Path", plotEach = true)
+
+    numPaths = min(size(alpRes, 1), size(alpdRes, 1))
+
+    for i in 1:numPaths
+        plot!(alpRes[i], markershape = :circle, linestyle = :dash,
+                    label = "AL Primal $i")
+        if plotEach
+            savefig(pltRes, string(fileName * "-$i-1"))
+        end
+        plot!(alpdRes[i], markershape = :star4, linestyle = :dot,
+                    label = "AL Primal-Dual $i")
+        if plotEach
+            savefig(pltRes, string(fileName * "-$i-2"))
+        end
+    end
+end
+
+
+pltRes = plot(legend = :outertopright, yaxis = :log)
+xlabel!("Recorded Newton Step")
+ylabel!("Norm of Residual")
+title!("Augmented Lagrangian Performance\n" *
+            "For a max $(currSolveParams.maxNewtonSteps) max Newton Steps" *
+            ", for $(QPName) QP")
+
+fileName = string("MCresPlot-$(QPName)-$(currTimeFormat)")
+plotAllRes(residOverallBinALP, residOverallBinALPD, fileName, true)
+
+display(pltRes)
+savefig(pltRes, fileName * "-Final")
