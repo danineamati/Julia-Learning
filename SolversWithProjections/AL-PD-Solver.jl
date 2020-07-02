@@ -93,7 +93,7 @@ function getQP_PDVecAL(x0, nu0, al::augLagQP_AffineIneq)
     ν is the  dual  variable
 
     r = (     ∇f(x) + νT ∇g(x)     ) = (    Qx + c + νT * A   )
-        ( g_i(x) + (1/ρ)(ν_i - λ_i)) = ( Ax - b + (1/ρ)(ν - λ))
+        ( g_i(x) + (1/ρ)(λ_i - ν_i)) = ( Ax - b + (1/ρ)(λ - ν))
 
     Notice that r1 is NOT the gradient of the augmented lagrangian.
     =#
@@ -102,8 +102,8 @@ function getQP_PDVecAL(x0, nu0, al::augLagQP_AffineIneq)
     gradf = dfdxQP(al.obj, x0)
     cCurr = getNormToProjVals(al.constraints, x0)
 
-    r1 = gradf + APost' * al.lambda
-    r2 = cCurr + (1/(al.rho)) * (nu0 - al.lambda)
+    r1 = gradf + APost' * nu0
+    r2 = cCurr + (1/(al.rho)) * (al.lambda - nu0)
 
     return vcat(r1, r2)
 end
@@ -159,87 +159,116 @@ function newtonAndLineSearchPDAL(h0, al::augLagQP_AffineIneq, sp::solverParams,
     xCurr = h0[1:xSize]
     nuCurr = h0[xSize + 1:end]
 
-    # Get current r Vector and gradient of r Vector
-    rV = getQPrVecAL(Q, c, A, b, xCurr, lamCurr, rho, nu)
-    gRA, gRB, gRC, gRD = getQPGradrVecAL(Q, A, b, xCurr, rho)
+    # Save results
+    hNewtStates = []
+    residNewt = []
 
-    # First get the newton step
-    # NOTICE the negative sign
-    dirNewton = -newtonStep(gRA, gRB, gRC, gRD, rV)
+    # For printing
+    early = false
 
-    xMax = xCurr + dirNewton[1:xSize]
-    if verbose
-        println("Direction: $dirNewton")
-        println("Max x = $xMax at φ(x) = $(phiObj(xMax))")
+    lineSearchObj(x) = evalAL(al, x)
+    lineSearchdfdx(x) = evalGradAL(al, x)
+
+    # Now, we run through the iterations
+    for i in 1:(sp.maxNewtonSteps)
+        # First get the newton step
+        # note that the negative sign is already addressed above
+        (dirNewton, residual) = newtonStepPDAL(xCurr, nuCurr, al)
+        push!(residNewt, residual)
+
+        if true
+            println("Newton Direction: $dirNewton at $xCurr")
+        end
+
+        # Then get the line search recommendation
+        x0LS, stepLS = backtrackLineSearch(xCurr, dirNewton[1:xSize],
+                        lineSearchObj, lineSearchdfdx, sp.paramA, sp.paramB)
+
+        if true
+            println("Recommended Line Search Step: $stepLS")
+            println("Expected x = $x0LS ?= $(xCurr + stepLS * dirNewton[1:xSize])")
+        end
+
+        x0New = xCurr + stepLS * dirNewton[1:xSize]
+        nuNew = nuCurr + stepLS * dirNewton[xSize + 1:end]
+
+        h0New = [x0New; nuNew]
+
+        push!(hNewtStates, h0New)
+
+        if norm(xCurr - x0LS, 2) < sp.xTol
+            println("Ended from tolerance at $i Newton steps")
+            early = true
+            break
+        else
+            xCurr = x0LS
+        end
+
     end
-    # Then get the line search recommendation
-    # Note that phiObj is the full Augmented Lagrangian
-    x0LS, stepLS = backtrackLineSearch(xCurr, dirNewton[1:xSize],
-                                    phiObj, dphidx, paramA, paramB, false)
-    if verbose
-        println("Line Search step = $stepLS")
+
+    if !early
+        println("Ended from max steps in $(sp.maxNewtonSteps) Newton Steps")
     end
 
-    # Update the rVector
-    # Negative Sign Accounted Above
-    x0New = xCurr + stepLS * dirNewton[1:xSize]
-    lambdaNew = lamCurr + stepLS * dirNewton[xSize + 1:end]
-    hVNew = vcat(x0New, lambdaNew)
-
-    # ONLY reason for the separation is for printing.
-
-    if verbose
-        println("x0New = $x0New")
-        println("LambdaNew = $lambdaNew")
-    end
-
-    return hVNew
+    return hNewtStates, residNewt
 
 end
 
-function pdALNewtonQPmain(Q, c, A, b, x0, lambda, rho, nu, fObj, dfdx,
-                    maxIters = 10, paramA = 0.1, paramB = 0.5, verbose = false)
-    hCurr = vcat(x0, lambda)
+function ALPDNewtonQPmain(x0, al::augLagQP_AffineIneq, sp::solverParams,
+                                            verbose = false)
+    n0 = zeros(size(al.constraints.A, 1))
+
+    xSize = size(x0, 1)
+
+    hCurr = vcat(x0, n0)
     hStates = []
+    residuals = []
     push!(hStates, hCurr)
 
-    rho = 1
-    rhoIncrease = 10
-
-    for i in 1:maxIters
-        # Update rVec at each iteration
-        # φ(x) = f(x) + (ρ/2) c(x)'c(x) + λ c(x)
-        phi(x) = fObj(x) + (rho / 2) * cPlus(A, x, b)'cPlus(A, x, b) +
-                        nu' * cPlus(A, x, b)
-        dPhidx(x) = getQPgradPhiAL(x, Q, c, A, b, rho, nu)
+    for i in 1:(sp.maxOuterIters)
 
         if verbose
-            xStart = hCurr[1:size(x0, 1)]
+            xStart = hCurr[1:xSize]
             println("---------")
-            println("Starting Outer at: $xStart with value φ(x) = $(phi(xStart))")
+            println("Starting Outer at: $xStart")
         end
 
-        hCurr = newtonAndLineSearchPDAL(Q, c, A, b, hCurr, rho, nu,
-                                        phi, dPhidx, paramA, paramB, verbose)
-        push!(hStates, hCurr)
+        (hNewStates, resAtStates) = newtonAndLineSearchPDAL(hCurr, al, sp, verbose)
+
+        # Take each step in the arrays above and save it to the respective
+        # overall arrays
+        hStates = [hStates; hNewStates]
+        residuals = [residuals; resAtStates]
 
         # Determine the new lambda and rho
-        # ν ← ν + ρ c(x_k*)       - Which is to say update with prior x*
+        # λ ← λ + ρ c(x_k*)       - Which is to say update with prior x*
         # ρ ← min(ρ * 10, 10^6)   - Which is to say we bound ρ's growth by 10^6
-        xNew = hCurr[1:size(x0, 1)]
+        xNewest = hNewStates[end][1:xSize]
+        APost = getGradC(al.constraints, xNewest)
 
         if verbose
-            println("New state added: $xNew with value φ(x) = $(phi(xNew))")
+            println()
+            println("APost = $APost")
+            # println("xStates = $hStates")
+            println("xNewest = $xNewest")
+            println("New residuals = $resAtStates")
+        end
+        al.lambda = al.lambda + al.rho * (APost * xNewest - al.constraints.b)
+        al.rho = min(al.rho * sp.penaltyStep, sp.penaltyMax)
+
+        if verbose
+            println("New state added")
+            println("Lambda Updated: $(al.lambda)")
+            println("rho updated: $(al.rho)")
         end
 
-        nu = nu + rho * (A * xNew - b)
-        rho = rho * rhoIncrease
-
-        if verbose
-            println("ν Updated: $nu")
-            println("ρ updated: $rho")
+        if norm(xNewest - x0, 2) < sp.xTol
+            println("Ended early at $i outer steps")
+            break
+        else
+            hCurr = hNewStates[end]
         end
     end
 
-    return hStates
+    return hStates, residuals
 end
