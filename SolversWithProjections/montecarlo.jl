@@ -44,6 +44,12 @@ function montecarlo(minVec, maxVec, numPoints = 10, funcCheck = x -> true)
     return listPoints
 end
 
+function inBox(x2D)
+    if (1 > x2D[1] > 0) && (1 > x2D[2] > 0)
+        return true
+    end
+    return false
+end
 
 
 runTests = false
@@ -61,11 +67,5 @@ if runTests
     display(montecarlo([3; 2; -5; -0.01], [10; 100; 0.5; 0.01], 3))
 
     println("Generating 2 Random Points in a smaller [0, 1] box")
-    function inBox(x2D)
-        if (1 > x2D[1] > 0) && (1 > x2D[2] > 0)
-            return true
-        end
-        return false
-    end
     display(montecarlo([-20; -20], [20; 20], 2, inBox))
 end
