@@ -91,6 +91,7 @@ x ← x - inv(Q + ρ A * A) * ([Qx + c] + [ρ (Ax - b) + λ] * A)
 
 using LinearAlgebra
 
+include("QP-Setup-Simple.jl")
 include("backtrackLineSearch.jl")
 include("constraints.jl")
 

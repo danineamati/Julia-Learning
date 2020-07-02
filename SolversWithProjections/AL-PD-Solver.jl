@@ -81,12 +81,14 @@
 
 using LinearAlgebra
 
+include("QP-Setup-Simple.jl")
 include("backtrackLineSearch.jl")
 include("constraints.jl")
 include("schurInverse.jl")
 
 
-function getQPrVecAL(Q, c, A, b, x, lambda, rho, nu)
+function getQPrVecAL(al::augLagQP_AffineIneq)
+    # (Q, c, A, b, x, lambda, rho, nu)
     #=
     r = (     ∇f(x) + λT ∇g(x)     ) = (    Qx + c + λT * A   )
         ( g_i(x) + (1/μ)(ρ_i - λ_i)) = ( Ax - b + (1/μ)(ρ - λ))

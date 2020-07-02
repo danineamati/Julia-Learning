@@ -3,7 +3,7 @@
 using Plots
 gr()
 include("AL-Primal-Solver.jl")
-include("QP-Setup-Simple.jl")
+include("runQP-Setup.jl")
 
 println()
 println("*****************************")
