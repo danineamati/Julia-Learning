@@ -12,12 +12,6 @@ println("*****************************")
 println("* Running the Solver Tests  *")
 println("*****************************")
 
-function getNormRes(resArr, floor = 10^(-20))
-    # Take the norm to get non-negative.
-    # Take max with floor to get positive.
-    return max.(norm.(resArr), floor)
-end
-
 function calcNormError(xArr)
     xs = [x[1] for x in xArr]
     ys = [x[2] for x in xArr]
@@ -35,7 +29,12 @@ end
 println("1) Augemented Lagrangian Primal")
 # Refresh the parameters
 alTest = augLagQP_AffineIneq(thisQP, thisConstr, 1, zeros(size(bVec)))
-xResultsALP, resResultsALP = ALPrimalNewtonQPmain(x0, alTest, currSolveParams, false)
+xResultsALP, resStateResultsALP = ALPrimalNewtonQPmain(x0, alTest,
+                                                currSolveParams, false)
+# Calculates the residuals based on the last penalty parameter
+# Removes the approximate lagrange multiplier λ → 0
+alClean = augLagQP_AffineIneq(thisQP, thisConstr, alTest.rho, zeros(size(bVec)))
+resResultsALP = calcNormGradResiduals(alClean, xResultsALP)
 
 println("Solver Complete\n")
 
@@ -43,20 +42,26 @@ println("Solver Complete\n")
 println("2) Augemented Lagrangian Primal-Dual")
 # Refresh the parameters
 alTest = augLagQP_AffineIneq(thisQP, thisConstr, 1, zeros(size(bVec)))
-xResultsALPD, resResultsALPD = ALPDNewtonQPmain(x0, alTest, currSolveParams, false)
+hResultsALPD, resStateResultsALPD = ALPDNewtonQPmain(x0, alTest,
+                                                currSolveParams, false)
+xResultsALPD = [[h[1]; h[2]] for h in hResultsALPD]
+# Calculates the residuals based on the last penalty parameter
+# Removes the approximate lagrange multiplier λ → 0
+alClean = augLagQP_AffineIneq(thisQP, thisConstr, alTest.rho, zeros(size(bVec)))
+resResultsALPD = calcNormGradResiduals(alClean, xResultsALPD)
 
 println("Solver Complete\n")
 
 plt1 = plot(calcNormError(xResultsALP), yaxis = :log, markershape = :circle,
                     label = "AL Primal Error")
 
-plot!(getNormRes(xResultsALPD), yaxis = :log, markershape = :circle,
+plot!(resResultsALP, yaxis = :log, markershape = :circle,
                     label = "AL Primal Residuals", legend = :bottomleft)
 
 scatter!(calcNormError(xResultsALPD), yaxis = :log, markershape = :utriangle,
                     label = "AL PD Error")
 
-scatter!(getNormRes(xResultsALPD), yaxis = :log, markershape = :utriangle,
+plot!(resResultsALPD, yaxis = :log, markershape = :utriangle,
                     label = "AL PD Residuals", legend = :bottomleft)
 
 xlabel!("Recorded Newton Step")

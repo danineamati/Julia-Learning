@@ -116,3 +116,26 @@ function evalHessAl(alQP::augLagQP_AffineIneq, x)
     gradcCurr = getGradC(alQP.constraints, x) # The adjusted A matrix
     return alQP.obj.Q + alQP.rho * gradcCurr'gradcCurr
 end
+
+
+function getNormRes(resArr, floor = 10^(-20))
+    # Take the norm to get non-negative.
+    # Take max with floor to get positive.
+    return max.(norm.(resArr), floor)
+end
+
+function calcNormGradResiduals(alQP::augLagQP_AffineIneq, xArr)
+    #=
+    Calculate the residuals where the AL is the merit function.
+    Returns the norm of the gradient of the AL at each point in xArr
+    =#
+    resArr = [evalGradAL(alQP, x) for x in xArr]
+    return getNormRes(resArr)
+end
+
+function calcALArr(alQP::augLagQP_AffineIneq, xArr)
+    #=
+    Calculate the value of the Augmented Lagrangian at each point
+    =#
+    return [evalAL(alQP, x) for x in xArr]
+end

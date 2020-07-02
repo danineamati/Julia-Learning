@@ -176,7 +176,7 @@ function newtonAndLineSearchPDAL(h0, al::augLagQP_AffineIneq, sp::solverParams,
         (dirNewton, residual) = newtonStepPDAL(xCurr, nuCurr, al)
         push!(residNewt, residual)
 
-        if true
+        if verbose
             println("Newton Direction: $dirNewton at $xCurr")
         end
 
@@ -184,7 +184,7 @@ function newtonAndLineSearchPDAL(h0, al::augLagQP_AffineIneq, sp::solverParams,
         x0LS, stepLS = backtrackLineSearch(xCurr, dirNewton[1:xSize],
                         lineSearchObj, lineSearchdfdx, sp.paramA, sp.paramB)
 
-        if true
+        if verbose
             println("Recommended Line Search Step: $stepLS")
             println("Expected x = $x0LS ?= $(xCurr + stepLS * dirNewton[1:xSize])")
         end
