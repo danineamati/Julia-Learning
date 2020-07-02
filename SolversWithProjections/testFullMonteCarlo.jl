@@ -131,14 +131,14 @@ end
 
 currTimeFormat = Dates.format(Dates.now(), "yymmdd-HHMMSS")
 fileName = string("MCpathPlot-$(QPName)-$(currTimeFormat)")
-scatter!([-47/23], [38/23], markershape = :xcross, label = "Optimal Point",
+scatter!([-5/4], [5], markershape = :xcross, label = "Optimal Point",
             legend = :outertopright, markersize = 8, markercolor = :red)
 
 xyBuff = 2
 xlabel!("X")
 ylabel!("Y")
-xlims!(minVec[1] - xyBuff, maxVec[1] + xyBuff * 4)
-ylims!(minVec[2] - xyBuff * 4, maxVec[2] + xyBuff)
+xlims!(minVec[1] - xyBuff, maxVec[1] + xyBuff)
+ylims!(minVec[2] - xyBuff, maxVec[2] + xyBuff)
 title!("Monte Carlo Simulation for $(QPName) QP")
 
 savefig(plt, string(fileName * "-0"))
@@ -185,3 +185,31 @@ plotAllRes(residOverallBinALP, residOverallBinALPD, fileName, true)
 
 display(pltRes)
 savefig(pltRes, fileName * "-Final")
+
+
+println()
+println("******************************")
+println("* Plotting Residual Contours *")
+println("******************************")
+
+xRange = -10:0.1:10
+yRange = -2:0.1:10
+
+contour(xRange, yRange, (x, y) -> evalAL(alClean, [x; y]), levels = 50)
+xlabel!("X")
+ylabel!("Y")
+title!("Contour Plot of Augmented Lagrangian\n used to calculate the Residuals")
+
+contour(xRange, yRange, (x, y) -> norm(evalGradAL(alClean, [x; y])),
+                    levels = 50)
+xlabel!("X")
+ylabel!("Y")
+title!("Contour Plot of Augmented Lagrangian Residuals")
+savefig("ALCleanResContours")
+
+contour(xRange, yRange, (x, y) -> log10(norm(evalGradAL(alClean, [x; y]))),
+                    levels = 50, zaxis = :log)
+xlabel!("X")
+ylabel!("Y")
+title!("Log10 Contour Plot of\n Augmented Lagrangian Residuals")
+# savefig("ALCleanResContoursLog10")
