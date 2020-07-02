@@ -87,61 +87,77 @@ include("constraints.jl")
 include("schurInverse.jl")
 
 
-function getQPrVecAL(al::augLagQP_AffineIneq)
-    # (Q, c, A, b, x, lambda, rho, nu)
+function getQP_PDVecAL(x0, nu0, al::augLagQP_AffineIneq)
     #=
-    r = (     ∇f(x) + λT ∇g(x)     ) = (    Qx + c + λT * A   )
-        ( g_i(x) + (1/μ)(ρ_i - λ_i)) = ( Ax - b + (1/μ)(ρ - λ))
+    x is the primal variable
+    ν is the  dual  variable
 
-    Notice that r1 is not the gradient of the augmented lagrangian.
+    r = (     ∇f(x) + νT ∇g(x)     ) = (    Qx + c + νT * A   )
+        ( g_i(x) + (1/ρ)(ν_i - λ_i)) = ( Ax - b + (1/ρ)(ν - λ))
+
+    Notice that r1 is NOT the gradient of the augmented lagrangian.
     =#
 
-    APost = cPlusD(A, x, b)
+    APost = getGradC(al.constraints, x0)
+    gradf = dfdxQP(al.obj, x0)
+    cCurr = getNormToProjVals(al.constraints, x0)
 
-    r1 = (Q * x + c) + APost'lambda
-    r2 = cPlus(A, x, b) + (1/rho) * (nu - lambda)
+    r1 = gradf + APost' * al.lambda
+    r2 = cCurr + (1/(al.rho)) * (nu0 - al.lambda)
 
     return vcat(r1, r2)
 end
 
-function getQPGradrVecAL(Q, A, b, x, rho)
+function getQPGrad_PDVecAL(x0, al::augLagQP_AffineIneq)
     # So ∇r = [A B; C D]
     # Where:
     # A = ∇^2 f(x) + λT ∇^2 g(x) = Q
     # B = ∇g(x)^T                = A^T
     # C = ∇g(x)                  = A
-    # D = -(1/μ)                 = -(1/μ)
+    # D = -(1/ρ)                 = -(1/ρ)
 
     # Note that the APost matrix is used to account for inequality constraints
-    APost = cPlusD(A, x, b)
+    APost = getGradC(al.constraints, x0)
 
-    Ar = Q
+    Ar = al.obj.Q
     Br = APost'
     Cr = APost
-    Dr = - (1/rho) * Diagonal(ones(size(A,1)))
+    Dr = - (1/(al.rho)) * Diagonal(ones(size(APost,1)))
 
     return (Ar, Br, Cr, Dr)
 end
 
-function newtonStep(gRA, gRB, gRC, gRD, rV)
-    # h ← h - ∇r^{-1} r
-    # Here we return ∇r^{-1} r
+function newtonStepPDAL(x0, nu0, al::augLagQP_AffineIneq)
+    #=
+    x is the primal variable
+    ν is the  dual  variable
+    h is [x; ν]
 
-    gRInv = invWithSchurComplement(gRA, gRB, gRC, gRD)
-    return gRInv * rV
+    h ← h - ∇r^{-1} r
+    returns -∇r^{-1} r and r[1:size(x0, 1)]
+    since -∇r^{-1} r is the step and r[1:size(x0, 1)] is the primal residual
+    =#
+    rV = getQP_PDVecAL(x0, nu0, al)
+    grA, grB, grC, grD = getQPGrad_PDVecAL(x0, al)
+
+    grInv = invWithSchurComplement(grA, grB, grC, grD)
+    return -grInv * rV, rV[1:size(x0, 1)]
 end
 
-function newtonAndLineSearch(Q, c, A, b, hV, rho, nu, phiObj, dphidx,
-                                paramA = 0.1, paramB = 0.5, verbose = false)
+function newtonAndLineSearchPDAL(h0, al::augLagQP_AffineIneq, sp::solverParams,
+                                            verbose = false)
+    # (Q, c, A, b, hV, rho, nu, phiObj, dphidx,
+    #                             paramA = 0.1, paramB = 0.5, verbose = false)
+    #=
+    x is the primal variable
+    ν is the  dual  variable
+    h is [x; ν]
+    =#
     # Current state
-    xSize = size(Q, 1)
-    if verbose
-        println("ρ = $rho")
-        # @assert rho > 0
-    end
+    xSize = size(al.obj.Q, 1)
 
-    xCurr = hV[1:xSize]
-    lamCurr = hV[xSize + 1:end]
+    xCurr = h0[1:xSize]
+    nuCurr = h0[xSize + 1:end]
 
     # Get current r Vector and gradient of r Vector
     rV = getQPrVecAL(Q, c, A, b, xCurr, lamCurr, rho, nu)
@@ -203,7 +219,7 @@ function pdALNewtonQPmain(Q, c, A, b, x0, lambda, rho, nu, fObj, dfdx,
             println("Starting Outer at: $xStart with value φ(x) = $(phi(xStart))")
         end
 
-        hCurr = newtonAndLineSearch(Q, c, A, b, hCurr, rho, nu,
+        hCurr = newtonAndLineSearchPDAL(Q, c, A, b, hCurr, rho, nu,
                                         phi, dPhidx, paramA, paramB, verbose)
         push!(hStates, hCurr)
 

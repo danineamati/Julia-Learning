@@ -96,11 +96,11 @@ include("backtrackLineSearch.jl")
 include("constraints.jl")
 
 
-function newtonStep(x0, al::augLagQP_AffineIneq)
+function newtonStepALP(x0, al::augLagQP_AffineIneq)
     #=
     x ← x - [∇^2φ(x)]^-1 ∇φ(x)
-    returns [∇^2φ(x)]^-1 ∇φ(x) and ∇φ(x)
-    since [∇^2φ(x)]^-1 ∇φ(x) is the step and ∇φ(x) is the residual
+    returns -[∇^2φ(x)]^-1 ∇φ(x) and ∇φ(x)
+    since -[∇^2φ(x)]^-1 ∇φ(x) is the step and ∇φ(x) is the residual
     =#
     phiDDinv = inv(evalHessAl(al, x0))
     phiD = evalGradAL(al, x0)
@@ -108,7 +108,7 @@ function newtonStep(x0, al::augLagQP_AffineIneq)
     return -phiDDinv * phiD, phiD
 end
 
-function newtonMethodLineSearch(x0, al::augLagQP_AffineIneq, sp::solverParams,
+function newtonMethodLineSearchALP(x0, al::augLagQP_AffineIneq, sp::solverParams,
                                             verbose = false)
     xNewtStates = []
     residNewt = []
@@ -124,7 +124,7 @@ function newtonMethodLineSearch(x0, al::augLagQP_AffineIneq, sp::solverParams,
     # Now, we run through the iterations
     for i in 1:(sp.maxNewtonSteps)
         # Negative sign addressed above
-        (dirNewton, residual) = newtonStep(xCurr, al)
+        (dirNewton, residual) = newtonStepALP(xCurr, al)
         push!(residNewt, residual)
 
         if verbose
@@ -178,7 +178,7 @@ function ALPrimalNewtonQPmain(x0, al::augLagQP_AffineIneq, sp::solverParams,
             println("Next Full Update starting at $x0")
         end
 
-        (xNewStates, resAtStates) = newtonMethodLineSearch(x0, al, sp, verbose)
+        (xNewStates, resAtStates) = newtonMethodLineSearchALP(x0, al, sp, verbose)
 
         # Take each step in the arrays above and save it to the respective
         # overall arrays
