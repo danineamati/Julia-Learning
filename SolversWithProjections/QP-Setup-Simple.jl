@@ -51,14 +51,14 @@ function solParamPrint(sp::solverParams)
     println("(Penalty)     : Δρ = $(sp.penaltyStep), ρMax = $(sp.penaltyMax)")
 end
 
-currSolveParams = solverParams(0.1, 0.5, 16, 2, 10^-10, 10, 10^6)
+currSolveParams = solverParams(0.1, 0.5, 16, 4, 10^-10, 10, 10^6)
 solParamPrint(currSolveParams)
 
 # --------------------------
 # Set an example initial starting point
 # --------------------------
 
-x0 = [-1; 0.5]
+x0 = [-5; 20]
 
 # ---------------------------
 # Objective Function
@@ -79,6 +79,7 @@ end
 # Symmetric([6 5; 0 8])     |   [-30; 70]  |   [35/6; -1]    |  Far Ext. (Edge)
 # Symmetric([5 -0.5; 0 10]) |   [12, -70]  |   [-5/4; 5]     |  Up  (Vertex)
 
+QPName = "Far Exterior"
 
 # Option 1: Symmetric([6 5; 0 8])
 # Option 2: Symmetric([5 -0.5; 0 10])
@@ -149,6 +150,7 @@ mutable struct augLagQP_AffineIneq
 end
 
 function evalAL(alQP::augLagQP_AffineIneq, x)
+    # φ(x) = [(1/2) xT Q x + cT x] + (ρ/2) (Ax - b)'(Ax -b) + λ (Ax - b)
     fCurr = fObjQP(alQP.obj, x)
     cCurr = getNormToProjVals(alQP.constraints, x)
 
@@ -156,6 +158,8 @@ function evalAL(alQP::augLagQP_AffineIneq, x)
 end
 
 function evalGradAL(alQP::augLagQP_AffineIneq, x)
+    # ∇φ(x) = ∇f(x) + (ρ c(x) + λ) ∇c(x) becomes
+    # [Qx + c] + [ρ (Ax - b) + λ] * A
     gradfCurr = dfdxQP(alQP.obj, x)           # This is Qx + c
     cCurr = getNormToProjVals(alQP.constraints, x)
     gradcCurr = getGradC(alQP.constraints, x) # The adjusted A matrix
@@ -163,6 +167,8 @@ function evalGradAL(alQP::augLagQP_AffineIneq, x)
 end
 
 function evalHessAl(alQP::augLagQP_AffineIneq, x)
+    # ∇^2φ(x) = ∇^2f(x) + ((ρ c(x) + λ) ∇^2c(x) + ρ ∇c(x) * ∇c(x)) becomes
+    # Q + ρ A * A
     gradcCurr = getGradC(alQP.constraints, x) # The adjusted A matrix
     return alQP.obj.Q + alQP.rho * gradcCurr'gradcCurr
 end

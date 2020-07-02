@@ -43,6 +43,9 @@ plot!(getNormRes(resResults), yaxis = :log, markershape = :circle,
 
 xlabel!("Recorded Newton Step")
 ylabel!("Norm of Residual or Error")
-title!("Primal Augmented Lagrangian Performance")
+title!("Primal Augmented Lagrangian Performance\n" *
+            "For a max $(currSolveParams.maxNewtonSteps) max Newton Steps" *
+            ", for $(QPName) QP")
 display(plt1)
-savefig(plt1, "PrimalAL-Performance")
+savefig(plt1, "PrimalAL-Performance$(currSolveParams.maxNewtonSteps)NewtStep" *
+                    "For $(QPName) QP - OutsideFeasibleStart")
