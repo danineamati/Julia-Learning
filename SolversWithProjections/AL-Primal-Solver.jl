@@ -129,6 +129,7 @@ function newtonMethodLineSearchALP(x0, al::augLagQP_AffineIneq, sp::solverParams
 
         if verbose
             println("Newton Direction: $dirNewton")
+            println("AL: $al")
         end
 
         # Then get the line search recommendation
@@ -198,8 +199,9 @@ function ALPrimalNewtonQPmain(x0, al::augLagQP_AffineIneq, sp::solverParams,
             println("xNewest = $xNewest")
             println("All residuals = $residuals")
         end
-        al.lambda = al.lambda + al.rho * (APost * xNewest - al.constraints.b)
-        al.rho = min(al.rho * sp.penaltyStep, sp.penaltyMax)
+        lambdaNew = al.lambda + al.rho * (APost * xNewest - al.constraints.b)
+        al.lambda = max.(lambdaNew, 0)
+        al.rho = clamp(al.rho * sp.penaltyStep, 0, sp.penaltyMax)
 
         if verbose
             println("New state added")

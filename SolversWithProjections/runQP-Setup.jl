@@ -15,7 +15,7 @@ solParamPrint(currSolveParams)
 # --------------------------
 # Set an example initial starting point
 # --------------------------
-x0 = [-5; 20]
+x0 = [-5; 0]
 
 # ---------------------------
 # Objective Function
