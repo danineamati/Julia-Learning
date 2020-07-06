@@ -9,7 +9,7 @@ include("constraints.jl")
 # -------------------------
 # Solver Parameters
 # -------------------------
-currSolveParams = solverParams(0.1, 0.5, 10, 3, 10^-10, 10, 10^6)
+currSolveParams = solverParams(0.1, 0.5, 12, 3, 10^-10, 10, 10^6)
 solParamPrint(currSolveParams)
 
 # --------------------------

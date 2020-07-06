@@ -253,7 +253,8 @@ function ALPDNewtonQPmain(x0, al::augLagQP_AffineIneq, sp::solverParams,
             println("xNewest = $xNewest")
             println("New residuals = $resAtStates")
         end
-        al.lambda = al.lambda + al.rho * (APost * xNewest - al.constraints.b)
+        lambdaNew = al.lambda + al.rho * (APost * xNewest - al.constraints.b)
+        al.lambda = max.(lambdaNew, 0)
         al.rho = min(al.rho * sp.penaltyStep, sp.penaltyMax)
 
         if verbose
