@@ -134,7 +134,77 @@ function getHessC(r::AL_AffineInequality)
 end
 
 
-runTests = false
+# -----------------------
+# Second-Order Cone Constraints
+# -----------------------
+# Specifically has the form ||Ax - b||_p ≤ c'x - d
+# Where p denotes which norm (usually p = 2)
+
+struct AL_pCone
+    A
+    b
+    c
+    d
+    p
+end
+
+# Evaluate the constraint.
+# Raw = Evaluate the function without projection
+getRaw(r::AL_pCone, x) = norm(r.A * x - r.b, r.p) - r.c' * x + r.d
+
+# Check that a constraint is satisfied (||Ax - b|| ≤ c'x - d)
+satisfied(r::AL_pCone, x) = (getRaw(r, x) ≤ 0)
+whichSatisfied(r::AL_pCone, x) = (getRaw(r, x) .≤ 0)
+
+
+function getProjVecs(r::AL_pCone, x)
+    #=
+    We want to project onto the cone where
+    v = ||Ax - b||
+    s = cx - d
+    =#
+    v = norm(r.A * x - r.b, r.p)
+    s = r.c' * x - r.d
+    return projSecondOrderCone(v, s)
+end
+
+function getNormToProjVals(r::AL_pCone, x)
+    #=
+    We want to get the projected vector and calculate the distance between the
+    original point and the constraint.
+    =#
+    projVec = getProjVecs(r, x)
+    projDiff = projVec[1:end - 1] - x
+    return norm(projDiff, 2)
+end
+
+# Lastly, we do some calculus
+# function getGradC(r::AL_pCone, x)
+#     #=
+#     We want the gradient of the constraints. This is piecewise in the
+#     inequality case. But it is a single function in the equality case
+#     =#
+#     APost = zeros(size(r.A))
+#     rowPassed = whichSatisfied(r, x)
+#     for row in 1:size(r.A, 1)
+#         if !rowPassed[row]
+#             # Constraint is not met
+#             APost[row, :] = r.A[row, :]
+#         end
+#     end
+#     return APost
+# end
+#
+# function getHessC(r::AL_pCone)
+#     #=
+#     We want the hessian of the constraints. This is just zero for affine
+#     constraints, but we need to match the dimensions.
+#     =#
+#     return zeros(size(r.A, 2), size(r.A, 2))
+# end
+
+
+runTests = true
 
 if runTests
     println()
@@ -186,4 +256,11 @@ if runTests
     println("Grad at $testpt = $(getGradC(diT2, testpt))")
     println("Grad at $testpt2 = $(getGradC(diT2, testpt2))")
 
+    println("\nSecond-Order Constraints")
+    dconeT = AL_pCone(5, -4, 3, -8, 2)
+    xRan = -3:3
+    println("** Simplest")
+    println("Raw Vals = $([getRaw(dconeT, x) for x in xRan])")
+    println("Satisfied = $([satisfied(dconeT, x) for x in xRan])")
+    println("Projection = $([getProjVecs(dconeT, x) for x in xRan])")
 end

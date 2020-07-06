@@ -131,7 +131,7 @@ end
 
 currTimeFormat = Dates.format(Dates.now(), "yymmdd-HHMMSS")
 fileName = string("MCpathPlot-$(QPName)-$(currTimeFormat)")
-scatter!([-5/4], [5], markershape = :xcross, label = "Optimal Point",
+scatter!([-47/23], [38/23], markershape = :xcross, label = "Optimal Point",
             legend = :outertopright, markersize = 8, markercolor = :red)
 
 xyBuff = 2
