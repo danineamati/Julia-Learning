@@ -256,6 +256,7 @@ function ALPDNewtonQPmain(x0, al::augLagQP_AffineIneq, sp::solverParams,
         lambdaNew = al.lambda + al.rho * (APost * xNewest - al.constraints.b)
         al.lambda = max.(lambdaNew, 0)
         al.rho = min(al.rho * sp.penaltyStep, sp.penaltyMax)
+        # al.rho = al.rho * sp.penaltyStep
 
         if verbose
             println("New state added")

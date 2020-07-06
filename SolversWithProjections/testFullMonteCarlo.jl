@@ -61,7 +61,7 @@ println("*****************************")
 
 
 alClean = augLagQP_AffineIneq(thisQP, thisConstr,
-                        currSolveParams.penaltyMax, zeros(size(bVec)))
+                        currSolveParams.penaltyMax * 100, zeros(size(bVec)))
 
 xOverallBinALP = []
 residOverallBinALP = []

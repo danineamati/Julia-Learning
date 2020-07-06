@@ -30,7 +30,7 @@ println("1) Augemented Lagrangian Primal")
 # Refresh the parameters
 alTest = augLagQP_AffineIneq(thisQP, thisConstr, 1, zeros(size(bVec)))
 xResultsALP, resStateResultsALP = ALPrimalNewtonQPmain(x0, alTest,
-                                                currSolveParams, true)
+                                                currSolveParams, false)
 # Calculates the residuals based on the last penalty parameter
 # Removes the approximate lagrange multiplier λ → 0
 alClean = augLagQP_AffineIneq(thisQP, thisConstr, alTest.rho, zeros(size(bVec)))
@@ -80,8 +80,8 @@ title!("Augmented Lagrangian Performance\n" *
             "For a max $(currSolveParams.maxNewtonSteps) max Newton Steps" *
             ", for $(QPName) QP")
 display(plt2)
-savefig(plt2, "PrimalAL-Performance$(currSolveParams.maxNewtonSteps)NewtStep" *
-                    "For $(QPName) QP-Residual")
+savefig(plt2, "PrimalAL-Residual$(currSolveParams.maxNewtonSteps)NewtStep" *
+                    "For $(QPName) QP")
 
 
 xValsALP = [x[1] for x in xResultsALP]
@@ -102,4 +102,26 @@ title!("Augmented Lagrangian Performance\n" *
             ", for $(QPName) QP")
 display(plt3)
 savefig(plt3, "PrimalAL-Path$(currSolveParams.maxNewtonSteps)NewtStep" *
-                    "For $(QPName) QP - OutsideFeasibleStart")
+                    "For $(QPName) QP")
+
+consVioALP = [getNormToProjVals(alClean.constraints, x) for x in xResultsALP]
+consVioALPD = [getNormToProjVals(alClean.constraints, x) for x in xResultsALPD]
+
+function safeNorm(arr, vMin = 10^-20, p = 2)
+    return max.(norm.(arr, p), vMin)
+end
+
+plt4 = plot(safeNorm(consVioALP), yaxis = :log, markershape = :circle,
+                    label = "ALP")
+plot!(safeNorm(consVioALPD), yaxis = :log, markershape = :utriangle,
+                    label = "ALPD")
+
+xlabel!("Recorded Newton Step")
+ylabel!("Norm of Residual")
+title!("Augmented Lagrangian Constriant Violation\n" *
+            "For a max $(currSolveParams.maxNewtonSteps) max Newton Steps" *
+            ", for $(QPName) QP")
+display(plt4)
+savefig(plt4, "PrimalAL-ConstraintViolation" *
+                    "$(currSolveParams.maxNewtonSteps)NewtStep" *
+                    "For $(QPName) QP")
