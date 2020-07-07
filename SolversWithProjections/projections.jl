@@ -77,7 +77,7 @@ function projAffineIneq(a, b, x)
     return x
 end
 
-function projSecondOrderCone(v, s)
+function projSecondOrderCone(v, s, p = 2)
     #=
     Projection for Second-Order Cone (AKA quadratic cone or the Lorentz cone)
 
@@ -92,15 +92,15 @@ function projSecondOrderCone(v, s)
     Note that (|s| = absolute value of s)
     =#
 
-    if norm(v, 2) ≤ -s
+    if norm(v, p) ≤ -s
         # println("Below Tip")
         return zeros(size([v; s]))
-    elseif norm(v, 2) ≤ s
+    elseif norm(v, p) ≤ s
         # println("Inside already")
         return [v; s]
-    elseif norm(v, 2) ≥ s
+    elseif norm(v, p) ≥ abs(s)
         # println("Outside")
-        return (1/2) * (1 + s / norm(v, 2)) * [v; norm(v, 2)]
+        return (1/2) * (1 + s / norm(v, p)) * [v; norm(v, p)]
     end
 
     println("Second Order Cone Conditions ERROR")
