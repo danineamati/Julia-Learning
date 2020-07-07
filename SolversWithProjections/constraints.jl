@@ -163,9 +163,20 @@ function getProjVecs(r::AL_pCone, x)
     v = ||Ax - b||
     s = cx - d
     =#
-    v = norm(r.A * x - r.b, r.p)
+    v = r.A * x - r.b
     s = r.c' * x - r.d
-    return projSecondOrderCone(v, s)
+
+    proj = projSecondOrderCone(v, s)
+    println("v = $v, s = $s")
+    println("x = $x -> Inside? $(satisfied(r, x))")
+    println("proj = $proj")
+    vproj = proj[1:end - 1]
+    println("vproj = $vproj")
+    xproj = r.A \ (r.b + vproj)
+    println("xproj = $xproj -> $(r.A * xproj - r.b) vs $(r.c' * xproj - r.d)")
+    println("Satisfied? $(satisfied(r, xproj))")
+    println()
+    return xproj
 end
 
 function getNormToProjVals(r::AL_pCone, x)
@@ -174,7 +185,7 @@ function getNormToProjVals(r::AL_pCone, x)
     original point and the constraint.
     =#
     projVec = getProjVecs(r, x)
-    projDiff = projVec[1:end - 1] - x
+    projDiff = projVec - x
     return norm(projDiff, 2)
 end
 
@@ -257,10 +268,21 @@ if runTests
     println("Grad at $testpt2 = $(getGradC(diT2, testpt2))")
 
     println("\nSecond-Order Constraints")
-    dconeT = AL_pCone(5, -4, 3, -8, 2)
-    xRan = -3:3
+    dconeT = AL_pCone([5][:,:], vcat([-4]), vcat([3]), -8, 2)
+    xRan = -5:5
     println("** Simplest")
-    println("Raw Vals = $([getRaw(dconeT, x) for x in xRan])")
-    println("Satisfied = $([satisfied(dconeT, x) for x in xRan])")
-    println("Projection = $([getProjVecs(dconeT, x) for x in xRan])")
+    println("xVals = $(collect(xRan))")
+    println("Raw Vals = $([getRaw(dconeT, vcat([x])) for x in xRan])")
+    println("Satisfied = $([satisfied(dconeT, vcat([x])) for x in xRan])")
+    println("Projection = $([getProjVecs(dconeT, vcat([x])) for x in xRan])")
+    println("Violation = $([getNormToProjVals(dconeT, vcat([x])) for x in xRan])")
+    dconeT2D = AL_pCone([5 3; 3 4], [-4; -2], [3; 4], -8, 2)
+    xRan = -5:5
+    println("** 2D")
+    println("xVals = $(collect(xRan))")
+    println("In the form [x; x]")
+    println("Raw Vals = $([getRaw(dconeT2D, [x; x]) for x in xRan])")
+    println("Satisfied = $([satisfied(dconeT2D, [x; x]) for x in xRan])")
+    println("Projection = $([getProjVecs(dconeT2D, [x; x]) for x in xRan])")
+    println("Violation = $([getNormToProjVals(dconeT2D, [x; x]) for x in xRan])")
 end

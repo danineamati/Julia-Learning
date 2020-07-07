@@ -93,10 +93,13 @@ function projSecondOrderCone(v, s)
     =#
 
     if norm(v, 2) ≤ -s
+        # println("Below Tip")
         return zeros(size([v; s]))
     elseif norm(v, 2) ≤ s
+        # println("Inside already")
         return [v; s]
     elseif norm(v, 2) ≥ s
+        # println("Outside")
         return (1/2) * (1 + s / norm(v, 2)) * [v; norm(v, 2)]
     end
 
