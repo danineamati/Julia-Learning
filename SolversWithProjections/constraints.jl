@@ -157,6 +157,37 @@ satisfied(r::AL_pCone, x) = (getRaw(r, x) ≤ 0)
 whichSatisfied(r::AL_pCone, x) = (getRaw(r, x) .≤ 0)
 
 
+# function getProjVecs(r::AL_pCone, x, verbose = false)
+#     #=
+#     We want to project onto the cone where
+#     v = ||Ax - b||
+#     s = cx - d
+#     =#
+#     v = r.A * x - r.b
+#     s = r.c' * x - r.d
+#
+#     proj = projSecondOrderCone(v, s, r.p)
+#
+#     if verbose
+#         println("x = $x -> Inside? $(satisfied(r, x))")
+#         println("v = $v, s = $s")
+#         println("proj = $proj")
+#     end
+#
+#     vproj = proj[1:end - 1]
+#     xproj = r.A \ (r.b + vproj)
+#
+#     if verbose
+#         println("vproj = $vproj -> $(norm(vproj, r.p))")
+#         print("xproj = $xproj -> $(r.A * xproj - r.b) -> ")
+#         print("$(norm(r.A * xproj - r.b, r.p))")
+#         println(" vs $(r.c' * xproj - r.d) vs $(proj[end])")
+#         println("Satisfied? $(satisfied(r, xproj))")
+#         println()
+#     end
+#     return xproj, proj
+# end
+
 function getProjVecs(r::AL_pCone, x, verbose = false)
     #=
     We want to project onto the cone where
@@ -174,11 +205,12 @@ function getProjVecs(r::AL_pCone, x, verbose = false)
         println("proj = $proj")
     end
 
-    vproj = proj[1:end - 1]
-    xproj = r.A \ (r.b + vproj)
+    aMatNew = [r.A; r.c']
+    bVec = [r.b; r.d]
+
+    xproj = aMatNew \ (bVec + proj)
 
     if verbose
-        println("vproj = $vproj -> $(norm(vproj, r.p))")
         print("xproj = $xproj -> $(r.A * xproj - r.b) -> ")
         print("$(norm(r.A * xproj - r.b, r.p))")
         println(" vs $(r.c' * xproj - r.d) vs $(proj[end])")
@@ -279,21 +311,35 @@ if runTests
     println("\nSecond-Order Constraints")
     dconeT = AL_pCone([5][:,:], vcat([-4]), vcat([3]), -8, 2)
     xRan = -5:5
-    println("** Simplest")
+    println("\n** Simplest Full")
     println("xVals = $(collect(xRan))")
     println("Raw Vals = $([getRaw(dconeT, vcat([x])) for x in xRan])")
     println("Satisfied = $([satisfied(dconeT, vcat([x])) for x in xRan])")
     println("Projection = $([getProjVecs(dconeT, vcat([x])) for x in xRan])")
     println("Violation = $([getNormToProjVals(dconeT, vcat([x])) for x in xRan])")
+
     dconeT2D = AL_pCone([5 3; 3 4], [-4; -2], [3; 4], -8, 2)
     xRan = -4:5
-    println("** 2D")
+    println("\n** 2D Full")
     println("xVals = $(collect(xRan))")
     println("In the form [x; x]")
     println("Raw Vals = $([getRaw(dconeT2D, [x; x]) for x in xRan])")
     println("Satisfied = $([satisfied(dconeT2D, [x; x]) for x in xRan])")
-    projVecList = [getProjVecs(dconeT2D, [x; x], true) for x in xRan]
+    projVecList = [getProjVecs(dconeT2D, [x; x], false) for x in xRan]
     println("Projection = ")
     display(projVecList)
     println("Violation = $([getNormToProjVals(dconeT2D, [x; x]) for x in xRan])")
+
+    dconeT2DSimp = AL_pCone([1 1/3; 1/3 3/4], [0; 0], [0; 0], -8, 2)
+    xRan = -4:5
+    println("\n** 2D Simple (no b, no c)")
+    println("xVals = $(collect(xRan))")
+    println("In the form [x; x]")
+    println("Raw Vals = $([getRaw(dconeT2DSimp, [x; x]) for x in xRan])")
+    println("Satisfied = $([satisfied(dconeT2DSimp, [x; x]) for x in xRan])")
+    projVecList = [getProjVecs(dconeT2DSimp, [x; x], true) for x in xRan]
+    println("Projection = ")
+    display(projVecList)
+    print("Violation = ")
+    println("$([getNormToProjVals(dconeT2DSimp, [x; x]) for x in xRan])")
 end
