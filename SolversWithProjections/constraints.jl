@@ -157,37 +157,6 @@ satisfied(r::AL_pCone, x) = (getRaw(r, x) ≤ 0)
 whichSatisfied(r::AL_pCone, x) = (getRaw(r, x) .≤ 0)
 
 
-# function getProjVecs(r::AL_pCone, x, verbose = false)
-#     #=
-#     We want to project onto the cone where
-#     v = ||Ax - b||
-#     s = cx - d
-#     =#
-#     v = r.A * x - r.b
-#     s = r.c' * x - r.d
-#
-#     proj = projSecondOrderCone(v, s, r.p)
-#
-#     if verbose
-#         println("x = $x -> Inside? $(satisfied(r, x))")
-#         println("v = $v, s = $s")
-#         println("proj = $proj")
-#     end
-#
-#     vproj = proj[1:end - 1]
-#     xproj = r.A \ (r.b + vproj)
-#
-#     if verbose
-#         println("vproj = $vproj -> $(norm(vproj, r.p))")
-#         print("xproj = $xproj -> $(r.A * xproj - r.b) -> ")
-#         print("$(norm(r.A * xproj - r.b, r.p))")
-#         println(" vs $(r.c' * xproj - r.d) vs $(proj[end])")
-#         println("Satisfied? $(satisfied(r, xproj))")
-#         println()
-#     end
-#     return xproj, proj
-# end
-
 function getProjVecs(r::AL_pCone, x, verbose = false)
     #=
     We want to project onto the cone where
@@ -205,12 +174,11 @@ function getProjVecs(r::AL_pCone, x, verbose = false)
         println("proj = $proj")
     end
 
-    aMatNew = [r.A; r.c']
-    bVec = [r.b; r.d]
-
-    xproj = aMatNew \ (bVec + proj)
+    vproj = proj[1:end - 1]
+    xproj = r.A \ (r.b + vproj)
 
     if verbose
+        println("vproj = $vproj -> $(norm(vproj, r.p))")
         print("xproj = $xproj -> $(r.A * xproj - r.b) -> ")
         print("$(norm(r.A * xproj - r.b, r.p))")
         println(" vs $(r.c' * xproj - r.d) vs $(proj[end])")
@@ -219,6 +187,41 @@ function getProjVecs(r::AL_pCone, x, verbose = false)
     end
     return xproj, proj
 end
+
+# function getProjVecs(r::AL_pCone, x, verbose = false)
+#     #=
+#     We want to project onto the cone where
+#     v = ||Ax - b||
+#     s = cx - d
+#     =#
+#     v = r.A * x - r.b
+#     s = r.c' * x - r.d
+#
+#     proj = projSecondOrderCone(v, s, r.p)
+#
+#     if verbose
+#         println("x = $x -> Inside? $(satisfied(r, x))")
+#         println("v = $v, s = $s")
+#         println("proj = $proj")
+#     end
+#
+#     aMatNew = [r.A; r.c']
+#     bVec = [r.b; r.d]
+#
+#     xproj = aMatNew \ (bVec + proj)
+#     xprojOld = r.A \ (r.b + proj[1:end - 1])
+#
+#     if verbose
+#         print("xproj (Old) = $xprojOld -> ")
+#         println("$(norm(r.A * xprojOld - r.b, r.p))")
+#         print("xproj = $xproj -> $(r.A * xproj - r.b) -> ")
+#         print("$(norm(r.A * xproj - r.b, r.p))")
+#         println(" vs $(r.c' * xproj - r.d) vs $(proj[end])")
+#         println("Satisfied? $(satisfied(r, xproj))")
+#         println()
+#     end
+#     return xproj, proj
+# end
 
 function getNormToProjVals(r::AL_pCone, x)
     #=
@@ -325,7 +328,7 @@ if runTests
     println("In the form [x; x]")
     println("Raw Vals = $([getRaw(dconeT2D, [x; x]) for x in xRan])")
     println("Satisfied = $([satisfied(dconeT2D, [x; x]) for x in xRan])")
-    projVecList = [getProjVecs(dconeT2D, [x; x], false) for x in xRan]
+    projVecList = [getProjVecs(dconeT2D, [x; x], true) for x in xRan]
     println("Projection = ")
     display(projVecList)
     println("Violation = $([getNormToProjVals(dconeT2D, [x; x]) for x in xRan])")
