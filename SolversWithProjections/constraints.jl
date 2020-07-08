@@ -63,7 +63,7 @@ function getHessC(r::AL_AffineEquality)
     We want the hessian of the constraints. This is just zero for affine
     constraints, but we need to match the dimensions.
     =#
-    return zeros(size(r.A, 2), size(r.A, 2))
+    return zeros(size(r.A, 2), size(r.A, 2)) # nxn
 end
 
 # -----------------------
@@ -130,7 +130,7 @@ function getHessC(r::AL_AffineInequality)
     We want the hessian of the constraints. This is just zero for affine
     constraints, but we need to match the dimensions.
     =#
-    return zeros(size(r.A, 2), size(r.A, 2))
+    return zeros(size(r.A, 2), size(r.A, 2)) # nxn
 end
 
 
@@ -253,13 +253,24 @@ function getGradC(r::AL_pCone, x, verbose = false)
         return (num/den) - r.c
     end
 end
-#
-function getHessC(r::AL_pCone)
+
+function getHessC(r::AL_pCone, x)
     #=
     We want the hessian of the constraints. This is just zero for affine
-    constraints, but we need to match the dimensions.
+    constraints, but nonzero for second order cone constraints.
+
+    Again, this assumes a 2-norm for now.
     =#
-    return zeros(size(r.A, 2), size(r.A, 2))
+    if satisfied(r, x)
+        return zeros(size(r.A, 2), size(r.A, 2))
+    end
+
+    normVal = norm(r.A * x - r.b, 2)
+    numGrad = (r.A)' * (r.A * x - r.b)
+
+    term1 = ((r.A)' * r.A) / normVal  # Must be nxn
+    term2 = (numGrad * numGrad') / (normVal^2) # Must be nxn
+    return term1 + term2
 end
 
 
@@ -339,6 +350,9 @@ if runTests
     println("Gradients = ")
     gradVecs = [getGradC(dconeT2D, [x; x]) for x in xRan]
     display(gradVecs)
+    println("Hessians = ")
+    hessVecs = [getHessC(dconeT2D, [x; x]) for x in xRan]
+    display(hessVecs)
 
     # dconeT2DSimp = AL_pCone([2 1/3; 1/3 3/4], [0; 0], [0; 0], -8, 2)
     # xRan = -4:5
