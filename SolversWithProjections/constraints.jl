@@ -234,29 +234,33 @@ function getNormToProjVals(r::AL_pCone, x)
 end
 
 # Lastly, we do some calculus
-# function getGradC(r::AL_pCone, x)
-#     #=
-#     We want the gradient of the constraints. This is piecewise in the
-#     inequality case. But it is a single function in the equality case
-#     =#
-#     APost = zeros(size(r.A))
-#     rowPassed = whichSatisfied(r, x)
-#     for row in 1:size(r.A, 1)
-#         if !rowPassed[row]
-#             # Constraint is not met
-#             APost[row, :] = r.A[row, :]
-#         end
-#     end
-#     return APost
-# end
+function getGradC(r::AL_pCone, x, verbose = false)
+    #=
+    We want the gradient of the constraints. This is piecewise due to the
+    inequality case. This assumes a 2-norm (for now)
+    =#
+    if satisfied(r, x)
+        if verbose
+            println("Satisfied")
+        end
+        return zeros(size(r.A, 2))
+    else
+        if verbose
+            println("NOT Satisfied")
+        end
+        num = (r.A)' * (r.A * x - r.b)
+        den = norm(r.A * x - r.b, 2) # Formula is not for a general norm yet
+        return (num/den) - r.c
+    end
+end
 #
-# function getHessC(r::AL_pCone)
-#     #=
-#     We want the hessian of the constraints. This is just zero for affine
-#     constraints, but we need to match the dimensions.
-#     =#
-#     return zeros(size(r.A, 2), size(r.A, 2))
-# end
+function getHessC(r::AL_pCone)
+    #=
+    We want the hessian of the constraints. This is just zero for affine
+    constraints, but we need to match the dimensions.
+    =#
+    return zeros(size(r.A, 2), size(r.A, 2))
+end
 
 
 runTests = true
@@ -332,17 +336,20 @@ if runTests
     println("Projection = ")
     display(projVecList)
     println("Violation = $([getNormToProjVals(dconeT2D, [x; x]) for x in xRan])")
+    println("Gradients = ")
+    gradVecs = [getGradC(dconeT2D, [x; x]) for x in xRan]
+    display(gradVecs)
 
-    dconeT2DSimp = AL_pCone([1 1/3; 1/3 3/4], [0; 0], [0; 0], -8, 2)
-    xRan = -4:5
-    println("\n** 2D Simple (no b, no c)")
-    println("xVals = $(collect(xRan))")
-    println("In the form [x; x]")
-    println("Raw Vals = $([getRaw(dconeT2DSimp, [x; x]) for x in xRan])")
-    println("Satisfied = $([satisfied(dconeT2DSimp, [x; x]) for x in xRan])")
-    projVecList = [getProjVecs(dconeT2DSimp, [x; x], true) for x in xRan]
-    println("Projection = ")
-    display(projVecList)
-    print("Violation = ")
-    println("$([getNormToProjVals(dconeT2DSimp, [x; x]) for x in xRan])")
+    # dconeT2DSimp = AL_pCone([2 1/3; 1/3 3/4], [0; 0], [0; 0], -8, 2)
+    # xRan = -4:5
+    # println("\n** 2D Simple (no b, no c)")
+    # println("xVals = $(collect(xRan))")
+    # println("In the form [x; x]")
+    # println("Raw Vals = $([getRaw(dconeT2DSimp, [x; x]) for x in xRan])")
+    # println("Satisfied = $([satisfied(dconeT2DSimp, [x; x]) for x in xRan])")
+    # projVecList = [getProjVecs(dconeT2DSimp, [x; x], true) for x in xRan]
+    # println("Projection = ")
+    # display(projVecList)
+    # print("Violation = ")
+    # println("$([getNormToProjVals(dconeT2DSimp, [x; x]) for x in xRan])")
 end
