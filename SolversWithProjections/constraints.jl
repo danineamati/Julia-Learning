@@ -274,7 +274,7 @@ function getHessC(r::AL_pCone, x)
 end
 
 
-runTests = true
+runTests = false
 
 if runTests
     println()
