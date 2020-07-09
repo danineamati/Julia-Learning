@@ -39,42 +39,54 @@ for x in xyGrid
     end
 end
 
-# First, make a 3D Plot of the results
-# pltVS = scatter3d(vxList, vyList, sList, xlabel = "v1", ylabel = "v2",
-#                     zlabel = "s", label = "Base Plot")
-# scatter3d!(projvxList, projvyList, projsList, label = "Projection")
-# title!("Second Order Cone Visualization")
-# display(pltVS)
-# savefig(pltVS, "vs3DVisual")
-#
-# # Top View
-# pltV = scatter(vxList, vyList, xlabel = "v1", ylabel = "v2",
-#                         label = "Base Plot")
-# scatter!(projvxList, projvyList, label = "Projection")
-# xlabel!("v1")
-# ylabel!("v2")
-# title!("Second Order Cone Visualization of the v-Plane")
-# display(pltV)
-# savefig(pltV, "vsVVplaneVisual")
-#
-# # Side View 1
-# pltS1 = scatter(vxList, sList, label = "Base Plot")
-# scatter!(projvxList, projsList, label = "Projection")
-# xlabel!("v1")
-# ylabel!("s")
-# title!("Second Order Cone Visualization of the v1s-Plane")
-# display(pltS1)
-# savefig(pltS1, "vsV1SplaneVisual")
-#
-# # Side View 2
-# pltS2 = scatter(vyList, sList, label = "Base Plot")
-# scatter!(projvyList, projsList, label = "Projection")
-# xlabel!("v2")
-# ylabel!("s")
-# title!("Second Order Cone Visualization of the v2s-Plane")
-# display(pltS2)
-# savefig(pltS2, "vsV2SplaneVisual")
+plotsection = false
+savesection = false
 
+if plotsection
+    # First, make a 3D Plot of the results
+    pltVS = scatter3d(vxList, vyList, sList, xlabel = "v1", ylabel = "v2",
+                        zlabel = "s", label = "Base Plot")
+    scatter3d!(projvxList, projvyList, projsList, label = "Projection")
+    title!("Second Order Cone Visualization")
+    display(pltVS)
+    if savesection
+        savefig(pltVS, "vs3DVisual")
+    end
+
+    # Top View
+    pltV = scatter(vxList, vyList, xlabel = "v1", ylabel = "v2",
+                            label = "Base Plot")
+    scatter!(projvxList, projvyList, label = "Projection")
+    xlabel!("v1")
+    ylabel!("v2")
+    title!("Second Order Cone Visualization of the v-Plane")
+    display(pltV)
+    if savesection
+        savefig(pltV, "vsVVplaneVisual")
+    end
+
+    # Side View 1
+    pltS1 = scatter(vxList, sList, label = "Base Plot")
+    scatter!(projvxList, projsList, label = "Projection")
+    xlabel!("v1")
+    ylabel!("s")
+    title!("Second Order Cone Visualization of the v1s-Plane")
+    display(pltS1)
+    if savesection
+        savefig(pltS1, "vsV1SplaneVisual")
+    end
+
+    # Side View 2
+    pltS2 = scatter(vyList, sList, label = "Base Plot")
+    scatter!(projvyList, projsList, label = "Projection")
+    xlabel!("v2")
+    ylabel!("s")
+    title!("Second Order Cone Visualization of the v2s-Plane")
+    display(pltS2)
+    if savesection
+        savefig(pltS2, "vsV2SplaneVisual")
+    end
+end
 
 # Now, we address a different question which is the value of the constraint
 # and the violation results
@@ -92,32 +104,65 @@ for x in xyGrid
     end
 end
 
-pltVio = scatter3d(xExtended, yExtended, violList, label = "Violation")
+plotsection = false
+savesection = false
+
+if plotsection
+    pltVio = scatter3d(xExtended, yExtended, violList, label = "Violation")
+    xlabel!("x")
+    ylabel!("y")
+    title!("Calculated Constraint Violation")
+    display(pltVio)
+    if savesection
+        savefig(pltVio, "vioPlot3D")
+    end
+
+    pltVio2D = scatter(xExtended, violList, label = "Violation")
+    xlabel!("x")
+    ylabel!("Violation")
+    title!("Calculated Constraint Violation")
+    display(pltVio2D)
+    if savesection
+        savefig(pltVio2D, "vioPlot2D")
+    end
+
+    pltVioVal = scatter3d(xExtended, yExtended, violList, label = "Violation")
+    scatter3d!(xExtended, yExtended, valueList, label = "Constraint Value")
+    xlabel!("x")
+    ylabel!("y")
+    title!("Comparison of Calculated Constraint Violation and Value")
+    display(pltVioVal)
+    if savesection
+        savefig(pltVioVal, "viovalPlot3D")
+    end
+
+    pltVioVal2D = scatter(xExtended, violList, label = "Violation")
+    scatter!(xExtended, valueList, label = "Constraint Value")
+    xlabel!("x")
+    ylabel!("Violation or Value")
+    title!("Comparison of Calculated Constraint Violation and Value")
+    display(pltVioVal2D)
+    if savesection
+        savefig(pltVioVal2D, "viovalPlot2D")
+    end
+end
+
+xyGridFine = -14:0.1:14
+cpltVio = contour(xyGridFine, xyGridFine,
+                        (x, y) -> (getNormToProjVals(dconeT2DSimp, [x; y])),
+                        levels = 35)
 xlabel!("x")
 ylabel!("y")
-title!("Calculated Constraint Violation")
-display(pltVio)
-savefig(pltVio, "vioPlot3D")
+title!("Violation of the constraint")
+display(cpltVio)
 
-pltVio2D = scatter(xExtended, violList, label = "Violation")
-xlabel!("x")
-ylabel!("Violation")
-title!("Calculated Constraint Violation")
-display(pltVio2D)
-savefig(pltVio2D, "vioPlot2D")
-
-pltVioVal = scatter3d(xExtended, yExtended, violList, label = "Violation")
-scatter3d!(xExtended, yExtended, valueList, label = "Constraint Value")
+cpltVioHeat = heatmap(xyGridFine, xyGridFine,
+                        (x, y) -> (getNormToProjVals(dconeT2DSimp, [x; y])^2),
+                        seriesalpha = 0.5, fillalpha = 0.5)
+contour!(xyGridFine, xyGridFine,
+                        (x, y) -> (getNormToProjVals(dconeT2DSimp, [x; y])^2),
+                        levels = 35)
 xlabel!("x")
 ylabel!("y")
-title!("Comparison of Calculated Constraint Violation and Value")
-display(pltVioVal)
-savefig(pltVioVal, "viovalPlot3D")
-
-pltVioVal2D = scatter(xExtended, violList, label = "Violation")
-scatter!(xExtended, valueList, label = "Constraint Value")
-xlabel!("x")
-ylabel!("Violation or Value")
-title!("Comparison of Calculated Constraint Violation and Value")
-display(pltVioVal2D)
-savefig(pltVioVal2D, "viovalPlot2D")
+title!("Squared Violation of the constraint")
+display(cpltVioHeat)
