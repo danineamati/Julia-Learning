@@ -323,35 +323,36 @@ end
 
 
 
-function getProjVecs(r::AL_coneSlack, x, verbose = false)
+function getProjVecs(r::AL_coneSlack, x, s, t, verbose = false)
     #=
-    We want to project onto the cone where
-    v = ||Ax - b||
-    s = cx - d
+    We want to get each of the projection vectors.
+    For the cone, we have the (s, t) cone.
+
+    For the equality constraints we have the affine equality projections
+    Ax = b + s
+    But this is equivalent to
+    a1'x = b1 + s1, a2'x = b2 + s2, ..., am'x = bm + sm
+    Where ak is the row k in A
+
+    For the last equality constraint, we simply have c'x = d + t
     =#
-    v = r.A * x - r.b
-    s = r.c' * x - r.d
+    projVecs = []
 
-    proj = projSecondOrderCone(v, s, r.p)
+    # Cone Constraints
+    push!(projVecs, projSecondOrderCone(s, t))
 
-    if verbose
-        println("x = $x -> Inside? $(satisfied(r, x))")
-        println("v = $v, s = $s")
-        println("proj = $proj")
+    # Set of Equality Constraints
+    for ind in 1:size(r.b, 1)
+        aI = r.A[ind, :]
+        bI = r.b[ind]
+        sI = s[ind]
+        push!(projVecs, projAffineEq(aI, bI + sI, x))
     end
 
-    vproj = proj[1:end - 1]
-    xproj = r.A \ (r.b + vproj)
+    # Last Equality Constraint
+    push!(projVecs, projAffineEq(r.c, r.d + t, x))
 
-    if verbose
-        println("vproj = $vproj -> $(norm(vproj, r.p))")
-        print("xproj = $xproj -> $(r.A * xproj - r.b) -> ")
-        print("$(norm(r.A * xproj - r.b, r.p))")
-        println(" vs $(r.c' * xproj - r.d) vs $(proj[end])")
-        println("Satisfied? $(satisfied(r, xproj))")
-        println()
-    end
-    return xproj, proj
+    return projVecs
 end
 
 # function getProjVecs(r::AL_coneSlack, x, verbose = false)
