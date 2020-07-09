@@ -273,6 +273,171 @@ function getHessC(r::AL_pCone, x)
     return term1 + term2
 end
 
+# -----------------------
+# Second-Order Cone Constraints
+# -----------------------
+#=
+Specifically has the form:
+||s|| ≤ t
+Ax - b = s
+c'x - d = t
+
+So,
+||s|| - t ≤ 0
+Ax - b - s = 0
+c'x - d - t = 0
+
+I use the second order cone
+=#
+
+
+struct AL_coneSlack
+    A
+    b
+    c
+    d
+end
+
+# Evaluate the constraint.
+# Raw = Evaluate the function without projection
+getRaw(r::AL_coneSlack, x, s, t) = [norm(s, 2) - t;
+                                    r.A * x - r.b - s;
+                                    r.c'x - r.d - t]
+
+# Check that a constraint is satisfied (||Ax - b|| ≤ c'x - d)
+function whichSatisfied(r::AL_coneSlack, x, s, t)
+    raw = getRaw(r, x, s, t)
+    return [raw[1] ≤ 0; raw[2:end] .== 0]
+end
+function satisfied(r::AL_coneSlack, x, s, t)
+    wSat = whichSatisfied(r, x, s, t)
+    for i in wSat
+        if !wSat
+            # A single entry is false
+            return false
+        end
+    end
+    # All entries are true
+    return true
+end
+
+
+
+function getProjVecs(r::AL_coneSlack, x, verbose = false)
+    #=
+    We want to project onto the cone where
+    v = ||Ax - b||
+    s = cx - d
+    =#
+    v = r.A * x - r.b
+    s = r.c' * x - r.d
+
+    proj = projSecondOrderCone(v, s, r.p)
+
+    if verbose
+        println("x = $x -> Inside? $(satisfied(r, x))")
+        println("v = $v, s = $s")
+        println("proj = $proj")
+    end
+
+    vproj = proj[1:end - 1]
+    xproj = r.A \ (r.b + vproj)
+
+    if verbose
+        println("vproj = $vproj -> $(norm(vproj, r.p))")
+        print("xproj = $xproj -> $(r.A * xproj - r.b) -> ")
+        print("$(norm(r.A * xproj - r.b, r.p))")
+        println(" vs $(r.c' * xproj - r.d) vs $(proj[end])")
+        println("Satisfied? $(satisfied(r, xproj))")
+        println()
+    end
+    return xproj, proj
+end
+
+# function getProjVecs(r::AL_coneSlack, x, verbose = false)
+#     #=
+#     We want to project onto the cone where
+#     v = ||Ax - b||
+#     s = cx - d
+#     =#
+#     v = r.A * x - r.b
+#     s = r.c' * x - r.d
+#
+#     proj = projSecondOrderCone(v, s, r.p)
+#
+#     if verbose
+#         println("x = $x -> Inside? $(satisfied(r, x))")
+#         println("v = $v, s = $s")
+#         println("proj = $proj")
+#     end
+#
+#     aMatNew = [r.A; r.c']
+#     bVec = [r.b; r.d]
+#
+#     xproj = aMatNew \ (bVec + proj)
+#     xprojOld = r.A \ (r.b + proj[1:end - 1])
+#
+#     if verbose
+#         print("xproj (Old) = $xprojOld -> ")
+#         println("$(norm(r.A * xprojOld - r.b, r.p))")
+#         print("xproj = $xproj -> $(r.A * xproj - r.b) -> ")
+#         print("$(norm(r.A * xproj - r.b, r.p))")
+#         println(" vs $(r.c' * xproj - r.d) vs $(proj[end])")
+#         println("Satisfied? $(satisfied(r, xproj))")
+#         println()
+#     end
+#     return xproj, proj
+# end
+
+function getNormToProjVals(r::AL_coneSlack, x)
+    #=
+    We want to get the projected vector and calculate the distance between the
+    original point and the constraint.
+    =#
+    projVec = getProjVecs(r, x)
+    projDiff = projVec[1] - x
+    return norm(projDiff, 2)
+end
+
+# Lastly, we do some calculus
+function getGradC(r::AL_coneSlack, x, verbose = false)
+    #=
+    We want the gradient of the constraints. This is piecewise due to the
+    inequality case. This assumes a 2-norm (for now)
+    =#
+    if satisfied(r, x)
+        if verbose
+            println("Satisfied")
+        end
+        return zeros(size(r.A, 2))
+    else
+        if verbose
+            println("NOT Satisfied")
+        end
+        num = (r.A)' * (r.A * x - r.b)
+        den = norm(r.A * x - r.b, 2) # Formula is not for a general norm yet
+        return (num/den) - r.c
+    end
+end
+
+function getHessC(r::AL_coneSlack, x)
+    #=
+    We want the hessian of the constraints. This is just zero for affine
+    constraints, but nonzero for second order cone constraints.
+
+    Again, this assumes a 2-norm for now.
+    =#
+    if satisfied(r, x)
+        return zeros(size(r.A, 2), size(r.A, 2))
+    end
+
+    normVal = norm(r.A * x - r.b, 2)
+    numGrad = (r.A)' * (r.A * x - r.b)
+
+    term1 = ((r.A)' * r.A) / normVal  # Must be nxn
+    term2 = (numGrad * numGrad') / (normVal^2) # Must be nxn
+    return term1 + term2
+end
 
 runTests = false
 
