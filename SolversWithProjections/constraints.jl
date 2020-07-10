@@ -188,41 +188,6 @@ function getProjVecs(r::AL_pCone, x, verbose = false)
     return xproj, proj
 end
 
-# function getProjVecs(r::AL_pCone, x, verbose = false)
-#     #=
-#     We want to project onto the cone where
-#     v = ||Ax - b||
-#     s = cx - d
-#     =#
-#     v = r.A * x - r.b
-#     s = r.c' * x - r.d
-#
-#     proj = projSecondOrderCone(v, s, r.p)
-#
-#     if verbose
-#         println("x = $x -> Inside? $(satisfied(r, x))")
-#         println("v = $v, s = $s")
-#         println("proj = $proj")
-#     end
-#
-#     aMatNew = [r.A; r.c']
-#     bVec = [r.b; r.d]
-#
-#     xproj = aMatNew \ (bVec + proj)
-#     xprojOld = r.A \ (r.b + proj[1:end - 1])
-#
-#     if verbose
-#         print("xproj (Old) = $xprojOld -> ")
-#         println("$(norm(r.A * xprojOld - r.b, r.p))")
-#         print("xproj = $xproj -> $(r.A * xproj - r.b) -> ")
-#         print("$(norm(r.A * xproj - r.b, r.p))")
-#         println(" vs $(r.c' * xproj - r.d) vs $(proj[end])")
-#         println("Satisfied? $(satisfied(r, xproj))")
-#         println()
-#     end
-#     return xproj, proj
-# end
-
 function getNormToProjVals(r::AL_pCone, x)
     #=
     We want to get the projected vector and calculate the distance between the
@@ -339,7 +304,13 @@ function getProjVecs(r::AL_coneSlack, x, s, t, verbose = false)
     projVecs = []
 
     # Cone Constraints
-    push!(projVecs, projSecondOrderCone(s, t))
+    coneproj = projSecondOrderCone(s, t)
+    
+    if verbose
+        println("Cone Projection: $coneproj")
+    end
+
+    push!(projVecs, coneproj)
 
     # Set of Equality Constraints
     for ind in 1:size(r.b, 1)
@@ -355,49 +326,16 @@ function getProjVecs(r::AL_coneSlack, x, s, t, verbose = false)
     return projVecs
 end
 
-# function getProjVecs(r::AL_coneSlack, x, verbose = false)
-#     #=
-#     We want to project onto the cone where
-#     v = ||Ax - b||
-#     s = cx - d
-#     =#
-#     v = r.A * x - r.b
-#     s = r.c' * x - r.d
-#
-#     proj = projSecondOrderCone(v, s, r.p)
-#
-#     if verbose
-#         println("x = $x -> Inside? $(satisfied(r, x))")
-#         println("v = $v, s = $s")
-#         println("proj = $proj")
-#     end
-#
-#     aMatNew = [r.A; r.c']
-#     bVec = [r.b; r.d]
-#
-#     xproj = aMatNew \ (bVec + proj)
-#     xprojOld = r.A \ (r.b + proj[1:end - 1])
-#
-#     if verbose
-#         print("xproj (Old) = $xprojOld -> ")
-#         println("$(norm(r.A * xprojOld - r.b, r.p))")
-#         print("xproj = $xproj -> $(r.A * xproj - r.b) -> ")
-#         print("$(norm(r.A * xproj - r.b, r.p))")
-#         println(" vs $(r.c' * xproj - r.d) vs $(proj[end])")
-#         println("Satisfied? $(satisfied(r, xproj))")
-#         println()
-#     end
-#     return xproj, proj
-# end
 
-function getNormToProjVals(r::AL_coneSlack, x)
+function getNormToProjVals(r::AL_coneSlack, x, s, t)
     #=
     We want to get the projected vector and calculate the distance between the
     original point and the constraint.
     =#
-    projVec = getProjVecs(r, x)
-    projDiff = projVec[1] - x
-    return norm(projDiff, 2)
+    projVec = getProjVecs(r, x, s, t)
+    coneDiff = norm([s; t] - projVec[1])
+    projDiff = [norm(pv - x, 2) for pv in projVec[2:end]]
+    return [coneDiff; projDiff]
 end
 
 # Lastly, we do some calculus
@@ -440,9 +378,11 @@ function getHessC(r::AL_coneSlack, x)
     return term1 + term2
 end
 
-runTests = false
+runTestsAffine = false
+runTestsOldCone = false
+runTestsNewCone = true
 
-if runTests
+if runTestsAffine
     println()
     println("Affine Equality Constraints:")
     dT = AL_AffineEquality([5], [10])
@@ -491,7 +431,9 @@ if runTests
     println("Hessian = $(getHessC(diT2))")
     println("Grad at $testpt = $(getGradC(diT2, testpt))")
     println("Grad at $testpt2 = $(getGradC(diT2, testpt2))")
+end
 
+if runTestsOldCone
     println("\nSecond-Order Constraints")
     dconeT = AL_pCone([5][:,:], vcat([-4]), vcat([3]), -8, 2)
     xRan = -5:5
@@ -532,4 +474,22 @@ if runTests
     # display(projVecList)
     # print("Violation = ")
     # println("$([getNormToProjVals(dconeT2DSimp, [x; x]) for x in xRan])")
+end
+
+if runTestsNewCone
+    dslackCone1 = AL_coneSlack([2 1/3; 1/3 3/4], [0; 0], [2; 1], -8)
+
+    println("\n** Cone With Slack Variables")
+    display(dslackCone1)
+    println("Raw Values: ")
+    xRan = -2:2
+    s = [2; 5]
+    t = 5
+    println([getRaw(dslackCone1, [x; x], s, t) for x in xRan])
+    println("Satisfied: ")
+    println([whichSatisfied(dslackCone1, [x; x], s, t) for x in xRan])
+    println("Projections: ")
+    println([getProjVecs(dslackCone1, [x; x], s, t) for x in xRan])
+    println("Violations: ")
+    println([getNormToProjVals(dslackCone1, [x; x], s, t) for x in xRan])
 end
