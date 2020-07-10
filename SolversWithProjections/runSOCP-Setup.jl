@@ -28,6 +28,7 @@ x0 = [-5; 0]
 #           Q               |       c      |       x*        | name
 # -----------------------------------------------------------------------
 # Symmetric([6 5; 0 8])     |    [4; -3]   | [-47/23; 38/23] |  Interior
+#                           |              | [-2.043; 1.652] |
 # Symmetric([6 5; 0 8])     |   [-30; 70]  |   [35/6; -1]    |  Far Ext. (Edge)
 # Symmetric([5 -0.5; 0 10]) |   [12, -70]  |   [-5/4; 5]     |  Up  (Vertex)
 
@@ -101,6 +102,6 @@ lambdaSize = size(bVec, 1) + 2
 alcone = augLagQP_2Cone(thisQP, thisConstr, 1, zeros(lambdaSize))
 print("Evaluating the Augmented Lagrangian at the starting value of $x0: ")
 println(evalAL(alcone, y0))
-println("Evaluating the AL gradient: $(evalGradAL(alcone, x0, s0, t0))")
+println("Evaluating the AL gradient: $(evalGradAL(alcone, y0))")
 println("Evaluating the AL hessian: ")
 display(evalHessAl(alcone, y0))

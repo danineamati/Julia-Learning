@@ -437,7 +437,7 @@ end
 
 runTestsAffine = false
 runTestsOldCone = false
-runTestsNewCone = true
+runTestsNewCone = false
 
 if runTestsAffine
     println()

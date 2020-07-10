@@ -72,40 +72,44 @@ H(φ(x)) = H(f(x)) + ((ρ c(x) + λ) H(c(x)) + ρ ∇c(x) * ∇c(x))
 
 using LinearAlgebra
 
-include("QP-Setup-Simple.jl")
+include("SOCP-Setup-Simple.jl")
 include("backtrackLineSearch.jl")
 include("constraints.jl")
 
 
-function newtonStepALPSOCP(x0, al::augLagQP_2Cone)
+function newtonStepALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone)
     #=
     y ← y - [H(φ(y))]^-1 ∇φ(y)
     returns -[H(φ(y))]^-1 ∇φ(y) and ∇φ(y)
     since -[H(φ(y))]^-1 ∇φ(y) is the step and ∇φ(y) is the residual
     =#
-    phiDDinv = inv(evalHessAl(al, x0))
-    phiD = evalGradAL(al, x0)
+    phiHinv = inv(evalHessAl(al, y0))
+    phiD = evalGradAL(al, y0)
     # Note the negative sign!
-    return -phiDDinv * phiD, phiD
+    return -phiHinv * phiD, phiD
 end
 
-function newtonMethodLineSearchALPSOCP(x0, al::augLagQP_2Cone, sp::solverParams,
-                                            verbose = false)
-    xNewtStates = []
+function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
+                                        sp::solverParams, verbose = false)
+    yNewtStates = []
     residNewt = []
-    # push!(xNewtStates, x0)
-    xCurr = x0
+    # push!(yNewtStates, y0)
+    yCurr = y0
 
     # For printing
     early = false
 
-    lineSearchObj(x) = evalAL(al, x)
-    lineSearchdfdx(x) = evalGradAL(al, x)
+    xSize = size(y0.x, 1)
+    sSize = size(y0.s, 1)
+    tSize = size(y0.t, 1)
+
+    lineSearchObj(v) = evalAL(al, primalStruct(v, xSize, sSize, tSize))
+    lineSearchdfdx(v) = evalGradAL(al, primalStruct(v, xSize, sSize, tSize))
 
     # Now, we run through the iterations
     for i in 1:(sp.maxNewtonSteps)
         # Negative sign addressed above
-        (dirNewton, residual) = newtonStepALP(xCurr, al)
+        (dirNewton, residual) = newtonStepALPSOCP(yCurr, al)
         push!(residNewt, residual)
 
         if verbose
@@ -114,22 +118,24 @@ function newtonMethodLineSearchALPSOCP(x0, al::augLagQP_2Cone, sp::solverParams,
         end
 
         # Then get the line search recommendation
-        x0LS, stepLS = backtrackLineSearch(xCurr, dirNewton,
+        y0LS, stepLS = backtrackLineSearch(primalVec(yCurr), dirNewton,
                         lineSearchObj, lineSearchdfdx, sp.paramA, sp.paramB)
 
         if verbose
             println("Recommended Line Search Step: $stepLS")
-            println("Expected x = $x0LS ?= $(xCurr + stepLS * dirNewton)")
+            print("Expected x = ")
+            println("$y0LS ?= $(primalVec(yCurr) + stepLS * dirNewton)")
         end
 
-        push!(xNewtStates, x0LS)
+        push!(yNewtStates, y0LS)
 
-        if norm(xCurr - x0LS, 2) < sp.xTol
+        if norm(primalVec(yCurr) - y0LS, 2) < sp.xTol
             println("Ended from tolerance at $i Newton steps")
             early = true
             break
         else
-            xCurr = x0LS
+            println("Updating")
+            yCurr = primalStruct(y0LS, xSize, sSize, tSize)
         end
 
     end
@@ -138,46 +144,45 @@ function newtonMethodLineSearchALPSOCP(x0, al::augLagQP_2Cone, sp::solverParams,
         println("Ended from max steps in $(sp.maxNewtonSteps) Newton Steps")
     end
 
-    return xNewtStates, residNewt
+    return yNewtStates, residNewt
 
 end
 
-function ALPrimalNewtonSOCPmain(x0, al::augLagQP_2Cone, sp::solverParams,
-                                            verbose = false)
+function ALPrimalNewtonSOCPmain(y0::SOCP_primals, al::augLagQP_2Cone,
+                                sp::solverParams, verbose = false)
 
-    xStates = []
+    yStates = []
     residuals = []
-    push!(xStates, x0)
+    push!(yStates, y0)
 
     for i in 1:(sp.maxOuterIters)
 
         # Update x at each iteration
         if verbose
             println()
-            println("Next Full Update starting at $x0")
+            println("Next Full Update starting at $y0")
         end
 
-        (xNewStates, resAtStates) = newtonMethodLineSearchALP(x0, al, sp, verbose)
+        (yNewStates, resAtStates) = newtonLineSearchALPSOCP(y0, al, sp, verbose)
 
         # Take each step in the arrays above and save it to the respective
         # overall arrays
-        xStates = [xStates; xNewStates]
+        yStates = [yStates; yNewStates]
         residuals = [residuals; resAtStates]
 
         # Determine the new lambda and rho
         # λ ← λ + ρ c(x_k*)       - Which is to say update with prior x*
         # ρ ← min(ρ * 10, 10^6)   - Which is to say we bound ρ's growth by 10^6
-        xNewest = xNewStates[end]
-        APost = getGradC(al.constraints, xNewest)
+        yNewest = yNewStates[end]
+        cCurr = getNormToProjVals(al.constraints, yNewest.x, yNewest.s, yNewest.t)
 
         if verbose
             println()
-            println("APost = $APost")
-            println("xStates = $xStates")
-            println("xNewest = $xNewest")
+            println("yStates = $yStates")
+            println("yNewest = $yNewest")
             println("All residuals = $residuals")
         end
-        lambdaNew = al.lambda + al.rho * (APost * xNewest - al.constraints.b)
+        lambdaNew = al.lambda + al.rho * cCurr
         al.lambda = max.(lambdaNew, 0)
         al.rho = clamp(al.rho * sp.penaltyStep, 0, sp.penaltyMax)
 
@@ -187,13 +192,13 @@ function ALPrimalNewtonSOCPmain(x0, al::augLagQP_2Cone, sp::solverParams,
             println("rho updated: $(al.rho)")
         end
 
-        if norm(xNewest - x0, 2) < sp.xTol
+        if norm(yNewest - y0, 2) < sp.xTol
             println("Ended early at $i outer steps")
             break
         else
-            x0 = xNewest
+            y0 = yNewest
         end
     end
 
-    return xStates, residuals
+    return yStates, residuals
 end

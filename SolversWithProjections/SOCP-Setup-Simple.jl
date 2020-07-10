@@ -89,6 +89,14 @@ mutable struct SOCP_primals
     t
 end
 
+function primalVec(y::SOCP_primals)
+    return [y.x; y.s; y.t]
+end
+
+function primalStruct(v, xSize::Int64, sSize::Int64, tSize::Int64)
+    return SOCP_primals(v[1:xSize], v[xSize+1:xSize+sSize], v[end])
+end
+
 mutable struct augLagQP_2Cone
     obj::objectiveQP
     constraints::AL_coneSlack # Currently the "p-cone" is only a "2-cone"
@@ -116,7 +124,7 @@ function evalGradAL(alQP::augLagQP_2Cone, y::SOCP_primals, verbose = false)
     end
 
     # Pad the gradient
-    paddedGradf = [gradfCurr; zeros(size(s, 1) + size(t, 1))]
+    paddedGradf = [gradfCurr; zeros(size(y.s, 1) + size(y.t, 1))]
 
     if verbose
         println("Size ∇yf(x) = $(size(paddedGradf))")
