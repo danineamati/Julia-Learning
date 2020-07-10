@@ -270,6 +270,16 @@ getRaw(r::AL_coneSlack, x, s, t) = [norm(s, 2) - t;
                                     r.c'x - r.d - t]
 
 # Check that a constraint is satisfied (||Ax - b|| ≤ c'x - d)
+function coneSatisfied(r::AL_coneSlack, s, t)
+    return (norm(s, 2) - t ≤ 0)
+end
+
+function coneValOriginal(r::AL_coneSlack, x)
+    sInt = norm(r.A * x - r.b, 2)
+    tInt = r.c'x - r.d
+    return sInt - tInt
+end
+
 function whichSatisfied(r::AL_coneSlack, x, s, t)
     raw = getRaw(r, x, s, t)
     return [raw[1] ≤ 0; raw[2:end] .== 0]

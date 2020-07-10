@@ -15,7 +15,7 @@ solParamPrint(currSolveParams)
 # --------------------------
 # Set an example initial starting point
 # --------------------------
-x0 = [-5; 0]
+x0 = [-4; 0]
 
 # ---------------------------
 # Objective Function
@@ -73,9 +73,9 @@ println(fObjQP(thisQP, x0))
 # Note that a 2-norm is assumed
 # --------------------------
 
-AMat = [4 5; -4 5; 0 -1]
-bVec = [20; 30; 1]
-cVec = [2; -2]
+AMat = [4 -5]
+bVec = [-20]
+cVec = [2; 2]
 dVal = -8
 
 # Generate the struct
@@ -84,6 +84,7 @@ thisConstr = AL_coneSlack(AMat, bVec, cVec, dVal)
 # Now initialize s and t
 s0 = AMat * x0 - bVec
 t0 = cVec'x0 - dVal
+println("Other Primals: s = $s0 and t = $t0")
 
 y0 = SOCP_primals(x0, s0, t0)
 
