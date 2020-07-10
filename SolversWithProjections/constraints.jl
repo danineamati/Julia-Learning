@@ -276,8 +276,8 @@ function whichSatisfied(r::AL_coneSlack, x, s, t)
 end
 function satisfied(r::AL_coneSlack, x, s, t)
     wSat = whichSatisfied(r, x, s, t)
-    for i in wSat
-        if !wSat
+    for iw in wSat
+        if !iw
             # A single entry is false
             return false
         end
@@ -305,7 +305,7 @@ function getProjVecs(r::AL_coneSlack, x, s, t, verbose = false)
 
     # Cone Constraints
     coneproj = projSecondOrderCone(s, t)
-    
+
     if verbose
         println("Cone Projection: $coneproj")
     end
@@ -339,23 +339,56 @@ function getNormToProjVals(r::AL_coneSlack, x, s, t)
 end
 
 # Lastly, we do some calculus
-function getGradC(r::AL_coneSlack, x, verbose = false)
+function getGradC(r::AL_coneSlack, x, s, t, verbose = false)
     #=
     We want the gradient of the constraints. This is piecewise due to the
-    inequality case. This assumes a 2-norm (for now)
+    inequality case. This assumes a 2-norm (for now).
+
+    When the constraint is violated, we have:
+    J'(ρ c + λ)
+    Where J is the jacobian of c. In particular
+    J = [ 0(1xn) s'/||s||    -1 ]
+        [ A      -1 * I      0  ]
+        [ c'       0         -1 ]
+
+    This function will return J
     =#
-    if satisfied(r, x)
+
+    sizeJcols = size(x, 1) + size(s, 1) + size(t, 1)
+    sizeJrows = size(x, 2) + size(s, 1) + size(t, 2)
+
+    if satisfied(r, x, s, t)
         if verbose
             println("Satisfied")
         end
-        return zeros(size(r.A, 2))
+        return zeros(sizeJcols)
     else
         if verbose
             println("NOT Satisfied")
         end
-        num = (r.A)' * (r.A * x - r.b)
-        den = norm(r.A * x - r.b, 2) # Formula is not for a general norm yet
-        return (num/den) - r.c
+        jacobRow1 = [zeros(size(x')) s'/norm(s,2) -1]
+        if verbose
+            println("Row 1")
+            display(jacobRow1)
+        end
+        jacobRow2 = [r.A (Diagonal(-1*ones(size(r.A, 1)))) zeros(size(r.A, 1))]
+        if verbose
+            println("Row 2")
+            display(reshape(jacobRow2, size(r.A, 1), sizeJcols))
+        end
+        jacobRow3 = [r.c' zeros(1, size(r.A, 1)) -1]
+        if verbose
+            println("Row 3")
+            display(jacobRow3)
+        end
+        jacob = [jacobRow1; jacobRow2; jacobRow3]
+        if verbose
+            println("Size expected = $sizeJrows x $sizeJcols ?= $(size(jacob))")
+            display(reshape(jacob, size(jacob)))
+            # display(reshape(jacob, sizeJrows, sizeJcols))
+        end
+
+        return jacob
     end
 end
 
@@ -477,13 +510,13 @@ if runTestsOldCone
 end
 
 if runTestsNewCone
-    dslackCone1 = AL_coneSlack([2 1/3; 1/3 3/4], [0; 0], [2; 1], -8)
+    dslackCone1 = AL_coneSlack([2 1/3; 1/3 3/4; 1 1], [3; 4; 5], [2; 1], -8)
 
     println("\n** Cone With Slack Variables")
     display(dslackCone1)
     println("Raw Values: ")
-    xRan = -2:2
-    s = [2; 5]
+    xRan = -1:1
+    s = [2; 5; -4]
     t = 5
     println([getRaw(dslackCone1, [x; x], s, t) for x in xRan])
     println("Satisfied: ")
@@ -492,4 +525,7 @@ if runTestsNewCone
     println([getProjVecs(dslackCone1, [x; x], s, t) for x in xRan])
     println("Violations: ")
     println([getNormToProjVals(dslackCone1, [x; x], s, t) for x in xRan])
+    println("Gradient")
+    jc = getGradC(dslackCone1, [-2; -2], s, t)
+    display(reshape(jc, size(jc)))
 end
