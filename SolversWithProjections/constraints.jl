@@ -392,23 +392,40 @@ function getGradC(r::AL_coneSlack, x, s, t, verbose = false)
     end
 end
 
-function getHessC(r::AL_coneSlack, x)
+function getHessC(r::AL_coneSlack, x, s, t)
     #=
-    We want the hessian of the constraints. This is just zero for affine
-    constraints, but nonzero for second order cone constraints.
+    We want the hessian of the constraints. Again, this assumes a 2-norm for
+    now.
 
-    Again, this assumes a 2-norm for now.
+    We have three primal variables (x, s, t). Thus the Hessian is symmetric
+    with this (n+m+1)x(n+m+1) dimensionality.
+
+    We separate the Hessian into 6 submatrices
+        [A  B  C]
+    H = [B' D  E]
+        [C' E' F]
+
+            n               m           1
+        [A'A + cc'      -A'         -c      ]   n
+    H = [-A             I_m         -s/||s||]   m
+        [-c'            -s'/||s||   2       ]   1
     =#
-    if satisfied(r, x)
-        return zeros(size(r.A, 2), size(r.A, 2))
+
+    sizeH = size(x, 1) + size(s, 1) + size(t, 1)
+
+    if satisfied(r, x, s, t)
+        return zeros(sizeH, sizeH)
     end
 
-    normVal = norm(r.A * x - r.b, 2)
-    numGrad = (r.A)' * (r.A * x - r.b)
+    A = r.A' * r.A + r.c * r.c'
+    B = - r.A'
+    C = - r.c
+    D = Diagonal(ones(size(s, 1), size(s, 1)))
+    E = - s / norm(s, 2)
+    F = 2
 
-    term1 = ((r.A)' * r.A) / normVal  # Must be nxn
-    term2 = (numGrad * numGrad') / (normVal^2) # Must be nxn
-    return term1 + term2
+    hess = [A B C; B' D E; C' E' F]
+    return Symmetric(hess)
 end
 
 runTestsAffine = false
@@ -528,4 +545,7 @@ if runTestsNewCone
     println("Gradient")
     jc = getGradC(dslackCone1, [-2; -2], s, t)
     display(reshape(jc, size(jc)))
+    println("Hessian")
+    hc = getHessC(dslackCone1, [-2; -2], s, t)
+    display(hc)
 end
