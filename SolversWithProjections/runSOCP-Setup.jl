@@ -84,6 +84,8 @@ thisConstr = AL_coneSlack(AMat, bVec, cVec, dVal)
 s0 = AMat * x0 - bVec
 t0 = cVec'x0 - dVal
 
+y0 = SOCP_primals(x0, s0, t0)
+
 # Check if the initial point is feasible
 print("Is the initial point feasible? ")
 println(satisfied(thisConstr, x0, s0, t0))
@@ -98,7 +100,7 @@ lambdaSize = size(bVec, 1) + 2
 
 alcone = augLagQP_2Cone(thisQP, thisConstr, 1, zeros(lambdaSize))
 print("Evaluating the Augmented Lagrangian at the starting value of $x0: ")
-println(evalAL(alcone, x0, s0, t0))
+println(evalAL(alcone, y0))
 println("Evaluating the AL gradient: $(evalGradAL(alcone, x0, s0, t0))")
 println("Evaluating the AL hessian: ")
-display(evalHessAl(alcone, x0, s0, t0))
+display(evalHessAl(alcone, y0))

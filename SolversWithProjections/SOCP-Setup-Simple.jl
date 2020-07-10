@@ -83,6 +83,12 @@ end
 # lambdaInit = zeros(size(fObj(x0)))
 # rhoInit = 1
 
+mutable struct SOCP_primals
+    x
+    s
+    t
+end
+
 mutable struct augLagQP_2Cone
     obj::objectiveQP
     constraints::AL_coneSlack # Currently the "p-cone" is only a "2-cone"
@@ -90,20 +96,20 @@ mutable struct augLagQP_2Cone
     lambda
 end
 
-function evalAL(alQP::augLagQP_2Cone, x, s, t)
+function evalAL(alQP::augLagQP_2Cone, y::SOCP_primals)
     # φ(y) = f(x) + (ρ/2) c(y)'c(y)    + λ c(y)
     # φ(y) = [(1/2) xT Q x + cT x] + (ρ/2) (c(y))'(c(y)) + λ (c(y))
-    fCurr = fObjQP(alQP.obj, x)
-    cCurr = getNormToProjVals(alQP.constraints, x, s, t)
+    fCurr = fObjQP(alQP.obj, y.x)
+    cCurr = getNormToProjVals(alQP.constraints, y.x, y.s, y.t)
 
     return fCurr + (alQP.rho / 2) * cCurr'cCurr + (alQP.lambda)' * cCurr
 end
 
-function evalGradAL(alQP::augLagQP_2Cone, x, s, t, verbose = false)
+function evalGradAL(alQP::augLagQP_2Cone, y::SOCP_primals, verbose = false)
     # ∇φ(y) = ∇f(x) + J(c(y))'(ρ c(y) + λ)
     # y = [x; s; t]
     # ∇φ(y) is (n+m+1)x1
-    gradfCurr = dfdxQP(alQP.obj, x)           # This is just Qx + c
+    gradfCurr = dfdxQP(alQP.obj, y.x)           # This is just Qx + c
 
     if verbose
         println("Size ∇xf(x) = $(size(gradfCurr))")
@@ -116,8 +122,8 @@ function evalGradAL(alQP::augLagQP_2Cone, x, s, t, verbose = false)
         println("Size ∇yf(x) = $(size(paddedGradf))")
     end
 
-    cCurr = getNormToProjVals(alQP.constraints, x, s, t)
-    jacobcCurr = getGradC(alQP.constraints, x, s, t) # The Jacobian matrix
+    cCurr = getNormToProjVals(alQP.constraints, y.x, y.s, y.t)
+    jacobcCurr = getGradC(alQP.constraints, y.x, y.s, y.t) # The Jacobian matrix
 
     if verbose
         println("Size c(y) = $(size(cCurr))")
@@ -134,14 +140,14 @@ function evalGradAL(alQP::augLagQP_2Cone, x, s, t, verbose = false)
     return paddedGradf + cTotal
 end
 
-function evalHessAl(alQP::augLagQP_2Cone, x, s, t, verbose = false)
+function evalHessAl(alQP::augLagQP_2Cone, y::SOCP_primals, verbose = false)
     #=
     H(φ(x)) = H(f(x)) + ((ρ c(x) + λ) H(c(x)) + ρ ∇c(x) * ∇c(x))
     We can group the last two terms into one. This yields
     H(φ(x))
     =#
-    hSize = size(x, 1) + size(s, 1) + size(t, 1)
-    xSize = size(x, 1)
+    hSize = size(y.x, 1) + size(y.s, 1) + size(y.t, 1)
+    xSize = size(y.x, 1)
 
     hessf1 = [alQP.obj.Q; zeros(hSize - xSize, xSize)]
     hessf2 = zeros(hSize, hSize - xSize)
@@ -151,7 +157,7 @@ function evalHessAl(alQP::augLagQP_2Cone, x, s, t, verbose = false)
         println("Size H(f) = $(size(hessfPadded))")
     end
 
-    hesscCurr = getHessC(alQP.constraints, x, s, t)
+    hesscCurr = getHessC(alQP.constraints, y.x, y.s, y.t)
 
     if verbose
         println("Size H(cT) = $(size(hesscCurr))")

@@ -77,7 +77,7 @@ include("backtrackLineSearch.jl")
 include("constraints.jl")
 
 
-function newtonStepALP(x0, al::augLagQP_AffineIneq)
+function newtonStepALPSOCP(x0, al::augLagQP_2Cone)
     #=
     y ← y - [H(φ(y))]^-1 ∇φ(y)
     returns -[H(φ(y))]^-1 ∇φ(y) and ∇φ(y)
@@ -89,7 +89,7 @@ function newtonStepALP(x0, al::augLagQP_AffineIneq)
     return -phiDDinv * phiD, phiD
 end
 
-function newtonMethodLineSearchALP(x0, al::augLagQP_AffineIneq, sp::solverParams,
+function newtonMethodLineSearchALPSOCP(x0, al::augLagQP_2Cone, sp::solverParams,
                                             verbose = false)
     xNewtStates = []
     residNewt = []
@@ -142,11 +142,8 @@ function newtonMethodLineSearchALP(x0, al::augLagQP_AffineIneq, sp::solverParams
 
 end
 
-function ALPrimalNewtonQPmain(x0, al::augLagQP_AffineIneq, sp::solverParams,
+function ALPrimalNewtonSOCPmain(x0, al::augLagQP_2Cone, sp::solverParams,
                                             verbose = false)
-
-    # (x0, fObj, dfdx, Q, c, A, b, rho, lambda,
-    # xtol = 10^-6, maxIters = 5, paramA = 0.1, paramB = 0.5, verbose = false)
 
     xStates = []
     residuals = []
