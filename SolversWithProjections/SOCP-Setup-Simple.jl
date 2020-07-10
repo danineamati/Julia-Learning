@@ -72,16 +72,10 @@ function dfdxQP(qp::objectiveQP, x)
     return (qp.Q) * x + qp.c
 end
 
-
-# --------------------------
-# Lagrangian
-# φ(y) = f(x) + (ρ/2) ||c(y)||_2^2 + λ c(y)
-#      = f(x) + (ρ/2) c(y)'c(y)    + λ c(y)
-# --------------------------
-# Where y = [x; s; t]
-# --------------------------
-# lambdaInit = zeros(size(fObj(x0)))
-# rhoInit = 1
+# ------------------------
+# We have three primal variables: [x, s, t]
+# We can stack them in one struct
+# ------------------------
 
 mutable struct SOCP_primals
     x
@@ -96,6 +90,37 @@ end
 function primalStruct(v, xSize::Int64, sSize::Int64, tSize::Int64)
     return SOCP_primals(v[1:xSize], v[xSize+1:xSize+sSize], v[end])
 end
+
+function getXVals(yList::Array{SOCP_primals, 1})
+    xList = []
+    for xst in yList
+        push!(xList, xst.x)
+    end
+    return xList
+end
+
+function getViolation(yList::Array{SOCP_primals, 1}, c::AL_coneSlack)
+    coneViolation = []
+    affineViolation = []
+    lastViolation = []
+    for y in yList
+        vio = getNormToProjVals(c, y.x, y.s, y.t)
+        push!(coneViolation, vio[1])
+        push!(affineViolation, vio[2:2+size(y.s, 1)])
+        push!(lastViolation, vio[end])
+    end
+    return coneViolation, affineViolation, lastViolation
+end
+
+# --------------------------
+# Lagrangian
+# φ(y) = f(x) + (ρ/2) ||c(y)||_2^2 + λ c(y)
+#      = f(x) + (ρ/2) c(y)'c(y)    + λ c(y)
+# --------------------------
+# Where y = [x; s; t]
+# --------------------------
+# lambdaInit = zeros(size(fObj(x0)))
+# rhoInit = 1
 
 mutable struct augLagQP_2Cone
     obj::objectiveQP

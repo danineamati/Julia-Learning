@@ -91,7 +91,7 @@ end
 
 function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
                                         sp::solverParams, verbose = false)
-    yNewtStates = []
+    yNewtStates = SOCP_primals[]
     residNewt = []
     # push!(yNewtStates, y0)
     yCurr = y0
@@ -127,15 +127,16 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
             println("$y0LS ?= $(primalVec(yCurr) + stepLS * dirNewton)")
         end
 
-        push!(yNewtStates, y0LS)
+        y0LS_Struct = primalStruct(y0LS, xSize, sSize, tSize)
+        push!(yNewtStates, y0LS_Struct)
+
 
         if norm(primalVec(yCurr) - y0LS, 2) < sp.xTol
             println("Ended from tolerance at $i Newton steps")
             early = true
             break
         else
-            println("Updating")
-            yCurr = primalStruct(y0LS, xSize, sSize, tSize)
+            yCurr = y0LS_Struct
         end
 
     end
@@ -151,7 +152,7 @@ end
 function ALPrimalNewtonSOCPmain(y0::SOCP_primals, al::augLagQP_2Cone,
                                 sp::solverParams, verbose = false)
 
-    yStates = []
+    yStates = SOCP_primals[]
     residuals = []
     push!(yStates, y0)
 
@@ -174,7 +175,8 @@ function ALPrimalNewtonSOCPmain(y0::SOCP_primals, al::augLagQP_2Cone,
         # λ ← λ + ρ c(x_k*)       - Which is to say update with prior x*
         # ρ ← min(ρ * 10, 10^6)   - Which is to say we bound ρ's growth by 10^6
         yNewest = yNewStates[end]
-        cCurr = getNormToProjVals(al.constraints, yNewest.x, yNewest.s, yNewest.t)
+        cCurr = getNormToProjVals(al.constraints,
+                                        yNewest.x, yNewest.s, yNewest.t)
 
         if verbose
             println()
@@ -192,7 +194,7 @@ function ALPrimalNewtonSOCPmain(y0::SOCP_primals, al::augLagQP_2Cone,
             println("rho updated: $(al.rho)")
         end
 
-        if norm(yNewest - y0, 2) < sp.xTol
+        if norm(primalVec(yNewest) - primalVec(y0), 2) < sp.xTol
             println("Ended early at $i outer steps")
             break
         else
