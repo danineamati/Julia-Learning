@@ -75,52 +75,85 @@ end
 
 # --------------------------
 # Lagrangian
-# φ(x) = f(x) + (ρ/2) ||c(x)||_2^2 + λ c(x)
-#      = f(x) + (ρ/2) c(x)'c(x)    + λ c(x)
+# φ(y) = f(x) + (ρ/2) ||c(y)||_2^2 + λ c(y)
+#      = f(x) + (ρ/2) c(y)'c(y)    + λ c(y)
+# --------------------------
+# Where y = [x; s; t]
 # --------------------------
 # lambdaInit = zeros(size(fObj(x0)))
 # rhoInit = 1
-# phi(x) = fObj(x) + (rhoInit / 2) * cPlus(A, x, b)'cPlus(A, x, b) +
-#                             lambdaInit' * cPlus(A, x, b)
-#
-# print("Example evaluation of the lagrangian at $x0: ")
-# println(phi(x0))
 
 mutable struct augLagQP_2Cone
     obj::objectiveQP
-    constraints::AL_pCone # Currently the "p-cone" is only a "2-cone"
+    constraints::AL_coneSlack # Currently the "p-cone" is only a "2-cone"
     rho
     lambda
 end
 
-function evalAL(alQP::augLagQP_2Cone, x)
-    # φ(x) = f(x) + (ρ/2) c(x)'c(x)    + λ c(x)
-    # φ(x) = [(1/2) xT Q x + cT x] + (ρ/2) (Ax - b)'(Ax -b) + λ (Ax - b)
+function evalAL(alQP::augLagQP_2Cone, x, s, t)
+    # φ(y) = f(x) + (ρ/2) c(y)'c(y)    + λ c(y)
+    # φ(y) = [(1/2) xT Q x + cT x] + (ρ/2) (c(y))'(c(y)) + λ (c(y))
     fCurr = fObjQP(alQP.obj, x)
-    cCurr = getNormToProjVals(alQP.constraints, x)
+    cCurr = getNormToProjVals(alQP.constraints, x, s, t)
 
     return fCurr + (alQP.rho / 2) * cCurr'cCurr + (alQP.lambda)' * cCurr
 end
 
-function evalGradAL(alQP::augLagQP_2Cone, x)
-    # ∇φ(x) = ∇f(x) + (ρ c(x) + λ) ∇c(x) becomes
-    gradfCurr = dfdxQP(alQP.obj, x)           # This is Qx + c
-    cCurr = getNormToProjVals(alQP.constraints, x)
-    gradcCurr = getGradC(alQP.constraints, x) # The adjusted A matrix
-    return gradfCurr + gradcCurr' * (alQP.rho * cCurr + alQP.lambda)
+function evalGradAL(alQP::augLagQP_2Cone, x, s, t, verbose = false)
+    # ∇φ(y) = ∇f(x) + J(c(y))'(ρ c(y) + λ)
+    # y = [x; s; t]
+    # ∇φ(y) is (n+m+1)x1
+    gradfCurr = dfdxQP(alQP.obj, x)           # This is just Qx + c
+
+    if verbose
+        println("Size ∇xf(x) = $(size(gradfCurr))")
+    end
+
+    # Pad the gradient
+    paddedGradf = [gradfCurr; zeros(size(s, 1) + size(t, 1))]
+
+    if verbose
+        println("Size ∇yf(x) = $(size(paddedGradf))")
+    end
+
+    cCurr = getNormToProjVals(alQP.constraints, x, s, t)
+    jacobcCurr = getGradC(alQP.constraints, x, s, t) # The Jacobian matrix
+
+    if verbose
+        println("Size c(y) = $(size(cCurr))")
+        println("Size λ = $(size(alQP.lambda))")
+        println("Size J(c(y)) = $(size(jacobcCurr))")
+    end
+
+    cTotal = jacobcCurr' * (alQP.rho * cCurr + alQP.lambda)
+
+    if verbose
+        println("Size cTotal = $(size(cTotal))")
+    end
+
+    return paddedGradf + cTotal
 end
 
-function evalHessAl(alQP::augLagQP_2Cone, x)
-    # ∇^2φ(x) = ∇^2f(x) + ((ρ c(x) + λ) ∇^2c(x) + ρ ∇c(x) * ∇c(x))
+function evalHessAl(alQP::augLagQP_2Cone, x, s, t)
+    #=
+    H(φ(x)) = H(f(x)) + ((ρ c(x) + λ) H(c(x)) + ρ ∇c(x) * ∇c(x))
+    We can group the last two terms into one. This yields
+    H(φ(x))
+    =#
+    hSize = size(x, 1) + size(s, 1) + size(t, 1)
+    xSize = size(x, 1)
 
-    cCurr = getNormToProjVals(alQP.constraints, x)
-    gradcCurr = getGradC(alQP.constraints, x)
-    hesscCurr = getHessC(alQP.constraints, x)
+    hessf1 = [alQP.obj.Q; zeros(hSize - xSize, xSize)]
+    hessf2 = zeros(hSize, hSize - xSize)
+    hessfPadded = [hessf1 hessf2]
 
-    hessTerm1 = (alQP.rho * cCurr + alQP.lambda) * hesscCurr
-    hessTerm2 = alQP.rho * gradcCurr'gradcCurr
+    println("Size H(f) = $(size(hessfPadded))")
 
-    return alQP.obj.Q + hessTerm1 + hessTerm2
+    hesscCurr = getHessC(alQP.constraints, x, s, t)
+
+    println("Size H(cT) = $(size(hesscCurr))")
+
+    return hessfPadded + hesscCurr
 end
 
 

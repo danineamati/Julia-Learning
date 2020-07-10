@@ -355,7 +355,7 @@ function getGradC(r::AL_coneSlack, x, s, t, verbose = false)
     =#
 
     sizeJcols = size(x, 1) + size(s, 1) + size(t, 1)
-    sizeJrows = size(x, 2) + size(s, 1) + size(t, 2)
+    sizeJrows = size(t, 2) + size(s, 1) + size(t, 2)
 
     if satisfied(r, x, s, t)
         if verbose
@@ -394,8 +394,15 @@ end
 
 function getHessC(r::AL_coneSlack, x, s, t)
     #=
-    We want the hessian of the constraints. Again, this assumes a 2-norm for
-    now.
+    We want the hessian of the combined constraint terms. Namely:
+    ρc(x)'c(x) + λ c(x)
+
+    Where
+            [ ||s|| - t ]
+    c(x) =  [ Ax - b - s]
+            [c'x - d - t]
+
+    Again, this assumes a 2-norm for now.
 
     We have three primal variables (x, s, t). Thus the Hessian is symmetric
     with this (n+m+1)x(n+m+1) dimensionality.

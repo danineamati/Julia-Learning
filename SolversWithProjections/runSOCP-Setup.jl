@@ -56,6 +56,12 @@ println(fObjQP(thisQP, x0))
 # ---------------------------
 # Constraint Function
 # ||Ax - b|| - (c'x - d) ≤ 0
+#
+# Which we write as
+# ||s|| ≤ t
+# Ax - b = s
+# c'x - d = t
+#
 # A is an mxn Matrix
 # b is an mx1 vector
 # c is an nx1 vector
@@ -66,24 +72,31 @@ println(fObjQP(thisQP, x0))
 
 AMat = [4 5; -4 5; 0 -1]
 bVec = [20; 30; 1]
+cVec = [2; -2]
+dVal = -8
 
 # Generate the struct
-normInt = 2
-thisConstr = AL_pCone(AMat, bVec, cVec, dVal, normInt)
+thisConstr = AL_coneSlack(AMat, bVec, cVec, dVal)
+
+# Now initialize s and t
+s0 = AMat * x0 - bVec
+t0 = cVec'x0 - dVal
 
 # Check if the initial point is feasible
 print("Is the initial point feasible? ")
-println(satisfied(thisConstr, x0))
+println(satisfied(thisConstr, x0, s0, t0))
 
 
 # --------------------------
 # Lagrangian
-# φ(x) = f(x) + (ρ/2) ||c(x)||_2^2 + λ c(x)
-#      = f(x) + (ρ/2) c(x)'c(x)    + λ c(x)
+# φ(y) = f(x) + (ρ/2) ||c(y)||_2^2 + λ c(y)
+#      = f(x) + (ρ/2) c(y)'c(y)    + λ c(y)
 # --------------------------
+lambdaSize = size(bVec, 1) + 2
 
-alTest = augLagQP_AffineIneq(thisQP, thisConstr, 1, zeros(size(bVec)))
+alcone = augLagQP_2Cone(thisQP, thisConstr, 1, zeros(lambdaSize))
 print("Evaluating the Augmented Lagrangian at the starting value of $x0: ")
-println(evalAL(alTest, x0))
-println("Evaluating the AL gradient: $(evalGradAL(alTest, x0))")
-println("Evaluating the AL hessian: $(evalHessAl(alTest, x0))")
+println(evalAL(alcone, x0, s0, t0))
+println("Evaluating the AL gradient: $(evalGradAL(alcone, x0, s0, t0))")
+println("Evaluating the AL hessian: ")
+display(evalHessAl(alcone, x0, s0, t0))
