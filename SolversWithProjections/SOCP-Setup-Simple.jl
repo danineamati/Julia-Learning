@@ -134,7 +134,7 @@ function evalGradAL(alQP::augLagQP_2Cone, x, s, t, verbose = false)
     return paddedGradf + cTotal
 end
 
-function evalHessAl(alQP::augLagQP_2Cone, x, s, t)
+function evalHessAl(alQP::augLagQP_2Cone, x, s, t, verbose = false)
     #=
     H(φ(x)) = H(f(x)) + ((ρ c(x) + λ) H(c(x)) + ρ ∇c(x) * ∇c(x))
     We can group the last two terms into one. This yields
@@ -147,13 +147,17 @@ function evalHessAl(alQP::augLagQP_2Cone, x, s, t)
     hessf2 = zeros(hSize, hSize - xSize)
     hessfPadded = [hessf1 hessf2]
 
-    println("Size H(f) = $(size(hessfPadded))")
+    if verbose
+        println("Size H(f) = $(size(hessfPadded))")
+    end
 
     hesscCurr = getHessC(alQP.constraints, x, s, t)
 
-    println("Size H(cT) = $(size(hesscCurr))")
+    if verbose
+        println("Size H(cT) = $(size(hesscCurr))")
+    end
 
-    return hessfPadded + hesscCurr
+    return hessfPadded + 2 * alQP.rho * hesscCurr
 end
 
 

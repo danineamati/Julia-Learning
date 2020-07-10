@@ -67,6 +67,8 @@ println(fObjQP(thisQP, x0))
 # c is an nx1 vector
 # d is a real number
 # x is nx1
+# s is mx1
+# t is a real number
 # Note that a 2-norm is assumed
 # --------------------------
 
