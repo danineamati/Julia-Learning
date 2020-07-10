@@ -343,7 +343,7 @@ function getNormToProjVals(r::AL_coneSlack, x, s, t)
     original point and the constraint.
     =#
     projVec = getProjVecs(r, x, s, t)
-    coneDiff = norm([s; t] - projVec[1])
+    coneDiff = norm([s; t] - projVec[1], 2)
     projDiff = [norm(pv - x, 2) for pv in projVec[2:end]]
     return [coneDiff; projDiff]
 end
@@ -376,7 +376,16 @@ function getGradC(r::AL_coneSlack, x, s, t, verbose = false)
         if verbose
             println("NOT Satisfied")
         end
-        jacobRow1 = [zeros(size(x')) s'/norm(s,2) -1]
+
+        if coneSatisfied(r, s, t)
+            jacobRow1 = zeros(1, sizeJcols)
+            if verbose
+                println("Cone Satisfied")
+            end
+        else
+            jacobRow1 = [zeros(size(x')) s'/norm(s,2) -1]
+        end
+
         if verbose
             println("Row 1")
             display(jacobRow1)
@@ -426,6 +435,12 @@ function getHessC(r::AL_coneSlack, x, s, t)
         [A'A + cc'      -A'         -c      ]   n
     H = [-A             I_m         -s/||s||]   m
         [-c'            -s'/||s||   2       ]   1
+
+    If the cone constraint is satisfied,
+        n               m           1
+        [A'A + cc'      -A'         -c      ]   n
+    H = [-A             I_m         0       ]   m
+        [-c'            -s'/||s||   1       ]   1
     =#
 
     sizeH = size(x, 1) + size(s, 1) + size(t, 1)
@@ -438,8 +453,14 @@ function getHessC(r::AL_coneSlack, x, s, t)
     B = - r.A'
     C = - r.c
     D = Diagonal(ones(size(s, 1), size(s, 1)))
-    E = - s / norm(s, 2)
-    F = 2
+
+    if coneSatisfied(r, s, t)
+        E = zeros(size(s))
+        F = 1
+    else
+        E = - s / norm(s, 2)
+        F = 2
+    end
 
     hess = [A B C; B' D E; C' E' F]
     return Symmetric(hess)

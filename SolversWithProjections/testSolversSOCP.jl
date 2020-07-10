@@ -38,18 +38,16 @@ tTest = [t0, yEnd.t] # [0, t0, 10]
 xRange = -15:1:10
 yRange = -6:1:10
 
-for (si, sIter) in enumerate(sTest)
-    for (ti, tIter) in enumerate(tTest)
-        merit(x, y) = evalAL(alclean, SOCP_primals([x; y], sIter, tIter))
+for (ind, (sIter, tIter)) in enumerate(zip(sTest, tTest))
+    merit(x, y) = evalAL(alclean, SOCP_primals([x; y], sIter, tIter))
 
-        contoursMerit = contour(xRange, yRange, merit)
-        title!("Contour Plots of the Merit Function\n" *
-                "With s = $sIter and t = $tIter")
-        xlabel!("X")
-        ylabel!("Y")
-        display(contoursMerit)
-        savefig(contoursMerit, "contoursMerit-$si-$ti")
-    end
+    contoursMerit = contour(xRange, yRange, merit)
+    title!("Contour Plots of the Merit Function\n" *
+            "With s = $sIter and t = $tIter")
+    xlabel!("X")
+    ylabel!("Y")
+    display(contoursMerit)
+    savefig(contoursMerit, "contoursMerit-$ind")
 end
 
 
@@ -81,9 +79,10 @@ yRange = -1:0.1:4
 pltCone = contour(xRange, yRange,
             (x, y) -> max(coneValOriginal(alcone.constraints, [x; y]), 0),
             levels = 50)
-plot!(xVals, yVals, markershape = :circle, color = :blue, label = "Solver Path")
 scatter!([-47/23], [38/23], markershape = :xcross, markercolor = :red,
-                    label = "Minimum of Objective")
+                    markersize = 8, label = "Minimum of Objective")
+plot!(xVals, yVals, markershape = :circle, color = "#1f77b4", label = "Solver Path")
+
 display(pltCone)
 
 println("Tests Complete")
