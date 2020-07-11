@@ -206,18 +206,19 @@ function getNormRes(resArr, floor = 10^(-20))
     return max.(norm.(resArr), floor)
 end
 
-function calcNormGradResiduals(alQP::augLagQP_2Cone, xArr)
+function calcNormGradResiduals(alQP::augLagQP_2Cone,
+                                    yList::Array{SOCP_primals, 1})
     #=
     Calculate the residuals where the AL is the merit function.
     Returns the norm of the gradient of the AL at each point in xArr
     =#
-    resArr = [evalGradAL(alQP, x) for x in xArr]
+    resArr = [evalGradAL(alQP, y) for y in yList]
     return getNormRes(resArr)
 end
 
-function calcALArr(alQP::augLagQP_2Cone, xArr)
+function calcALArr(alQP::augLagQP_2Cone, yList::Array{SOCP_primals, 1})
     #=
     Calculate the value of the Augmented Lagrangian at each point
     =#
-    return [evalAL(alQP, x) for x in xArr]
+    return [evalAL(alQP, y) for y in yList]
 end
