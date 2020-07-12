@@ -23,6 +23,7 @@ title!("Constraint Violation")
 xlabel!("Newton Step")
 ylabel!("Violation")
 display(pltC)
+savefig(pltC, "ConstraintViolation")
 
 # Repeat of the above but with log10
 function safeNorm(arr, vMin = 10^-20, p = 2)
@@ -34,10 +35,11 @@ plot!(safeNorm(aV), markershape = :circle, label = "(Ax - b - s) Violation", yax
 plot!(safeNorm(lV), markershape = :star4, label = "(c'x - d - t) Violation",
     linestyle = :dash, yaxis = :log)
 
-title!("Constraint Violation")
+title!("Constraint Violation (Log 10 Scale)")
 xlabel!("Newton Step")
 ylabel!("Violation")
 display(pltClog10)
+savefig(pltClog10, "ConstraintViolationLog10")
 
 #=
 Calculate and plot the residuals
@@ -74,6 +76,7 @@ title!("Norm of the Residuals for penalty of ρ = $cleanPenalty")
 xlabel!("Newton Step")
 ylabel!("Norm of the Residual")
 display(pltRes)
+savefig(pltRes, "Residuals")
 
 #=
 Get and plot path
@@ -96,6 +99,7 @@ title!("Solver Path")
 xlabel!("X")
 ylabel!("Y")
 display(pltPath)
+savefig(pltPath, "meritFuncEnd")
 
 xRange = -5:0.1:0
 yRange = -1:0.1:4
@@ -111,5 +115,6 @@ title!("Solver Path")
 xlabel!("X")
 ylabel!("Y")
 display(pltCone)
+savefig(pltCone, "FeasibleRegionAndPath")
 
 println("Tests Complete")
