@@ -8,48 +8,58 @@ include("runSOCP-Setup.jl")
 
 yStates, res = ALPrimalNewtonSOCPmain(y0, alcone, currSolveParams, false)
 
+# Choose which to plot:
+plotConVio = false
+plotContoursST = false
+plotResid = false
+plotPathMerit = false
+plotPathConstraints = true
+
+
+
 #=
 Calculate and plot the constraint violation
 =#
 
-cV, aV, lV = getViolation(yStates, alcone.constraints)
+if plotConVio
 
-pltC = plot(cV, markershape = :rect, label = "Cone Violation")
-plot!(norm.(aV), markershape = :circle, label = "(Ax - b - s) Violation")
-plot!(lV, markershape = :star4, label = "(c'x - d - t) Violation",
-    linestyle = :dash)
+    cV, aV, lV = getViolation(yStates, alcone.constraints)
 
-title!("Constraint Violation")
-xlabel!("Newton Step")
-ylabel!("Violation")
-display(pltC)
-savefig(pltC, "ConstraintViolation")
+    pltC = plot(cV, markershape = :rect, label = "Cone Violation")
+    plot!(norm.(aV), markershape = :circle, label = "(Ax - b - s) Violation")
+    plot!(lV, markershape = :star4, label = "(c'x - d - t) Violation",
+        linestyle = :dash)
 
-# Repeat of the above but with log10
-function safeNorm(arr, vMin = 10^-20, p = 2)
-    return max.(norm.(arr, p), vMin)
+    title!("Constraint Violation")
+    xlabel!("Newton Step")
+    ylabel!("Violation")
+    display(pltC)
+    savefig(pltC, "ConstraintViolation")
+
+    # Repeat of the above but with log10
+
+    pltClog10 = plot(safeNorm(cV), markershape = :rect, label = "Cone Violation",
+                            yaxis = :log)
+    plot!(safeNorm(aV), markershape = :circle, label = "(Ax - b - s) Violation",
+                            yaxis = :log)
+    plot!(safeNorm(lV), markershape = :star4, label = "(c'x - d - t) Violation",
+        linestyle = :dash, yaxis = :log)
+
+    title!("Constraint Violation (Log 10 Scale)")
+    xlabel!("Newton Step")
+    ylabel!("Violation")
+    display(pltClog10)
+    savefig(pltClog10, "ConstraintViolationLog10")
 end
-
-pltClog10 = plot(safeNorm(cV), markershape = :rect, label = "Cone Violation", yaxis = :log)
-plot!(safeNorm(aV), markershape = :circle, label = "(Ax - b - s) Violation", yaxis = :log)
-plot!(safeNorm(lV), markershape = :star4, label = "(c'x - d - t) Violation",
-    linestyle = :dash, yaxis = :log)
-
-title!("Constraint Violation (Log 10 Scale)")
-xlabel!("Newton Step")
-ylabel!("Violation")
-display(pltClog10)
-savefig(pltClog10, "ConstraintViolationLog10")
 
 #=
 Calculate and plot the residuals
 =#
 cleanPenalty = currSolveParams.penaltyMax
 alclean = augLagQP_2Cone(thisQP, thisConstr, cleanPenalty, zeros(lambdaSize))
-plotContoursST = false
+yEnd = yStates[end]
 
 if plotContoursST
-    yEnd = yStates[end]
 
     sTest = [s0, yEnd.s] # [[0;0;0], s0, [20; 20; 20]]
     tTest = [t0, yEnd.t] # [0, t0, 10]
@@ -70,13 +80,15 @@ if plotContoursST
     end
 end
 
-pltRes = plot(calcNormGradResiduals(alclean, yStates), markershape = :circle,
-                    yaxis = :log)
-title!("Norm of the Residuals for penalty of ρ = $cleanPenalty")
-xlabel!("Newton Step")
-ylabel!("Norm of the Residual")
-display(pltRes)
-savefig(pltRes, "Residuals")
+if plotResid
+    pltRes = plot(calcNormGradResiduals(alclean, yStates), markershape = :circle,
+                        yaxis = :log)
+    title!("Norm of the Residuals for penalty of ρ = $cleanPenalty")
+    xlabel!("Newton Step")
+    ylabel!("Norm of the Residual")
+    display(pltRes)
+    savefig(pltRes, "Residuals")
+end
 
 #=
 Get and plot path
@@ -86,35 +98,39 @@ xVecs = getXVals(yStates)
 xVals = [x[1] for x in xVecs]
 yVals = [x[2] for x in xVecs]
 
-xRange = -5:0.5:0
-yRange = -1:0.5:4
 
-merit(x, y) = evalAL(alclean, SOCP_primals([x; y], yEnd.s, yEnd.t))
+if plotPathMerit
+    merit(x, y) = evalAL(alclean, SOCP_primals([x; y], yEnd.s, yEnd.t))
+    xRange = -5:0.5:0
+    yRange = -1:0.5:4
+    pltPath = plot(xVals, yVals, markershape = :circle, label = "Solver Path")
+    scatter!([-47/23], [38/23], markershape = :xcross, markercolor = :red,
+                        label = "Minimum of Objective")
+    contour!(xRange, yRange, merit, label = "Merit Function")
+    title!("Solver Path")
+    xlabel!("X")
+    ylabel!("Y")
+    display(pltPath)
+    savefig(pltPath, "meritFuncEnd")
+end
 
-pltPath = plot(xVals, yVals, markershape = :circle, label = "Solver Path")
-scatter!([-47/23], [38/23], markershape = :xcross, markercolor = :red,
-                    label = "Minimum of Objective")
-contour!(xRange, yRange, merit, label = "Merit Function")
-title!("Solver Path")
-xlabel!("X")
-ylabel!("Y")
-display(pltPath)
-savefig(pltPath, "meritFuncEnd")
+if plotPathConstraints
+    xRange = -5:0.1:0
+    yRange = -1:0.1:4
 
-xRange = -5:0.1:0
-yRange = -1:0.1:4
-
-pltCone = scatter([-47/23], [38/23], markershape = :xcross, markercolor = :red,
-                    markersize = 8, label = "Minimum of Objective")
-plot!(xVals, yVals, markershape = :circle, color = "#1f77b4",
-            label = "Solver Path")
-contour!(xRange, yRange,
-            (x, y) -> max(coneValOriginal(alcone.constraints, [x; y]), 0),
-            levels = 50, label = "Feasible Region")
-title!("Solver Path")
-xlabel!("X")
-ylabel!("Y")
-display(pltCone)
-savefig(pltCone, "FeasibleRegionAndPath")
+    pltCone = scatter([-47/23], [38/23], markershape = :xcross,
+                        markercolor = :red, markersize = 8,
+                        label = "Minimum of Objective")
+    plot!(xVals, yVals, markershape = :circle, color = "#1f77b4",
+                label = "Solver Path")
+    contour!(xRange, yRange,
+                (x, y) -> max(coneValOriginal(alcone.constraints, [x; y]), 0),
+                levels = 50, label = "Feasible Region")
+    title!("Solver Path")
+    xlabel!("X")
+    ylabel!("Y")
+    display(pltCone)
+    savefig(pltCone, "FeasibleRegionAndPath")
+end
 
 println("Tests Complete")

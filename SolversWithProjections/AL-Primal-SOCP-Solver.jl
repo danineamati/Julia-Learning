@@ -85,6 +85,8 @@ function newtonStepALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone)
     =#
     phiHinv = inv(evalHessAl(al, y0))
     phiD = evalGradAL(al, y0)
+    print("Gradient of AL: ")
+    println(phiD)
     # Note the negative sign!
     return -phiHinv * phiD, phiD
 end

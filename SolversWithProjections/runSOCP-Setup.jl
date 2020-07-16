@@ -4,7 +4,9 @@
 include("SOCP-Setup-Simple.jl")
 include("constraints.jl")
 
-
+function safeNorm(arr, vMin = 10^-20, p = 2)
+    return max.(norm.(arr, p), vMin)
+end
 
 # -------------------------
 # Solver Parameters
@@ -15,7 +17,7 @@ solParamPrint(currSolveParams)
 # --------------------------
 # Set an example initial starting point
 # --------------------------
-x0 = [-4; 0]
+x0 = [-2.5; 0]
 
 # ---------------------------
 # Objective Function
@@ -73,8 +75,8 @@ println(fObjQP(thisQP, x0))
 # Note that a 2-norm is assumed
 # --------------------------
 
-AMat = [4 -5]
-bVec = [-20]
+AMat = [4 -5] # [4 -5; 3 2]
+bVec = [-20] #[-20; 0]
 cVec = [2; 2]
 dVal = -8
 
