@@ -83,7 +83,7 @@ function newtonStepALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone)
     returns -[H(φ(y))]^-1 ∇φ(y) and ∇φ(y)
     since -[H(φ(y))]^-1 ∇φ(y) is the step and ∇φ(y) is the residual
     =#
-    phiHinv = inv(evalHessAl(al, y0))
+    phiHinv = pinv(evalHessAl(al, y0))
     phiD = evalGradAL(al, y0)
     print("Gradient of AL: ")
     println(phiD)

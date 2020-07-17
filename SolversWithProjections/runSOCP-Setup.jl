@@ -4,20 +4,26 @@
 include("SOCP-Setup-Simple.jl")
 include("constraints.jl")
 
-function safeNorm(arr, vMin = 10^-20, p = 2)
-    return max.(norm.(arr, p), vMin)
-end
 
 # -------------------------
 # Solver Parameters
+#=
+paramA::Float16         # Used in Line Search, should be [0.01, 0.3]
+paramB::Float16         # Used in Line Search, should be [0.1, 0.8]
+maxOuterIters::Int32    # Number of Outer Loop iterations
+maxNewtonSteps::Int32   # Number of Newton Steps per Outer Loop iterations
+xTol::Float64           # When steps are within xTol, loop will stop.
+penaltyStep::Float16    # Multiplies the penalty parameter per outer loop
+penaltyMax::Float64     # Maximum value of the penalty parameter
+=#
 # -------------------------
-currSolveParams = solverParams(0.1, 0.5, 12, 3, 10^-10, 10, 10^6)
+currSolveParams = solverParams(0.1, 0.5, 3, 3, 10^-10, 10, 10^6)
 solParamPrint(currSolveParams)
 
 # --------------------------
 # Set an example initial starting point
 # --------------------------
-x0 = [-2.5; 0]
+x0 = [-3.5; 1]
 
 # ---------------------------
 # Objective Function
@@ -105,6 +111,6 @@ lambdaSize = size(bVec, 1) + 2
 alcone = augLagQP_2Cone(thisQP, thisConstr, 1, zeros(lambdaSize))
 print("Evaluating the Augmented Lagrangian at the starting value of $x0: ")
 println(evalAL(alcone, y0))
-println("Evaluating the AL gradient: $(evalGradAL(alcone, y0))")
+println("Evaluating the AL gradient: $(evalGradAL(alcone, y0, true))")
 println("Evaluating the AL hessian: ")
 display(evalHessAl(alcone, y0))

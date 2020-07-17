@@ -156,7 +156,8 @@ function evalGradAL(alQP::augLagQP_2Cone, y::SOCP_primals, verbose = false)
     end
 
     cCurr = getNormToProjVals(alQP.constraints, y.x, y.s, y.t)
-    jacobcCurr = getGradC(alQP.constraints, y.x, y.s, y.t) # The Jacobian matrix
+    # The Jacobian matrix
+    jacobcCurr = getGradC(alQP.constraints, y.x, y.s, y.t, true)
 
     if verbose
         println("Size c(y) = $(size(cCurr))")
@@ -169,6 +170,13 @@ function evalGradAL(alQP::augLagQP_2Cone, y::SOCP_primals, verbose = false)
     if verbose
         println("Size cTotal = $(size(cTotal))")
     end
+
+    print("∇f = ")
+    println(paddedGradf)
+    print("∇c = ")
+    print(cTotal)
+    print(", with c = ")
+    println(cCurr)
 
     return paddedGradf + cTotal
 end

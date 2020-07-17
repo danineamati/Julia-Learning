@@ -367,11 +367,11 @@ function getGradC(r::AL_coneSlack, x, s, t, verbose = false)
     sizeJcols = size(x, 1) + size(s, 1) + size(t, 1)
     sizeJrows = size(t, 2) + size(s, 1) + size(t, 2)
 
-    if satisfied(r, x, s, t)
+    if false # satisfied(r, x, s, t)
         if verbose
             println("Satisfied")
         end
-        return zeros(sizeJcols)
+        return zeros(sizeJrows, sizeJcols)
     else
         if verbose
             println("NOT Satisfied")

@@ -7,6 +7,10 @@ include("AL-Primal-SOCP-Solver.jl")
 include("runSOCP-Setup.jl")
 
 yStates, res = ALPrimalNewtonSOCPmain(y0, alcone, currSolveParams, false)
+yEnd = yStates[end]
+
+print("Last state: ")
+println(yEnd)
 
 # Choose which to plot:
 plotConVio = false
@@ -16,6 +20,9 @@ plotPathMerit = false
 plotPathConstraints = true
 
 
+function safeNorm(arr, vMin = 10^-20, p = 2)
+    return max.(norm.(arr, p), vMin)
+end
 
 #=
 Calculate and plot the constraint violation
@@ -57,7 +64,7 @@ Calculate and plot the residuals
 =#
 cleanPenalty = currSolveParams.penaltyMax
 alclean = augLagQP_2Cone(thisQP, thisConstr, cleanPenalty, zeros(lambdaSize))
-yEnd = yStates[end]
+
 
 if plotContoursST
 
