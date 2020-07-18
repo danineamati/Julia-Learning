@@ -3,6 +3,7 @@
 
 include("SOCP-Setup-Simple.jl")
 include("constraints.jl")
+include("montecarlo.jl")
 
 
 # -------------------------
@@ -23,7 +24,7 @@ solParamPrint(currSolveParams)
 # --------------------------
 # Set an example initial starting point
 # --------------------------
-x0 = [-4.6; 2.5] # [-4.75; 2]
+x0 = getPoint([-5,-1],[0,3])#[-4.6; 2.5] # [-4.75; 2]
 
 # ---------------------------
 # Objective Function
@@ -81,8 +82,8 @@ println(fObjQP(thisQP, x0))
 # Note that a 2-norm is assumed
 # --------------------------
 
-AMat = [4 -5] # [4 -5; 3 2] #[4 -5]
-bVec = [-20] #[-20; 0] #[-20]
+AMat = [4 -5; 3 2] # [4 -5; 3 2] #[4 -5]
+bVec = [-20; 0] #[-20; 0] #[-20]
 cVec = [2; 2]
 dVal = -8
 

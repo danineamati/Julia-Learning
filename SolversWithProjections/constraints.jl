@@ -354,61 +354,67 @@ function getGradC(r::AL_coneSlack, x, s, t, verbose = false)
     We want the gradient of the constraints. This is piecewise due to the
     inequality case. This assumes a 2-norm (for now).
 
-    When the constraint is violated, we have:
-    J'(ρ c + λ)
-    Where J is the jacobian of c. In particular
-    J = [ 0(1xn) s'/||s||    -1 ]
-        [ A      -1 * I      0  ]
-        [ c'       0         -1 ]
+    First, let's consider the inequality constraints.
+    → [ρ I_λ c(y) + λ]'∇c(y)
 
-    This function will return J
+    where I_λ is 1 if [λ > 0 OR g(y) > 0] and 0 otherwise.
+    ∇c(y) = [0; s/||s||; -1]
+
+    Second, let's consider the equality constraints.
+    → J(h(y))'(ρ h(y) + κ)
+            x       s         t
+    J = [ A      -1 * I       0  ]  h1
+        [ c'       0         -1  ]  h2
+
+    If we put these together, we get
+            x       s         t
+        [0       s/||s||     -1  ]  c1
+    J = [ A      -1 * I       0  ]  h1
+        [ c'       0         -1  ]  h2
     =#
 
     sizeJcols = size(x, 1) + size(s, 1) + size(t, 1)
     sizeJrows = size(t, 2) + size(s, 1) + size(t, 2)
 
-    if satisfied(r, x, s, t)
-        if verbose
-            println("Satisfied")
-        end
-        return zeros(sizeJrows, sizeJcols)
-    else
-        if verbose
-            println("NOT Satisfied")
-        end
+    # if satisfied(r, x, s, t)
+    #     if verbose
+    #         println("Satisfied")
+    #     end
+    #     return zeros(sizeJrows, sizeJcols)
 
-        if coneSatisfied(r, s, t)
-            jacobRow1 = zeros(1, sizeJcols)
-            if verbose
-                println("Cone Satisfied")
-            end
-        else
-            jacobRow1 = [zeros(size(x')) s'/norm(s,2) -1]
-        end
+    # if coneSatisfied(r, s, t)
+    #     jacobRow1 = zeros(1, sizeJcols)
+    #     if verbose
+    #         println("Cone Satisfied")
+    #     end
+    # else
+    #     jacobRow1 = [zeros(size(x')) s'/norm(s,2) -1]
+    # end
 
-        if verbose
-            println("Row 1")
-            display(jacobRow1)
-        end
-        jacobRow2 = [r.A (Diagonal(-1*ones(size(r.A, 1)))) zeros(size(r.A, 1))]
-        if verbose
-            println("Row 2")
-            display(reshape(jacobRow2, size(r.A, 1), sizeJcols))
-        end
-        jacobRow3 = [r.c' zeros(1, size(r.A, 1)) -1]
-        if verbose
-            println("Row 3")
-            display(jacobRow3)
-        end
-        jacob = [jacobRow1; jacobRow2; jacobRow3]
-        if verbose
-            println("Size expected = $sizeJrows x $sizeJcols ?= $(size(jacob))")
-            display(reshape(jacob, size(jacob)))
-            # display(reshape(jacob, sizeJrows, sizeJcols))
-        end
+    jacobRow1 = [zeros(size(x')) s'/norm(s,2) -1]
 
-        return jacob
+    if verbose
+        println("Row 1")
+        display(jacobRow1)
     end
+    jacobRow2 = [r.A (Diagonal(-1*ones(size(r.A, 1)))) zeros(size(r.A, 1))]
+    if verbose
+        println("Row 2")
+        display(reshape(jacobRow2, size(r.A, 1), sizeJcols))
+    end
+    jacobRow3 = [r.c' zeros(1, size(r.A, 1)) -1]
+    if verbose
+        println("Row 3")
+        display(jacobRow3)
+    end
+    jacob = [jacobRow1; jacobRow2; jacobRow3]
+    if verbose
+        println("Size expected = $sizeJrows x $sizeJcols ?= $(size(jacob))")
+        display(reshape(jacob, size(jacob)))
+        # display(reshape(jacob, sizeJrows, sizeJcols))
+    end
+
+    return jacob
 end
 
 function getHessC(r::AL_coneSlack, x, s, t, λCone = 0)
