@@ -18,13 +18,13 @@ penaltyStep::Float16    # Multiplies the penalty parameter per outer loop
 penaltyMax::Float64     # Maximum value of the penalty parameter
 =#
 # -------------------------
-currSolveParams = solverParams(0.1, 0.5, 4, 3, 10^-10, 10, 10^6)
+currSolveParams = solverParams(0.1, 0.5, 4, 1, 10^-10, 10, 10^6)
 solParamPrint(currSolveParams)
 
 # --------------------------
 # Set an example initial starting point
 # --------------------------
-x0 = getPoint([-5,-1],[0,3])
+x0 = [-4.4624; 0.62624]
 #[-4.4624; 0.62624] #getPoint([-5,-1],[0,3]) #[-4.6; 2.5] # [-4.75; 2]
 
 # ---------------------------
@@ -92,8 +92,8 @@ dVal = -8
 thisConstr = AL_coneSlack(AMat, bVec, cVec, dVal)
 
 # Now initialize s and t
-s0 = AMat * x0 - bVec #AMat * x0 - bVec #AMat * x0 - bVec #[0]
-t0 = cVec'x0 - dVal #cVec'x0 - dVal #cVec'x0 - dVal #2
+s0 = AMat * x0 - bVec #AMat * x0 - bVec #[0; 1]
+t0 = cVec'x0 - dVal #cVec'x0 - dVal #20
 println("Other Primals: s = $s0 and t = $t0")
 
 y0 = SOCP_primals(x0, s0, t0)
@@ -113,6 +113,8 @@ lambdaSize = size(bVec, 1) + 2
 alcone = augLagQP_2Cone(thisQP, thisConstr, 1, zeros(lambdaSize))
 print("Evaluating the Augmented Lagrangian at the starting value of $x0: ")
 println(evalAL(alcone, y0))
+print("Evaluating the constraints: ")
+println(getNormToProjVals(alcone.constraints, x0, s0, t0))
 println("Evaluating the AL gradient: $(evalGradAL(alcone, y0, true))")
 println("Evaluating the AL hessian: ")
 display(evalHessAl(alcone, y0))

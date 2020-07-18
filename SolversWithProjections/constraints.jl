@@ -363,6 +363,7 @@ function getProjVecs(r::AL_coneSlack, x, s, t, filled = true, verbose = false)
     For the last equality constraint, we simply have c'x = d + t
     =#
     projVecs = []
+    signs = []
 
     # Cone Constraints
     coneproj = projSecondOrderCone(s, t, filled)
@@ -379,12 +380,22 @@ function getProjVecs(r::AL_coneSlack, x, s, t, filled = true, verbose = false)
         bI = r.b[ind]
         sI = s[ind]
         push!(projVecs, projAffineEq(aI, bI + sI, x))
+        if (aI'x - bI) ≥ 0
+            push!(signs, 1)
+        else
+            push!(signs, -1)
+        end
     end
 
     # Last Equality Constraint
     push!(projVecs, projAffineEq(r.c, r.d + t, x))
+    if (r.c'x - r.d) ≥ 0
+        push!(signs, 1)
+    else
+        push!(signs, -1)
+    end
 
-    return projVecs
+    return projVecs, signs
 end
 
 
@@ -394,12 +405,13 @@ function getNormToProjVals(r::AL_coneSlack, x, s, t, λ = 0)
     original point and the constraint.
     =#
     active, filled = coneActive(s, t, λ)
-    projVec = getProjVecs(r, x, s, t, filled)
+    projVec, signs = getProjVecs(r, x, s, t, filled)
     coneDiff = norm([s; t] - projVec[1], 2)
     if !filled
         coneDiff *= -1
     end
-    projDiff = [norm(pv - x, 2) for pv in projVec[2:end]]
+    projDiff = [sign * norm(pv - x, 2) for (sign, pv) in
+                                            zip(signs, projVec[2:end])]
     return [coneDiff; projDiff]
 end
 

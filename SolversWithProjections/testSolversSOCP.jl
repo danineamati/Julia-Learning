@@ -9,13 +9,17 @@ include("runSOCP-Setup.jl")
 yStates, res = ALPrimalNewtonSOCPmain(y0, alcone, currSolveParams, false)
 yEnd = yStates[end]
 
+println("***************")
+print("First state: ")
+println(SOCP_primals(x0, s0, t0))
 print("Last state: ")
 println(yEnd)
 
 # Choose which to plot:
 plotConVio = true
+plotConVioLog = false
 plotContoursST = false
-plotResid = true
+plotResid = false
 plotPathMerit = false
 plotPathConstraints = true
 
@@ -42,7 +46,9 @@ if plotConVio
     ylabel!("Violation")
     display(pltC)
     savefig(pltC, "ConstraintViolation")
+end
 
+if plotConVioLog
     # Repeat of the above but with log10
 
     pltClog10 = plot(safeNorm(cV), markershape = :rect, label = "Cone Violation",
@@ -131,7 +137,9 @@ if plotPathConstraints
     plot!(xVals, yVals, markershape = :circle, color = "#1f77b4",
                 label = "Solver Path")
     contour!(xRange, yRange,
-                (x, y) -> max(coneValOriginal(alcone.constraints, [x; y]), 0),
+                (x, y) -> fObjQP(alcone.obj, [x; y]), label = "Objective")
+    contour!(xRange, yRange,
+                (x, y) -> 5 * max(coneValOriginal(alcone.constraints, [x; y]), 0),
                 levels = 50, label = "Feasible Region")
     title!("Solver Path")
     xlabel!("X")

@@ -196,7 +196,7 @@ function ALPrimalNewtonSOCPmain(y0::SOCP_primals, al::augLagQP_2Cone,
         al.rho = clamp(al.rho * sp.penaltyStep, 0, sp.penaltyMax)
 
         if true
-            println("New state added")
+            println("New state added: (Newest) $yNewest")
             println("cCurr: $(cCurr)")
             println("Lambda Updated: $(al.lambda) vs. $lambdaNew")
             println("rho updated: $(al.rho)")
