@@ -461,7 +461,7 @@ function getHessC(r::AL_coneSlack, x, s, t, λCone = 0)
     if !coneSatisfied(r, s, t) | (λCone > 0)
         ns = norm(s, 2)
 
-        D += s * s' / ns
+        D += s * s' / (ns^2)
         E += s / ns
         F += 1
     end
@@ -472,7 +472,7 @@ end
 
 runTestsAffine = false
 runTestsOldCone = false
-runTestsNewCone = true
+runTestsNewCone = false
 
 if runTestsAffine
     println()

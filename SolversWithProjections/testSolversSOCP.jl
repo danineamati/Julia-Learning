@@ -13,9 +13,9 @@ print("Last state: ")
 println(yEnd)
 
 # Choose which to plot:
-plotConVio = false
+plotConVio = true
 plotContoursST = false
-plotResid = false
+plotResid = true
 plotPathMerit = false
 plotPathConstraints = true
 

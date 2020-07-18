@@ -23,7 +23,7 @@ solParamPrint(currSolveParams)
 # --------------------------
 # Set an example initial starting point
 # --------------------------
-x0 = [-4; 3.5] # [-4.75; 2]
+x0 = [-4.6; 2.5] # [-4.75; 2]
 
 # ---------------------------
 # Objective Function
