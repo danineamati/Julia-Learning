@@ -122,3 +122,36 @@ ylabel!("s")
 title!("1D 2nd Order Cone Projections from Affine (Ax - b)")
 display(plt7)
 savefig(plt7, "proj2Cone1DAffine.png")
+
+# Repeat, but now with a not filled cone
+xRange = -15:0.1:15
+yRange = -5:0.1:15
+plt6 = heatmap(xRange, yRange, (x, y) -> projSecondOrderCone(x, y, false)[1],
+        fill = true, seriesalpha = 0.75, fillalpha = 0.75)
+contour!(xRange, yRange, (x, y) -> projSecondOrderCone(x, y, false)[1],
+        levels = 50)
+plot!(xRange, x -> abs(x), linecolor = :black, label = "Cone Surface")
+xlabel!("X")
+ylabel!("s")
+title!("1D 2nd Order Cone Projections")
+display(plt6)
+savefig(plt6, "proj2Cone1DBoundary")
+
+# Repeat, but now with a not filled cone + affine
+xRange = -70:0.1:10
+yRange = -5:0.1:15
+aTest = 1/5
+bTest = -6
+plt7 = heatmap(xRange, yRange,
+            (x, y) -> projSecondOrderCone(aTest * x - bTest, y, false)[1],
+            fill = true, seriesalpha = 0.75, fillalpha = 0.75)
+contour!(xRange, yRange,
+            (x, y) -> projSecondOrderCone(aTest * x - bTest, y, false)[1],
+            levels = 50)
+plot!(xRange, x -> abs(aTest * x - bTest), linecolor = :black,
+            label = "Cone Surface")
+xlabel!("X")
+ylabel!("s")
+title!("1D 2nd Order Cone Boundary Projections from Affine (Ax - b)")
+display(plt7)
+savefig(plt7, "proj2Cone1DAffineBoundary")
