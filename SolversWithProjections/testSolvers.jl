@@ -1,7 +1,7 @@
 # Solver tests
 
 using Plots
-gr()
+pyplot()
 include("AL-Primal-Solver.jl")
 include("AL-PD-Solver.jl")
 
@@ -90,8 +90,10 @@ yValsALP = [x[2] for x in xResultsALP]
 xValsALPD = [x[1] for x in xResultsALPD]
 yValsALPD = [x[2] for x in xResultsALPD]
 
-plt3 = scatter([x0[1]], [x0[2]], markershape = :rect, label = "Initial Point")
-scatter!([35/6], [-1], markershape = :xcross, label = "Optimal Point")
+plt3 = scatter([x0[1]], [x0[2]], markershape = :rect, label = "Initial Point",
+                markersize = 8)
+scatter!([-47/23], [38/23], markershape = :xcross, label = "Optimal Point",
+                markersize = 8)
 plot!(xValsALP, yValsALP, markershape = :circle, label = "ALP")
 plot!(xValsALPD, yValsALPD, markershape = :circle, label = "ALPD")
 
