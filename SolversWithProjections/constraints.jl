@@ -296,12 +296,63 @@ function satisfied(r::AL_coneSlack, x, s, t)
     return true
 end
 
+function coneActive(s, t, λ)
+    #=
+    returns "ACITVE" and "FILLED"
 
+    "ACTIVE" = should return something nonzero
+    "FILLED" = should project onto a solid cone, not the boundary
 
-function getProjVecs(r::AL_coneSlack, x, s, t, verbose = false)
+    We want to "activate" this constraint when ||s|| - t > 0 OR λ > 0.
+    This yields 4 cases:
+
+    if ||s|| - t > 0:
+        OUTSIDE CONE
+        if λ > 0:
+            ACTIVE
+            The solver is compensating for the constraint
+        if λ = 0:
+            ACTIVE
+            The λ has not been initialized, but the constraint is active
+    if ||s|| - t ≤ 0:
+        INSIDE CONE
+        if λ > 0:
+            ACTIVE
+            Must project to the boundary of the cone
+        if λ = 0:
+            INACTIVE
+            Constraint is fully satisfied
+    =#
+
+    cVal = norm(s, 2) - t
+
+    if cVal > 0
+        # OUTSIDE CONE and ACTIVe
+        active = true
+        filled = true
+    else
+        # INSIDE CONE
+        if λ > 0
+            # ACTIVE
+            println("ACTIVE & NOT FILLED")
+            active = true
+            filled = false
+        else
+            # INACTIVE
+            active = false
+            filled = true
+        end
+    end
+
+    return active, filled
+
+end
+
+function getProjVecs(r::AL_coneSlack, x, s, t, filled = true, verbose = false)
     #=
     We want to get each of the projection vectors.
-    For the cone, we have the (s, t) cone.
+    For the cone, we have the (s, t) cone given by ||s|| ≤ t.
+    We activate this based on the function above
 
     For the equality constraints we have the affine equality projections
     Ax = b + s
@@ -314,7 +365,7 @@ function getProjVecs(r::AL_coneSlack, x, s, t, verbose = false)
     projVecs = []
 
     # Cone Constraints
-    coneproj = projSecondOrderCone(s, t)
+    coneproj = projSecondOrderCone(s, t, filled)
 
     if verbose
         println("Cone Projection: $coneproj")
@@ -337,13 +388,17 @@ function getProjVecs(r::AL_coneSlack, x, s, t, verbose = false)
 end
 
 
-function getNormToProjVals(r::AL_coneSlack, x, s, t)
+function getNormToProjVals(r::AL_coneSlack, x, s, t, λ = 0)
     #=
     We want to get the projected vector and calculate the distance between the
     original point and the constraint.
     =#
-    projVec = getProjVecs(r, x, s, t)
+    active, filled = coneActive(s, t, λ)
+    projVec = getProjVecs(r, x, s, t, filled)
     coneDiff = norm([s; t] - projVec[1], 2)
+    if !filled
+        coneDiff *= -1
+    end
     projDiff = [norm(pv - x, 2) for pv in projVec[2:end]]
     return [coneDiff; projDiff]
 end

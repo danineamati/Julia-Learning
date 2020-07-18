@@ -18,13 +18,14 @@ penaltyStep::Float16    # Multiplies the penalty parameter per outer loop
 penaltyMax::Float64     # Maximum value of the penalty parameter
 =#
 # -------------------------
-currSolveParams = solverParams(0.1, 0.5, 3, 3, 10^-10, 10, 10^6)
+currSolveParams = solverParams(0.1, 0.5, 4, 3, 10^-10, 10, 10^6)
 solParamPrint(currSolveParams)
 
 # --------------------------
 # Set an example initial starting point
 # --------------------------
-x0 = getPoint([-5,-1],[0,3])#[-4.6; 2.5] # [-4.75; 2]
+x0 = getPoint([-5,-1],[0,3])
+#[-4.4624; 0.62624] #getPoint([-5,-1],[0,3]) #[-4.6; 2.5] # [-4.75; 2]
 
 # ---------------------------
 # Objective Function
@@ -91,8 +92,8 @@ dVal = -8
 thisConstr = AL_coneSlack(AMat, bVec, cVec, dVal)
 
 # Now initialize s and t
-s0 = AMat * x0 - bVec #AMat * x0 - bVec #[0]
-t0 = cVec'x0 - dVal #cVec'x0 - dVal #2
+s0 = AMat * x0 - bVec #AMat * x0 - bVec #AMat * x0 - bVec #[0]
+t0 = cVec'x0 - dVal #cVec'x0 - dVal #cVec'x0 - dVal #2
 println("Other Primals: s = $s0 and t = $t0")
 
 y0 = SOCP_primals(x0, s0, t0)

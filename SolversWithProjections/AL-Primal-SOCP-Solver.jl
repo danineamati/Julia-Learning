@@ -162,7 +162,7 @@ function ALPrimalNewtonSOCPmain(y0::SOCP_primals, al::augLagQP_2Cone,
 
         # Update x at each iteration
         if true
-            println()
+            println("\n--------------------------------------")
             println("Next Full Update starting at $y0")
         end
 
@@ -177,8 +177,8 @@ function ALPrimalNewtonSOCPmain(y0::SOCP_primals, al::augLagQP_2Cone,
         # λ ← λ + ρ c(x_k*)       - Which is to say update with prior x*
         # ρ ← min(ρ * 10, 10^6)   - Which is to say we bound ρ's growth by 10^6
         yNewest = yNewStates[end]
-        cCurr = getNormToProjVals(al.constraints,
-                                        yNewest.x, yNewest.s, yNewest.t)
+        cCurr = getNormToProjVals(al.constraints, yNewest.x, yNewest.s,
+                                    yNewest.t, al.lambda[1])
 
         if verbose
             println()
@@ -186,6 +186,11 @@ function ALPrimalNewtonSOCPmain(y0::SOCP_primals, al::augLagQP_2Cone,
             println("yNewest = $yNewest")
             println("All residuals = $residuals")
         end
+        if true
+            println("\n################")
+            println("Former Lambda: $(al.lambda)")
+        end
+
         lambdaNew = al.lambda + al.rho * cCurr
         al.lambda = [max(lambdaNew[1], 0); lambdaNew[2:end]]
         al.rho = clamp(al.rho * sp.penaltyStep, 0, sp.penaltyMax)
@@ -195,6 +200,7 @@ function ALPrimalNewtonSOCPmain(y0::SOCP_primals, al::augLagQP_2Cone,
             println("cCurr: $(cCurr)")
             println("Lambda Updated: $(al.lambda) vs. $lambdaNew")
             println("rho updated: $(al.rho)")
+            println("################\n")
         end
 
         if norm(primalVec(yNewest) - primalVec(y0), 2) < sp.xTol

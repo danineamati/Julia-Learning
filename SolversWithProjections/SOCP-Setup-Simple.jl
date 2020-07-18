@@ -106,7 +106,7 @@ function getViolation(yList::Array{SOCP_primals, 1}, c::AL_coneSlack)
     for y in yList
         vio = getNormToProjVals(c, y.x, y.s, y.t)
         push!(coneViolation, vio[1])
-        push!(affineViolation, vio[2:2+size(y.s, 1)])
+        push!(affineViolation, vio[2:1+size(y.s, 1)])
         push!(lastViolation, vio[end])
     end
     return coneViolation, affineViolation, lastViolation
@@ -133,7 +133,7 @@ function evalAL(alQP::augLagQP_2Cone, y::SOCP_primals)
     # φ(y) = f(x) + (ρ/2) c(y)'c(y)    + λ c(y)
     # φ(y) = [(1/2) xT Q x + cT x] + (ρ/2) (c(y))'(c(y)) + λ (c(y))
     fCurr = fObjQP(alQP.obj, y.x)
-    cCurr = getNormToProjVals(alQP.constraints, y.x, y.s, y.t)
+    cCurr = getNormToProjVals(alQP.constraints, y.x, y.s, y.t, alQP.lambda[1])
 
     return fCurr + (alQP.rho / 2) * cCurr'cCurr + (alQP.lambda)' * cCurr
 end
@@ -155,7 +155,7 @@ function evalGradAL(alQP::augLagQP_2Cone, y::SOCP_primals, verbose = false)
         println("Size ∇yf(x) = $(size(paddedGradf))")
     end
 
-    cCurr = getNormToProjVals(alQP.constraints, y.x, y.s, y.t)
+    cCurr = getNormToProjVals(alQP.constraints, y.x, y.s, y.t, alQP.lambda[1])
     # The Jacobian matrix
     jacobcCurr = getGradC(alQP.constraints, y.x, y.s, y.t)
 
