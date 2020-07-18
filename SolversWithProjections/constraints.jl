@@ -530,14 +530,46 @@ function getHessC(r::AL_coneSlack, x, s, t, λCone = 0)
     E = zeros(size(s))
     F = 1
 
+    # if !coneSatisfied(r, s, t) | (λCone > 0)
+    #     ns = norm(s, 2)
+    #
+    #     D += s * s' / (ns^2)
+    #     E += s / ns
+    #     F += 1
+    # end
 
+    # if !coneSatisfied(r, s, t) | (λCone > 0)
+    #     ns = norm(s, 2)
+    #
+    #     # D += s * s' / (ns^2)
+    #     E += - s / ns
+    #     F += 1
+    # end
+
+    # THIS SHOULD BE THE CORRECT ONE
     if !coneSatisfied(r, s, t) | (λCone > 0)
         ns = norm(s, 2)
 
         D += s * s' / (ns^2)
-        E += s / ns
+        E += - s / ns
         F += 1
     end
+
+    # if !coneSatisfied(r, s, t) | (λCone > 0)
+    #     ns = norm(s, 2)
+    #
+    #     D += Diagonal(sign.(s))
+    #     E += - s / ns
+    #     F += 1
+    # end
+
+    # if !coneSatisfied(r, s, t) | (λCone > 0)
+    #     ns = norm(s, 2)
+    #
+    #     D += Diagonal(s)
+    #     E += - s / ns
+    #     F += 1
+    # end
 
     hess = [A B C; B' D E; C' E' F]
     return Symmetric(hess)

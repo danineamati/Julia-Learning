@@ -18,14 +18,19 @@ penaltyStep::Float16    # Multiplies the penalty parameter per outer loop
 penaltyMax::Float64     # Maximum value of the penalty parameter
 =#
 # -------------------------
-currSolveParams = solverParams(0.1, 0.5, 4, 1, 10^-10, 10, 10^6)
+currSolveParams = solverParams(0.1, 0.5, 6, 4, 10^-10, 10, 10^6)
 solParamPrint(currSolveParams)
 
 # --------------------------
 # Set an example initial starting point
 # --------------------------
-x0 = [-4.4624; 0.62624]
+x0 = [-0.5; 1.25]
+# Test 1: [-2; 3]
+# Test 2: [-4.5; 3.5]
+# Test 3: [-2.5; -0.75]
+# Test 4: [-0.5; 1.25]
 #[-4.4624; 0.62624] #getPoint([-5,-1],[0,3]) #[-4.6; 2.5] # [-4.75; 2]
+#[-0.440932, -0.252654] #[-2; 3]
 
 # ---------------------------
 # Objective Function
