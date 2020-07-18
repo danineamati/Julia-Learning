@@ -367,7 +367,7 @@ function getGradC(r::AL_coneSlack, x, s, t, verbose = false)
     sizeJcols = size(x, 1) + size(s, 1) + size(t, 1)
     sizeJrows = size(t, 2) + size(s, 1) + size(t, 2)
 
-    if false # satisfied(r, x, s, t)
+    if satisfied(r, x, s, t)
         if verbose
             println("Satisfied")
         end
@@ -411,7 +411,7 @@ function getGradC(r::AL_coneSlack, x, s, t, verbose = false)
     end
 end
 
-function getHessC(r::AL_coneSlack, x, s, t)
+function getHessC(r::AL_coneSlack, x, s, t, λCone = 0)
     #=
     We want the hessian of the combined constraint terms. Namely:
     ρc(x)'c(x) + λ c(x)
@@ -431,35 +431,39 @@ function getHessC(r::AL_coneSlack, x, s, t)
     H = [B' D  E]
         [C' E' F]
 
+    Focusing first on the cone inequality constraint
+            n               m                    1
+        [0              0                     0        ]   n
+    H = [0              ss'/||s||)            -s/||s|| ]   m
+        [0              -s'/||s||             1        ]   1
+
+    When [λ > 0 OR g(y) > 0], otherwise it is uniformly zero.
+
+    Then, we focus on the equality constraints
             n               m           1
         [A'A + cc'      -A'         -c      ]   n
-    H = [-A             I_m         -s/||s||]   m
-        [-c'            -s'/||s||   2       ]   1
-
-    If the cone constraint is satisfied,
-        n               m           1
-        [A'A + cc'      -A'         -c      ]   n
     H = [-A             I_m         0       ]   m
-        [-c'            -s'/||s||   1       ]   1
+        [-c'            0           1       ]   1
+
     =#
 
     sizeH = size(x, 1) + size(s, 1) + size(t, 1)
 
-    if satisfied(r, x, s, t)
-        return zeros(sizeH, sizeH)
-    end
-
+    # Equality Constraints
     A = r.A' * r.A + r.c * r.c'
     B = - r.A'
     C = - r.c
-    D = Diagonal(ones(size(s, 1), size(s, 1)))
+    D = Diagonal(ones(size(s, 1)))
+    E = zeros(size(s))
+    F = 1
 
-    if coneSatisfied(r, s, t)
-        E = zeros(size(s))
-        F = 1
-    else
-        E = - s / norm(s, 2)
-        F = 2
+
+    if !coneSatisfied(r, s, t) | (λCone > 0)
+        ns = norm(s, 2)
+
+        D += s * s' / ns
+        E += s / ns
+        F += 1
     end
 
     hess = [A B C; B' D E; C' E' F]
@@ -468,7 +472,7 @@ end
 
 runTestsAffine = false
 runTestsOldCone = false
-runTestsNewCone = false
+runTestsNewCone = true
 
 if runTestsAffine
     println()
@@ -549,30 +553,21 @@ if runTestsOldCone
     println("Hessians = ")
     hessVecs = [getHessC(dconeT2D, [x; x]) for x in xRan]
     display(hessVecs)
-
-    # dconeT2DSimp = AL_pCone([2 1/3; 1/3 3/4], [0; 0], [0; 0], -8, 2)
-    # xRan = -4:5
-    # println("\n** 2D Simple (no b, no c)")
-    # println("xVals = $(collect(xRan))")
-    # println("In the form [x; x]")
-    # println("Raw Vals = $([getRaw(dconeT2DSimp, [x; x]) for x in xRan])")
-    # println("Satisfied = $([satisfied(dconeT2DSimp, [x; x]) for x in xRan])")
-    # projVecList = [getProjVecs(dconeT2DSimp, [x; x], true) for x in xRan]
-    # println("Projection = ")
-    # display(projVecList)
-    # print("Violation = ")
-    # println("$([getNormToProjVals(dconeT2DSimp, [x; x]) for x in xRan])")
 end
 
 if runTestsNewCone
-    dslackCone1 = AL_coneSlack([2 1/3; 1/3 3/4; 1 1], [3; 4; 5], [2; 1], -8)
+    dslackCone1 = AL_coneSlack([-1 1], [0], [1; 1], 0)
+    #AL_coneSlack([2 1/3; 1/3 3/4; 1 1], [3; 4; 5], [2; 1], -8)
 
     println("\n** Cone With Slack Variables")
     display(dslackCone1)
-    println("Raw Values: ")
+
     xRan = -1:1
-    s = [2; 5; -4]
+    s = [6] #[2; 5; -4]
     t = 5
+    println("Probing: (with s = $s and t = $t): ")
+    println([[x; x] for x in xRan])
+    println("Raw Values: ")
     println([getRaw(dslackCone1, [x; x], s, t) for x in xRan])
     println("Satisfied: ")
     println([whichSatisfied(dslackCone1, [x; x], s, t) for x in xRan])
@@ -580,10 +575,34 @@ if runTestsNewCone
     println([getProjVecs(dslackCone1, [x; x], s, t) for x in xRan])
     println("Violations: ")
     println([getNormToProjVals(dslackCone1, [x; x], s, t) for x in xRan])
-    println("Gradient")
-    jc = getGradC(dslackCone1, [-2; -2], s, t)
+
+    println("\n\nGradient")
+    xtest = [-5; 6]
+    stest = [10] #dslackCone1.A * xtest
+    ttest = 5 #dslackCone1.c' * xtest
+    println("Probing: x = $xtest, s = $stest, t = $ttest")
+    print("Which satisfied: ")
+    println(whichSatisfied(dslackCone1, xtest, stest, ttest))
+    jc = getGradC(dslackCone1, xtest, stest, ttest, true)
     display(reshape(jc, size(jc)))
-    println("Hessian")
-    hc = getHessC(dslackCone1, [-2; -2], s, t)
+    print("Violation: ")
+    cCurr = getNormToProjVals(dslackCone1, xtest, stest, ttest)
+    println(cCurr)
+    println("Overall: -j'c")
+    println(-jc'*cCurr)
+
+    println("\n\nHessian")
+    hc = getHessC(dslackCone1, xtest, stest, ttest)
     display(hc)
+
+    if true
+        dslackCone2 = AL_coneSlack([2 1/3; 1/3 3/4; 1 1], [3; 4; 5], [2; 1], -8)
+        xtest = [-5; 6]
+        stest = dslackCone2.A * xtest
+        ttest = dslackCone2.c' * xtest
+        println("\n\nLarge Hessian")
+        hc = getHessC(dslackCone2, xtest, stest, ttest)
+        display(hc)
+    end
+
 end

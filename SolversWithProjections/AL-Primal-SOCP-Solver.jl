@@ -114,7 +114,7 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
         (dirNewton, residual) = newtonStepALPSOCP(yCurr, al)
         push!(residNewt, residual)
 
-        if verbose
+        if true
             println("Newton Direction: $dirNewton")
             println("AL: $al")
         end
@@ -123,10 +123,10 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
         y0LS, stepLS = backtrackLineSearch(primalVec(yCurr), dirNewton,
                         lineSearchObj, lineSearchdfdx, sp.paramA, sp.paramB)
 
-        if verbose
+        if true
             println("Recommended Line Search Step: $stepLS")
             print("Expected x = ")
-            println("$y0LS ?= $(primalVec(yCurr) + stepLS * dirNewton)")
+            println("$y0LS ?= $(primalVec(yCurr) + stepLS * dirNewton)\n")
         end
 
         y0LS_Struct = primalStruct(y0LS, xSize, sSize, tSize)
@@ -161,7 +161,7 @@ function ALPrimalNewtonSOCPmain(y0::SOCP_primals, al::augLagQP_2Cone,
     for i in 1:(sp.maxOuterIters)
 
         # Update x at each iteration
-        if verbose
+        if true
             println()
             println("Next Full Update starting at $y0")
         end
@@ -187,12 +187,13 @@ function ALPrimalNewtonSOCPmain(y0::SOCP_primals, al::augLagQP_2Cone,
             println("All residuals = $residuals")
         end
         lambdaNew = al.lambda + al.rho * cCurr
-        al.lambda = max.(lambdaNew, 0)
+        al.lambda = [max(lambdaNew[1], 0); lambdaNew[2:end]]
         al.rho = clamp(al.rho * sp.penaltyStep, 0, sp.penaltyMax)
 
-        if verbose
+        if true
             println("New state added")
-            println("Lambda Updated: $(al.lambda)")
+            println("cCurr: $(cCurr)")
+            println("Lambda Updated: $(al.lambda) vs. $lambdaNew")
             println("rho updated: $(al.rho)")
         end
 
