@@ -380,7 +380,7 @@ function getProjVecs(r::AL_coneSlack, x, s, t, filled = true, verbose = false)
         bI = r.b[ind]
         sI = s[ind]
         push!(projVecs, projAffineEq(aI, bI + sI, x))
-        if (aI'x - bI) ≥ 0
+        if (aI'x - bI - sI) ≥ 0
             push!(signs, 1)
         else
             push!(signs, -1)
@@ -389,7 +389,7 @@ function getProjVecs(r::AL_coneSlack, x, s, t, filled = true, verbose = false)
 
     # Last Equality Constraint
     push!(projVecs, projAffineEq(r.c, r.d + t, x))
-    if (r.c'x - r.d) ≥ 0
+    if (r.c'x - r.d - t) ≥ 0
         push!(signs, 1)
     else
         push!(signs, -1)

@@ -6,6 +6,9 @@ pyplot()
 include("AL-Primal-SOCP-Solver.jl")
 include("runSOCP-Setup.jl")
 
+println("\n###################")
+println("# Beginning Solve #")
+println("###################")
 yStates, res = ALPrimalNewtonSOCPmain(y0, alcone, currSolveParams, false)
 yEnd = yStates[end]
 
@@ -15,9 +18,13 @@ println(SOCP_primals(x0, s0, t0))
 print("Last state: ")
 println(yEnd)
 
+println("\n###################")
+println("# Completed Solve #")
+println("###################")
+
 # Choose which to plot:
 plotConVio = true
-plotConVioLog = false
+plotConVioLog = true
 plotContoursST = false
 plotResid = false
 plotPathMerit = false
@@ -37,11 +44,15 @@ if plotConVio
     cV, aV, lV = getViolation(yStates, alcone.constraints)
 
     pltC = plot(cV, markershape = :rect, label = "Cone Violation")
-    plot!(norm.(aV), markershape = :circle, label = "(Ax - b - s) Violation")
+    for ai in 1:size(s0, 1)
+        aVi = [aVec[ai] for aVec in aV]
+        plot!(aVi, markershape = :circle,
+                    label = "(Ax - b - s) Violation $ai")
+    end
     plot!(lV, markershape = :star4, label = "(c'x - d - t) Violation",
         linestyle = :dash)
 
-    title!("Constraint Violation Starting at $x0")
+    title!("Constraint Violation - Start at $x0")
     xlabel!("Newton Step")
     ylabel!("Violation")
     display(pltC)
@@ -53,12 +64,16 @@ if plotConVioLog
 
     pltClog10 = plot(safeNorm(cV), markershape = :rect, label = "Cone Violation",
                             yaxis = :log)
-    plot!(safeNorm(aV), markershape = :circle, label = "(Ax - b - s) Violation",
-                            yaxis = :log)
-    plot!(safeNorm(lV), markershape = :star4, label = "(c'x - d - t) Violation",
-        linestyle = :dash, yaxis = :log)
+    for ai in 1:size(s0, 1)
+        aVi = [aVec[ai] for aVec in aV]
+        plot!(safeNorm(aVi), markershape = :circle,
+                    label = "||Ax - b - s|| Violation $ai")
+    end
+    plot!(safeNorm(lV), markershape = :star4,
+                    label = "||c'x - d - t|| Violation",
+                    linestyle = :dash, yaxis = :log)
 
-    title!("Constraint Violation (Log 10 Scale)")
+    title!("Norm of Constraint Violation (Log 10 Scale)\nStart at $x0")
     xlabel!("Newton Step")
     ylabel!("Violation")
     display(pltClog10)

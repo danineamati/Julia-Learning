@@ -97,8 +97,8 @@ dVal = -8
 thisConstr = AL_coneSlack(AMat, bVec, cVec, dVal)
 
 # Now initialize s and t
-s0 = AMat * x0 - bVec #AMat * x0 - bVec #[0; 1]
-t0 = cVec'x0 - dVal #cVec'x0 - dVal #20
+s0 = [0; 1] #AMat * x0 - bVec #[0; 1]
+t0 = 20 #cVec'x0 - dVal #20
 println("Other Primals: s = $s0 and t = $t0")
 
 y0 = SOCP_primals(x0, s0, t0)

@@ -83,10 +83,20 @@ function newtonStepALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone)
     returns -[H(φ(y))]^-1 ∇φ(y) and ∇φ(y)
     since -[H(φ(y))]^-1 ∇φ(y) is the step and ∇φ(y) is the residual
     =#
-    phiHinv = inv(evalHessAl(al, y0))
+    phiH = evalHessAl(al, y0)
+
+    isPosDef = checkPosDef(phiH)
+    if !isPosDef
+        println("Hessian is NOT Positive Semidefinite! (y0 = $y0, al = $al)")
+    end
+
+    phiHinv = inv(phiH)
     phiD = evalGradAL(al, y0)
-    print("Gradient of AL: ")
-    println(phiD)
+
+    if false
+        print("Gradient of AL: ")
+        println(phiD)
+    end
     # Note the negative sign!
     return -phiHinv * phiD, phiD
 end
@@ -110,13 +120,23 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
 
     # Now, we run through the iterations
     for i in 1:(sp.maxNewtonSteps)
+
+        if true
+            println("Currently at $yCurr")
+            println("ϕ(y) = $(lineSearchObj(primalVec(yCurr)))")
+            println("∇ϕ(y) = $(lineSearchdfdx(primalVec(yCurr)))")
+            cCurr = getNormToProjVals(al.constraints, yCurr.x, yCurr.s,
+                                        yCurr.t, al.lambda[1])
+            println("Constraints: $cCurr")
+        end
+
         # Negative sign addressed above
         (dirNewton, residual) = newtonStepALPSOCP(yCurr, al)
         push!(residNewt, residual)
 
         if true
             println("Newton Direction: $dirNewton")
-            println("AL: $al")
+            # println("AL: $al")
         end
 
         # Then get the line search recommendation
@@ -131,6 +151,10 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
 
         y0LS_Struct = primalStruct(y0LS, xSize, sSize, tSize)
         push!(yNewtStates, y0LS_Struct)
+
+        if true
+            println("Added State: $y0LS_Struct\n")
+        end
 
 
         if norm(primalVec(yCurr) - y0LS, 2) < sp.xTol
@@ -147,6 +171,15 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
         println("Ended from max steps in $(sp.maxNewtonSteps) Newton Steps")
     end
 
+    if true
+        println("Currently at $yCurr")
+        println("ϕ(y) = $(lineSearchObj(primalVec(yCurr)))")
+        println("∇ϕ(y) = $(lineSearchdfdx(primalVec(yCurr)))")
+        cCurr = getNormToProjVals(al.constraints, yCurr.x, yCurr.s,
+                                    yCurr.t, al.lambda[1])
+        println("Constraints: $cCurr")
+    end
+
     return yNewtStates, residNewt
 
 end
@@ -161,7 +194,7 @@ function ALPrimalNewtonSOCPmain(y0::SOCP_primals, al::augLagQP_2Cone,
     for i in 1:(sp.maxOuterIters)
 
         # Update x at each iteration
-        if true
+        if verbose
             println("\n--------------------------------------")
             println("Next Full Update starting at $y0")
         end
@@ -205,7 +238,7 @@ function ALPrimalNewtonSOCPmain(y0::SOCP_primals, al::augLagQP_2Cone,
 
         if norm(primalVec(yNewest) - primalVec(y0), 2) < sp.xTol
             println("Ended early at $i outer steps")
-            # break
+            break
         else
             y0 = yNewest
         end
