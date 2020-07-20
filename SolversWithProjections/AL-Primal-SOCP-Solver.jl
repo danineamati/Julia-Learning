@@ -121,7 +121,7 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
     # Now, we run through the iterations
     for i in 1:(sp.maxNewtonSteps)
 
-        if true
+        if verbose
             println("Currently at $yCurr")
             println("ϕ(y) = $(lineSearchObj(primalVec(yCurr)))")
             println("∇ϕ(y) = $(lineSearchdfdx(primalVec(yCurr)))")
@@ -134,7 +134,7 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
         (dirNewton, residual) = newtonStepALPSOCP(yCurr, al)
         push!(residNewt, residual)
 
-        if true
+        if verbose
             println("Newton Direction: $dirNewton")
             # println("AL: $al")
         end
@@ -143,7 +143,7 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
         y0LS, stepLS = backtrackLineSearch(primalVec(yCurr), dirNewton,
                         lineSearchObj, lineSearchdfdx, sp.paramA, sp.paramB)
 
-        if true
+        if verbose
             println("Recommended Line Search Step: $stepLS")
             print("Expected x = ")
             println("$y0LS ?= $(primalVec(yCurr) + stepLS * dirNewton)\n")
@@ -152,7 +152,7 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
         y0LS_Struct = primalStruct(y0LS, xSize, sSize, tSize)
         push!(yNewtStates, y0LS_Struct)
 
-        if true
+        if verbose
             println("Added State: $y0LS_Struct\n")
         end
 
@@ -171,7 +171,7 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
         println("Ended from max steps in $(sp.maxNewtonSteps) Newton Steps")
     end
 
-    if true
+    if verbose
         println("Currently at $yCurr")
         println("ϕ(y) = $(lineSearchObj(primalVec(yCurr)))")
         println("∇ϕ(y) = $(lineSearchdfdx(primalVec(yCurr)))")
@@ -219,7 +219,7 @@ function ALPrimalNewtonSOCPmain(y0::SOCP_primals, al::augLagQP_2Cone,
             println("yNewest = $yNewest")
             println("All residuals = $residuals")
         end
-        if true
+        if verbose
             println("\n################")
             println("Former Lambda: $(al.lambda)")
         end
@@ -228,7 +228,7 @@ function ALPrimalNewtonSOCPmain(y0::SOCP_primals, al::augLagQP_2Cone,
         al.lambda = [max(lambdaNew[1], 0); lambdaNew[2:end]]
         al.rho = clamp(al.rho * sp.penaltyStep, 0, sp.penaltyMax)
 
-        if true
+        if verbose
             println("New state added: (Newest) $yNewest")
             println("cCurr: $(cCurr)")
             println("Lambda Updated: $(al.lambda) vs. $lambdaNew")

@@ -405,9 +405,9 @@ function getNormToProjVals(r::AL_coneSlack, x, s, t, λ = 0)
     original point and the constraint.
     =#
     active, filled = coneActive(s, t, λ)
-    projVec, signs = getProjVecs(r, x, s, t, filled)
+    projVec, signs = getProjVecs(r, x, s, t, filled)#true)#filled)
     coneDiff = norm([s; t] - projVec[1], 2)
-    if !filled
+    if !filled#false#!filled
         coneDiff *= -1
     end
     projDiff = [sign * norm(pv - x, 2) for (sign, pv) in
