@@ -77,13 +77,13 @@ include("backtrackLineSearch.jl")
 include("constraints.jl")
 
 
-function newtonStepALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone)
+function newtonStepALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone, damp = 0)
     #=
     y ← y - [H(φ(y))]^-1 ∇φ(y)
     returns -[H(φ(y))]^-1 ∇φ(y) and ∇φ(y)
     since -[H(φ(y))]^-1 ∇φ(y) is the step and ∇φ(y) is the residual
     =#
-    phiH = evalHessAl(al, y0)
+    phiH = evalHessAl(al, y0) + damp * Diagonal(ones(size(primalVec(y0), 1)))
 
     isPosDef = checkPosDef(phiH)
     if !isPosDef
@@ -108,6 +108,8 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
     # push!(yNewtStates, y0)
     yCurr = y0
 
+    dampingCurr = 0.1 #10^-10
+
     # For printing
     early = false
 
@@ -130,8 +132,9 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
             println("Constraints: $cCurr")
         end
 
+        # Take a Newton Step
         # Negative sign addressed above
-        (dirNewton, residual) = newtonStepALPSOCP(yCurr, al)
+        (dirNewton, residual) = newtonStepALPSOCP(yCurr, al, dampingCurr)
         push!(residNewt, residual)
 
         if verbose
@@ -172,12 +175,12 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
     end
 
     if verbose
-        println("Currently at $yCurr")
+        println("Ended Newton Method at $yCurr")
         println("ϕ(y) = $(lineSearchObj(primalVec(yCurr)))")
         println("∇ϕ(y) = $(lineSearchdfdx(primalVec(yCurr)))")
         cCurr = getNormToProjVals(al.constraints, yCurr.x, yCurr.s,
                                     yCurr.t, al.lambda[1])
-        println("Constraints: $cCurr")
+        println("Constraints: $cCurr\n")
     end
 
     return yNewtStates, residNewt
@@ -213,12 +216,13 @@ function ALPrimalNewtonSOCPmain(y0::SOCP_primals, al::augLagQP_2Cone,
         cCurr = getNormToProjVals(al.constraints, yNewest.x, yNewest.s,
                                     yNewest.t, al.lambda[1])
 
-        if verbose
-            println()
-            println("yStates = $yStates")
-            println("yNewest = $yNewest")
-            println("All residuals = $residuals")
-        end
+        # Only turn on if the solver is not returning all of the points.
+        # if false
+        #     println()
+        #     println("yStates = $yStates")
+        #     println("yNewest = $yNewest")
+        #     println("All residuals = $residuals")
+        # end
         if verbose
             println("\n################")
             println("Former Lambda: $(al.lambda)")
