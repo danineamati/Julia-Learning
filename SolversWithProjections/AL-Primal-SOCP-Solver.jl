@@ -154,58 +154,58 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
         end
 
         # Determine if the trust region is sufficient
-
-        # Then get the line search recommendation
-        y0LS, stepLS = backtrackLineSearch(primalVec(yCurr), dirNewton,
-                        lineSearchObj, lineSearchdfdx, sp.paramA, sp.paramB)
-
-        if verbose
-            println("Recommended Line Search Step: $stepLS")
-            print("Expected x = ")
-            println("$y0LS ?= $(primalVec(yCurr) + stepLS * dirNewton)\n")
-        end
-
-        # Save the new state to the list
-        y0LS_Struct = primalStruct(y0LS, xSize, sSize, tSize)
-        push!(yNewtStates, y0LS_Struct)
-
-        if verbose
-            println("Added State: $y0LS_Struct\n")
-        end
-
-        # Update the damping parameter WITHOUT linesearch consideration
-        baseObjVal = lineSearchObj(primalVec(yCurr) + dirNewton)
-        if lineSearchObj(y0LS) ≤ currentObjVal
+        y0New = primalVec(yCurr) + dirNewton
+        baseObjVal = lineSearchObj(y0New)
+        if baseObjVal ≤ currentObjVal
+            # Trust region was a success
             dampingCurr *= 0.2
 
-            if verbose
-                println("Decreased damping to $dampingCurr. Checking end.")
-            end
-
-            # Break by tolerance
-            if (norm(primalVec(yCurr) - y0LS, 2) < sp.xTol)
-                println("Ended from tolerance at $i Newton steps")
-                early = true
-                break
+            if true
+                print("Trust Region Success - ")
+                println("Decreased damping to $dampingCurr.")
             end
         else
-            # Don't break by tolerance
+            # Trust region failed.
             dampingCurr *= 10
 
+            if true
+                print("Trust Region Failed - ")
+                print("Increased damping to $dampingCurr. ")
+                println("Trying Line Search.")
+            end
+
+            # Attempt a linesearch
+            # Get the line search recommendation
+            y0New, stepLS = backtrackLineSearch(primalVec(yCurr), dirNewton,
+                            lineSearchObj, lineSearchdfdx, sp.paramA, sp.paramB)
+
+            if true
+                println("Recommended Line Search Step: $stepLS")
+            end
+
             if verbose
-                println("Increased damping to $dampingCurr. Moving to next.")
+                print("Expected x = ")
+                println("$y0New ?= $(primalVec(yCurr) + stepLS * dirNewton)\n")
             end
         end
 
-        # # Break by tolerance
-        # if (norm(primalVec(yCurr) - y0LS, 2) < sp.xTol)
-        #     println("Ended from tolerance at $i Newton steps")
-        #     early = true
-        #     break
-        # end
+        # Save the new state to the output list
+        y0New_Struct = primalStruct(y0New, xSize, sSize, tSize)
+        push!(yNewtStates, y0New_Struct)
+
+        if verbose
+            println("Added State: $y0New_Struct\n")
+        end
+
+        # Break by tolerance and trust region size
+        if (norm(primalVec(yCurr) - y0New, 2) < sp.xTol) && dampingCurr < 1
+            println("Ended from tolerance at $i Newton steps")
+            early = true
+            break
+        end
 
         # Update the current state with the new state
-        yCurr = y0LS_Struct
+        yCurr = y0New_Struct
 
     end
 
