@@ -77,17 +77,23 @@ include("backtrackLineSearch.jl")
 include("constraints.jl")
 
 
-function newtonStepALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone, damp = 0)
+function newtonStepALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone, damp = 10^-10)
     #=
     y ← y - [H(φ(y))]^-1 ∇φ(y)
     returns -[H(φ(y))]^-1 ∇φ(y) and ∇φ(y)
     since -[H(φ(y))]^-1 ∇φ(y) is the step and ∇φ(y) is the residual
     =#
-    phiH = evalHessAl(al, y0) + damp * Diagonal(ones(size(primalVec(y0), 1)))
+    hess = evalHessAl(al, y0)
 
-    isPosDef = checkPosDef(phiH)
-    if !isPosDef
-        println("Hessian is NOT Positive Semidefinite! (y0 = $y0, al = $al)")
+    if checkPosDef(hess)
+        phiH = hess
+    else
+        damp = max(damp, 10^-15)
+        phiH = hess + damp * Diagonal(ones(size(primalVec(y0), 1)))
+        if !checkPosDef(phiH)
+            print("Hessian is NOT Positive Semidefinite! (y0 = $y0)")
+            println("Damping = $damp")
+        end
     end
 
     phiHinv = inv(phiH)
@@ -125,7 +131,12 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
 
         if verbose
             println("Currently at $yCurr")
-            println("ϕ(y) = $(lineSearchObj(primalVec(yCurr)))")
+        end
+
+        currentObjVal = lineSearchObj(primalVec(yCurr))
+
+        if verbose
+            println("ϕ(y) = $currentObjVal")
             println("∇ϕ(y) = $(lineSearchdfdx(primalVec(yCurr)))")
             cCurr = getNormToProjVals(al.constraints, yCurr.x, yCurr.s,
                                         yCurr.t, al.lambda[1])
@@ -142,6 +153,8 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
             # println("AL: $al")
         end
 
+        # Determine if the trust region is sufficient
+
         # Then get the line search recommendation
         y0LS, stepLS = backtrackLineSearch(primalVec(yCurr), dirNewton,
                         lineSearchObj, lineSearchdfdx, sp.paramA, sp.paramB)
@@ -152,6 +165,7 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
             println("$y0LS ?= $(primalVec(yCurr) + stepLS * dirNewton)\n")
         end
 
+        # Save the new state to the list
         y0LS_Struct = primalStruct(y0LS, xSize, sSize, tSize)
         push!(yNewtStates, y0LS_Struct)
 
@@ -159,14 +173,39 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
             println("Added State: $y0LS_Struct\n")
         end
 
+        # Update the damping parameter WITHOUT linesearch consideration
+        baseObjVal = lineSearchObj(primalVec(yCurr) + dirNewton)
+        if lineSearchObj(y0LS) ≤ currentObjVal
+            dampingCurr *= 0.2
 
-        if norm(primalVec(yCurr) - y0LS, 2) < sp.xTol
-            println("Ended from tolerance at $i Newton steps")
-            early = true
-            break
+            if verbose
+                println("Decreased damping to $dampingCurr. Checking end.")
+            end
+
+            # Break by tolerance
+            if (norm(primalVec(yCurr) - y0LS, 2) < sp.xTol)
+                println("Ended from tolerance at $i Newton steps")
+                early = true
+                break
+            end
         else
-            yCurr = y0LS_Struct
+            # Don't break by tolerance
+            dampingCurr *= 10
+
+            if verbose
+                println("Increased damping to $dampingCurr. Moving to next.")
+            end
         end
+
+        # # Break by tolerance
+        # if (norm(primalVec(yCurr) - y0LS, 2) < sp.xTol)
+        #     println("Ended from tolerance at $i Newton steps")
+        #     early = true
+        #     break
+        # end
+
+        # Update the current state with the new state
+        yCurr = y0LS_Struct
 
     end
 

@@ -9,7 +9,7 @@ include("runSOCP-Setup.jl")
 println("\n###################")
 println("# Beginning Solve #")
 println("###################")
-yStates, res = ALPrimalNewtonSOCPmain(y0, alcone, currSolveParams, true)
+yStates, res = ALPrimalNewtonSOCPmain(y0, alcone, currSolveParams, false)
 yEnd = yStates[end]
 
 println("***************")
