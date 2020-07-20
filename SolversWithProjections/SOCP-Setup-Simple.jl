@@ -60,16 +60,16 @@ end
 
 struct objectiveQP
     Q
-    c
+    p
 end
 
 # Input x as a COLUMN vector (i.e. x = [4; 3])
 function fObjQP(qp::objectiveQP, x)
-    return (1/2) * x' * (qp.Q) * x + (qp.c)' * x
+    return (1/2) * x' * (qp.Q) * x + (qp.p)' * x
 end
 
 function dfdxQP(qp::objectiveQP, x)
-    return (qp.Q) * x + qp.c
+    return (qp.Q) * x + qp.p
 end
 
 # ------------------------

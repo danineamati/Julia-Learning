@@ -149,11 +149,11 @@ if plotPathConstraints
     pltCone = contour(xRange, yRange,
                 (x, y) -> fObjQP(alcone.obj, [x; y]), label = "Objective")
     contour!(xRange, yRange,
-                (x, y) -> 5 * max(coneValOriginal(alcone.constraints, [x; y]), 0),
+                (x, y) -> max(coneValOriginal(alcone.constraints, [x; y]), 0),
                 levels = 50, label = "Feasible Region")
-    scatter!([-47/23], [38/23], markershape = :xcross,
-                        markercolor = :red, markersize = 8,
-                        label = "Minimum of Objective")
+    # scatter!([-47/23], [38/23], markershape = :xcross,
+    #                     markercolor = :red, markersize = 8,
+    #                     label = "Minimum of Objective")
     scatter!([x0[1]], [x0[2]], markershape = :rect,
                         markercolor = :yellow, markersize = 8,
                         label = "Starting Point")

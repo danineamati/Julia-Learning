@@ -24,7 +24,7 @@ solParamPrint(currSolveParams)
 # --------------------------
 # Set an example initial starting point
 # --------------------------
-x0 = [-2.5; -0.75]
+x0 = [-4.5; 3.5]
 # Test 1: [-2; 3]
 # Test 2: [-4.5; 3.5]
 # Test 3: [-2.5; -0.75]
@@ -51,7 +51,7 @@ QPName = "Interior"
 
 # Option 1: Symmetric([6 5; 0 8])
 # Option 2: Symmetric([5 -0.5; 0 10])
-QMat = Symmetric([6 5; 0 8])
+QMat = Symmetric([6 5; 0 8])#Symmetric([0 0; 0 0]) #Symmetric([6 5; 0 8])
 println()
 print("Q Matrix is Positive Definite: ")
 println(checkPosDef(QMat))
@@ -61,10 +61,10 @@ println(checkPosDef(QMat))
 # For an Exterior Point, try [-30; 70]
 # With Option 2
 # For an Exterior Point, try [12, -70]
-cVec = [4; -3]
+pVec = [4; -3]
 
 # Generate the Struct
-thisQP = objectiveQP(QMat, cVec)
+thisQP = objectiveQP(QMat, pVec)
 
 print("Example evaluation of the objective function at $x0: ")
 println(fObjQP(thisQP, x0))
