@@ -75,38 +75,37 @@ using LinearAlgebra
 include("SOCP-Setup-Simple.jl")
 include("backtrackLineSearch.jl")
 include("constraints.jl")
+include("trustRegion.jl")
 
 
-function newtonStepALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone, damp = 10^-10)
+
+function newtonStepALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone, delta = 1,
+                                gamma = 1.5, epsilon = 0.5)
     #=
     y ← y - [H(φ(y))]^-1 ∇φ(y)
     returns -[H(φ(y))]^-1 ∇φ(y) and ∇φ(y)
     since -[H(φ(y))]^-1 ∇φ(y) is the step and ∇φ(y) is the residual
     =#
     hess = evalHessAl(al, y0)
-
-    if isposdef(hess)
-        phiH = hess
-    else
-        damp = max(damp, 10^-15)
-        phiH = hess + damp * I
-        if !isposdef(phiH)
-            print("Hessian is NOT Positive Semidefinite! (y0 = $y0)")
-            println("Damping = $damp")
-        end
-    end
-
-    println("Det(H) = $(det(hess)) vs Det(H + λI) =  $(det(phiH))")
-
-    phiHinv = inv(phiH)
     phiD = evalGradAL(al, y0)
 
-    if false
-        print("Gradient of AL: ")
-        println(phiD)
+    if isposdef(hess)
+        phiHinv = inv(hess)
+
+        if false
+            print("Gradient of AL: ")
+            println(phiD)
+        end
+
+        # Note the negative sign
+        return -phiHinv * phiD, phiD, hess, 0
+    else
+        damping, dk = findDamping(hess, phiD, delta, gamma, epsilon)
+
+        return dk', phiD, hess, damping
     end
-    # Note the negative sign!
-    return -phiHinv * phiD, phiD
+
+
 end
 
 function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
@@ -116,7 +115,7 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
     # push!(yNewtStates, y0)
     yCurr = y0
 
-    dampingCurr = 1 #10^-10
+    trustDelta = 0.5 #10^-10
 
     # For printing
     early = false
@@ -147,11 +146,13 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
 
         # Take a Newton Step
         # Negative sign addressed above
-        (dirNewton, residual) = newtonStepALPSOCP(yCurr, al, dampingCurr)
+        (dirNewton, residual, hess, damp) = newtonStepALPSOCP(yCurr, al,
+                                                                    trustDelta)
         push!(residNewt, residual)
 
         if true
             println("\nNewton Direction: $dirNewton")
+            println("Damping of ($damp) and trust size of ($trustDelta)")
             # println("AL: $al")
         end
 
@@ -160,19 +161,36 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
         baseObjVal = lineSearchObj(y0New)
         if baseObjVal ≤ currentObjVal
             # Trust region was a success
-            dampingCurr *= 0.2
+            # Step 4 of algorithm 3.1 in the Nocedal et Yuan paper
 
             if true
-                print("Trust Region Success - ")
-                println("Decreased damping to $dampingCurr.")
+                println("Trust Region Success")
             end
+
+            fObjApprox(d) = residual'd + (1/2) * d'hess*d
+
+            rho = (currentObjVal - baseObjVal) / (-fObjApprox(dirNewton))
+
+            println("Rho = $rho")
+            if rho ≥ 0.75 && norm(dirNewton) < trustDelta
+                # Condition 1: No change
+                trustDelta = trustDelta # Probably not needed
+                println("Trust Region Size unchanged. Still at $trustDelta")
+            elseif rho < 0.75
+                trustDelta = (0.2 * norm(dirNewton) + 0.4 * trustDelta) / 2
+                println("Trust Region Size decreased. Now $trustDelta")
+            else
+                println("||dk|| = $(norm(dirNewton)) vs Δ = $trustDelta")
+                trustDelta = 2 * trustDelta
+                println("Trust Region Size increased. Now $trustDelta")
+            end
+
+
         else
             # Trust region failed.
-            dampingCurr *= 10
 
             if true
                 print("Trust Region Failed - ")
-                print("Increased damping to $dampingCurr. ")
                 println("Trying Line Search.")
             end
 
@@ -192,6 +210,11 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
                 print("Expected x = ")
                 println("$y0New ?= $(primalVec(yCurr) + stepLS * dirNewton)\n")
             end
+
+            # Now we update the trust region
+            yChange = norm(stepLS * dirNewton)
+            trustDelta = (yChange + 0.4 * trustDelta) / 2
+
         end
 
         # Save the new state to the output list
@@ -203,7 +226,7 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
         end
 
         # Break by tolerance and trust region size
-        if (norm(primalVec(yCurr) - y0New, 2) < sp.xTol) && dampingCurr < 1
+        if (norm(primalVec(yCurr) - y0New, 2) < sp.xTol) && damp < 1
             println("Ended from tolerance at $i Newton steps\n")
             early = true
             break
