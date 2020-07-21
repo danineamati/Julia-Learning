@@ -19,13 +19,13 @@ using LinearAlgebra
 include("constraints.jl")
 
 
-function checkPosDef(Q)
-    # To check Positive Definite, we check that the eigenvalues are positive
-    # and that the determinant is positive.
-    eVals = eigvals(Q)
-    numRows = size(Q, 1)
-    return (eVals > vec(zeros(numRows, 1))) && (det(Q) > 0)
-end
+# function checkPosDef(Q)
+#     # To check Positive Definite, we check that the eigenvalues are positive
+#     # and that the determinant is positive.
+#     eVals = eigvals(Q)
+#     numRows = size(Q, 1)
+#     return (eVals > vec(zeros(numRows, 1))) && (det(Q) > 0)
+# end
 
 # -------------------------
 # Solver Parameters

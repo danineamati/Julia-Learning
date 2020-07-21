@@ -54,7 +54,7 @@ QPName = "Interior"
 QMat = Symmetric([0 0; 0 0])#Symmetric([0 0; 0 0]) #Symmetric([6 5; 0 8])
 println()
 print("Q Matrix is Positive Definite: ")
-println(checkPosDef(QMat))
+println(isposdef(QMat))
 
 # With Option 1
 # For an Interior Point, try [4; -3]
@@ -123,11 +123,11 @@ println(getNormToProjVals(alcone.constraints, x0, s0, t0))
 grad0 = evalGradAL(alcone, y0, true)
 println("Evaluating the AL gradient: $(grad0)")
 hess0 = evalHessAl(alcone, y0)
-println("Evaluating the AL hessian: (Pos. Def.? $(checkPosDef(hess0)))")
+println("Evaluating the AL hessian: (Pos. Def.? $(isposdef(hess0)))")
 display(hess0)
 
 damp = 10^-2
 hessDamp = hess0 + damp * Diagonal(ones(size(primalVec(y0), 1)))
 print("Evaluating the AL hessian with damping")
-println(" (Pos. Def.? $(checkPosDef(hessDamp)))")
+println(" (Pos. Def.? $(isposdef(hessDamp)))")
 display(hessDamp)

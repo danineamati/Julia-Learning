@@ -85,16 +85,18 @@ function newtonStepALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone, damp = 10^-10)
     =#
     hess = evalHessAl(al, y0)
 
-    if checkPosDef(hess)
+    if isposdef(hess)
         phiH = hess
     else
         damp = max(damp, 10^-15)
         phiH = hess + damp * Diagonal(ones(size(primalVec(y0), 1)))
-        if !checkPosDef(phiH)
+        if !isposdef(phiH)
             print("Hessian is NOT Positive Semidefinite! (y0 = $y0)")
             println("Damping = $damp")
         end
     end
+
+    println("Det(H) = $(det(hess)) vs Det(H + λI) =  $(det(phiH))")
 
     phiHinv = inv(phiH)
     phiD = evalGradAL(al, y0)
@@ -114,7 +116,7 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
     # push!(yNewtStates, y0)
     yCurr = y0
 
-    dampingCurr = 0.1 #10^-10
+    dampingCurr = 1 #10^-10
 
     # For printing
     early = false
@@ -148,8 +150,8 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
         (dirNewton, residual) = newtonStepALPSOCP(yCurr, al, dampingCurr)
         push!(residNewt, residual)
 
-        if verbose
-            println("Newton Direction: $dirNewton")
+        if true
+            println("\nNewton Direction: $dirNewton")
             # println("AL: $al")
         end
 
@@ -180,7 +182,10 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
                             lineSearchObj, lineSearchdfdx, sp.paramA, sp.paramB)
 
             if true
-                println("Recommended Line Search Step: $stepLS")
+                println("    Recommended Line Search Step: $stepLS")
+                if stepLS < 0.125
+                    println("    Very low step. Newton Step was $dirNewton")
+                end
             end
 
             if verbose
@@ -199,7 +204,7 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
 
         # Break by tolerance and trust region size
         if (norm(primalVec(yCurr) - y0New, 2) < sp.xTol) && dampingCurr < 1
-            println("Ended from tolerance at $i Newton steps")
+            println("Ended from tolerance at $i Newton steps\n")
             early = true
             break
         end
@@ -210,7 +215,7 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
     end
 
     if !early
-        println("Ended from max steps in $(sp.maxNewtonSteps) Newton Steps")
+        println("Ended from max steps in $(sp.maxNewtonSteps) Newton Steps\n")
     end
 
     if verbose
