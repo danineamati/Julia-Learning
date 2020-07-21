@@ -24,13 +24,14 @@ solParamPrint(currSolveParams)
 # --------------------------
 # Set an example initial starting point
 # --------------------------
-x0 = [-0.5; 1.25]
+x0 = getPoint([-5,-1],[0,3])
 # Test 1: [-2; 3]
 # Test 2: [-4.5; 3.5]
 # Test 3: [-2.5; -0.75]
 # Test 4: [-0.5; 1.25]
 #[-4.4624; 0.62624] #getPoint([-5,-1],[0,3]) #[-4.6; 2.5] # [-4.75; 2]
 #[-0.440932, -0.252654] #[-2; 3]
+#[-0.5693446153755346; 0.41267473180516046]
 
 # ---------------------------
 # Objective Function
@@ -51,7 +52,7 @@ QPName = "Interior"
 
 # Option 1: Symmetric([6 5; 0 8])
 # Option 2: Symmetric([5 -0.5; 0 10])
-QMat = Symmetric([6 5; 0 8])#Symmetric([0 0; 0 0]) #Symmetric([6 5; 0 8])
+QMat = Symmetric([0 0; 0 0])#Symmetric([0 0; 0 0]) #Symmetric([6 5; 0 8])
 println()
 print("Q Matrix is Positive Definite: ")
 println(isposdef(QMat))

@@ -18,7 +18,9 @@ function dampingInitialization(B, g, delta, epsilon, a = 0.5)
         while true
             damping = a * dampingMax
 
-            if isposdef(B + damping * I)
+            Bdamped = B + damping * I
+
+            if isposdef(Bdamped) && (rank(Bdamped) == size(Bdamped, 1))
                 return damping, dampingMax
             else
                 a = (a + 1)/ 2
@@ -47,10 +49,9 @@ function findDamping(B, g, delta = 1, gamma = 1.5, epsilon = 0.5,
     This corresponds to algorithm 2.6 in Nocedal et Yuan (1998)
     =#
     damping, dampingMax = dampingInitialization(B, g, delta, epsilon, a)
+    println("damping = $damping and dampingMax = $dampingMax")
 
-    ratio = 0.1
-
-    dk = - inv(B + ratio * damping * I) * g
+    dk = - (B + damping * I) \ g
 
     if verbose
         println("Damping Start = $damping")
@@ -61,7 +62,7 @@ function findDamping(B, g, delta = 1, gamma = 1.5, epsilon = 0.5,
 
     while norm(dk) > delta
 
-        rCho = factorize(B + ratio * damping * I).U
+        rCho = factorize(B + damping * I).U
 
         if verbose
             println("Increasing Damping")
@@ -83,7 +84,7 @@ function findDamping(B, g, delta = 1, gamma = 1.5, epsilon = 0.5,
             println("New Damping: $damping")
         end
 
-        dk = - inv(B + ratio * damping * I) * g
+        dk = - (B + damping * I) \ g
         counter += 1
 
         if counter >= 10
@@ -92,7 +93,7 @@ function findDamping(B, g, delta = 1, gamma = 1.5, epsilon = 0.5,
 
         if damping >= dampingMax
             damping = min(damping, dampingMax)
-            return damping, - inv(B + ratio * damping * I) * g
+            return damping, - (B + damping * I) \ g
         end
     end
 
