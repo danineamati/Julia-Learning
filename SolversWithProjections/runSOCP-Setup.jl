@@ -24,7 +24,7 @@ solParamPrint(currSolveParams)
 # --------------------------
 # Set an example initial starting point
 # --------------------------
-x0 = getPoint([-5,-1],[0,3])
+x0 = [-0.5; 3]
 # Test 1: [-2; 3]
 # Test 2: [-4.5; 3.5]
 # Test 3: [-2.5; -0.75]

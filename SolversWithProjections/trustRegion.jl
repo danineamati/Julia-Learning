@@ -13,25 +13,37 @@ function dampingInitialization(B, g, delta, epsilon, a = 0.5)
     dampingMax = (norm(B) + ((1 + epsilon) * norm(g) / delta))
 
     if isposdef(B)
-        return 0, dampingMax
-    else
-        while true
-            damping = a * dampingMax
+        damping = 1e-6
+        Bdamped = B + damping * I
+        cholBdamp = cholesky(Bdamped, check = false)
 
-            Bdamped = B + damping * I
+        if issuccess(cholBdamp)
+            return damping, dampingMax, cholBdamp
+        end
+    end
 
-            if isposdef(Bdamped) && (rank(Bdamped) == size(Bdamped, 1))
-                return damping, dampingMax
-            else
-                a = (a + 1)/ 2
-            end
+    while true
+        damping = a * dampingMax
+
+        Bdamped = B + damping * I
+        println("Condition Number: $(cond(Bdamped))")
+
+        # Get the Cholesky decomposition without throwing an exception
+        cholBdamp = cholesky(Bdamped, check = false)
+
+        # Checks positive definite and non-singular
+        if issuccess(cholBdamp)
+            return damping, dampingMax, cholBdamp
+        else
+            # If the it fails, increase damping factor
+            a = (a + 1)/ 2
         end
     end
 end
 
 
 function findDamping(B, g, delta = 1, gamma = 1.5, epsilon = 0.5,
-                        a = 0.1, verbose = false)
+                        condNumMax = 1e8, a = 1e-6, verbose = false)
     #=
     Implements a search for the appropriate trust region.
 
@@ -48,21 +60,20 @@ function findDamping(B, g, delta = 1, gamma = 1.5, epsilon = 0.5,
 
     This corresponds to algorithm 2.6 in Nocedal et Yuan (1998)
     =#
-    damping, dampingMax = dampingInitialization(B, g, delta, epsilon, a)
-    println("damping = $damping and dampingMax = $dampingMax")
+    damping, dampingMax, rCho = dampingInitialization(B, g,
+                                                            delta, epsilon, a)
 
-    dk = - (B + damping * I) \ g
+    # Use the Cholesky decomposition to more easily solve the problem.
+    dk = - rCho.U \ (rCho.U' \ g)
 
     if verbose
-        println("Damping Start = $damping")
+        println("Damping Start = $damping and dampingMax = $dampingMax")
         println("dk = $dk")
     end
 
     counter = 1
 
-    while norm(dk) > delta
-
-        rCho = factorize(B + damping * I).U
+    while (norm(dk) > delta) && (cond(rCho.U'rCho.U) > condNumMax)
 
         if verbose
             println("Increasing Damping")
@@ -72,31 +83,38 @@ function findDamping(B, g, delta = 1, gamma = 1.5, epsilon = 0.5,
             display(dk)
         end
 
-        qk = rCho' \ dk
+        qk = rCho.U' \ dk
 
         updateNumerator = norm(dk)^2 * (gamma * norm(dk) - delta)
         updateDenominator = norm(qk)^2 * delta
 
-        damping = damping + updateNumerator / updateDenominator
+        damping = min(damping + updateNumerator / updateDenominator, dampingMax)
 
         if verbose
             println("qk = $qk")
             println("New Damping: $damping")
         end
 
-        dk = - (B + damping * I) \ g
-        counter += 1
+        rCho = cholesky(B + damping * I, check = false)
+
+        if issuccess(rCho)
+            dk = - rCho.U \ (rCho.U' \ g)
+            counter += 1
+
+            if damping == dampingMax
+                break
+            end
+        else
+            # Need to really increase the damping factor
+            damping *= 10
+        end
+
 
         if counter >= 10
             break
         end
-
-        if damping >= dampingMax
-            damping = min(damping, dampingMax)
-            return damping, - (B + damping * I) \ g
-        end
     end
 
-    return damping, dk
+    return damping, dk, rCho
 
 end
