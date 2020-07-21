@@ -36,7 +36,7 @@ struct solverParams
     paramB::Float16         # Used in Line Search, should be [0.1, 0.8]
     maxOuterIters::Int32    # Number of Outer Loop iterations
     maxNewtonSteps::Int32   # Number of Newton Steps per Outer Loop iterations
-    xTol::Float64           # When steps are within xTol, loop will stop.
+    rTol::Float64           # When steps are within rTol, loop will stop.
     penaltyStep::Float16    # Multiplies the penalty parameter per outer loop
     penaltyMax::Float64     # Maximum value of the penalty parameter
 end
@@ -47,7 +47,7 @@ function solParamPrint(sp::solverParams)
     println("(Line Search) : a = $(sp.paramA), b = $(sp.paramB)")
     print("(Loop #)      : Outer = $(sp.maxOuterIters), ")
     println("Newton = $(sp.maxNewtonSteps)")
-    println("(or End at)   : Δx = $(sp.xTol)")
+    println("(or End at)   : Δx = $(sp.rTol)")
     println("(Penalty)     : Δρ = $(sp.penaltyStep), ρMax = $(sp.penaltyMax)")
 end
 

@@ -26,7 +26,6 @@ function dampingInitialization(B, g, delta, epsilon, a = 0.5)
         damping = a * dampingMax
 
         Bdamped = B + damping * I
-        println("Condition Number: $(cond(Bdamped))")
 
         # Get the Cholesky decomposition without throwing an exception
         cholBdamp = cholesky(Bdamped, check = false)
@@ -43,7 +42,7 @@ end
 
 
 function findDamping(B, g, delta = 1, gamma = 1.5, epsilon = 0.5,
-                        condNumMax = 1e8, a = 1e-6, verbose = false)
+                        condNumMax = 1e7, a = 1e-6, verbose = false)
     #=
     Implements a search for the appropriate trust region.
 
@@ -114,6 +113,8 @@ function findDamping(B, g, delta = 1, gamma = 1.5, epsilon = 0.5,
             break
         end
     end
+
+    println("Condition Number: $(cond(rCho.L * rCho.U))")
 
     return damping, dk, rCho
 

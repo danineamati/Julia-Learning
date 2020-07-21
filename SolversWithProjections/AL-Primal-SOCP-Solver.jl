@@ -80,7 +80,7 @@ include("trustRegion.jl")
 
 
 function newtonStepALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone, delta = 1,
-                                gamma = 1.5, epsilon = 0.5, a = 1e-6)
+                    gamma = 1.5, epsilon = 0.5, condNumMax = 1e5, a = 1e-6)
     #=
     y ← y - [H(φ(y))]^-1 ∇φ(y)
     returns -[H(φ(y))]^-1 ∇φ(y) and ∇φ(y)
@@ -89,30 +89,14 @@ function newtonStepALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone, delta = 1,
     hess = evalHessAl(al, y0)
     phiD = evalGradAL(al, y0)
 
-    if isposdef(hess) && (rank(hess) == size(hess, 1))
-        # Check that the Matrix is positive definite AND non-singular
-        # Due to rounding error the hessian is occasionally determined to
-        # be positive definite but still singular.
-
-        phiHinv = inv(hess)
-
-        if false
-            print("Gradient of AL: ")
-            println(phiD)
-        end
-
-        # Note the negative sign
-        dk = -phiHinv * phiD
-        damping = 0
-    else
-        damping, dk = findDamping(hess, phiD, delta, gamma, epsilon, a)
-    end
+    damping, dk, rCho = findDamping(hess, phiD, delta, gamma, epsilon,
+                                            condNumMax, a)
 
     if norm(dk) > delta
         dk = (delta / norm(dk)) * dk
     end
 
-    return dk, phiD, hess, damping
+    return dk, phiD, rCho, damping
 
 end
 
@@ -154,8 +138,8 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
 
         # Take a Newton Step
         # Negative sign addressed above
-        (dirNewton, residual, hess, damp) = newtonStepALPSOCP(
-                                                        yCurr, al, trustDelta)
+        (dirNewton, residual, rCho, damp) =
+                                    newtonStepALPSOCP(yCurr, al, trustDelta)
         push!(residNewt, residual)
 
         if true
@@ -176,10 +160,10 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
                 println("Trust Region Success")
             end
 
-            fObjApprox(d) = residual'd + (1/2) * d'hess*d
+            fObjApprox(d) = residual'd + (1/2) * d'*(rCho.L * rCho.U)*d
 
             rho = (currentObjVal - baseObjVal) / (-fObjApprox(dirNewton))
-            roundingErrorTol = UInt8(round(-log10(sp.xTol)) / 2)
+            roundingErrorTol = UInt8(round(-log10(sp.rTol)) / 2)
 
             println("Rho = $rho")
             roundedDkNorm = round(norm(dirNewton), digits = roundingErrorTol)
@@ -242,7 +226,7 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
         end
 
         # Break by tolerance and trust region size
-        if (norm(primalVec(yCurr) - y0New, 2) < sp.xTol) && damp < 1
+        if (norm(residual, 2) < sp.rTol)
             println("Ended from tolerance at $i Newton steps\n")
             early = true
             break
@@ -323,7 +307,7 @@ function ALPrimalNewtonSOCPmain(y0::SOCP_primals, al::augLagQP_2Cone,
             println("################\n")
         end
 
-        if norm(primalVec(yNewest) - primalVec(y0), 2) < sp.xTol
+        if norm(primalVec(yNewest) - primalVec(y0), 2) < sp.rTol
             println("Ended early at $i outer steps")
             break
         else

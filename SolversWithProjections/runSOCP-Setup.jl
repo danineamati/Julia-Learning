@@ -13,12 +13,12 @@ paramA::Float16         # Used in Line Search, should be [0.01, 0.3]
 paramB::Float16         # Used in Line Search, should be [0.1, 0.8]
 maxOuterIters::Int32    # Number of Outer Loop iterations
 maxNewtonSteps::Int32   # Number of Newton Steps per Outer Loop iterations
-xTol::Float64           # When steps are within xTol, loop will stop.
+rTol::Float64           # When residual is within rTol, loop will stop.
 penaltyStep::Float16    # Multiplies the penalty parameter per outer loop
 penaltyMax::Float64     # Maximum value of the penalty parameter
 =#
 # -------------------------
-currSolveParams = solverParams(0.1, 0.5, 6, 4, 10^-10, 10, 10^6)
+currSolveParams = solverParams(0.1, 0.5, 6, 4, 10^-4, 10, 10^6)
 solParamPrint(currSolveParams)
 
 # --------------------------
