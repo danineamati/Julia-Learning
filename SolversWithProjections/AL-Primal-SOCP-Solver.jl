@@ -80,7 +80,7 @@ include("trustRegion.jl")
 
 
 function newtonStepALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone, delta = 1,
-                                gamma = 1.5, epsilon = 0.5)
+                                gamma = 1.5, epsilon = 0.5, a = 1e-6)
     #=
     y ← y - [H(φ(y))]^-1 ∇φ(y)
     returns -[H(φ(y))]^-1 ∇φ(y) and ∇φ(y)
@@ -89,7 +89,11 @@ function newtonStepALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone, delta = 1,
     hess = evalHessAl(al, y0)
     phiD = evalGradAL(al, y0)
 
-    if isposdef(hess)
+    if isposdef(hess) && (rank(hess) == size(hess, 1))
+        # Check that the Matrix is positive definite AND non-singular
+        # Due to rounding error the hessian is occasionally determined to
+        # be positive definite but still singular.
+
         phiHinv = inv(hess)
 
         if false
@@ -101,14 +105,14 @@ function newtonStepALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone, delta = 1,
         dk = -phiHinv * phiD
         damping = 0
     else
-        damping, dk = findDamping(hess, phiD, delta, gamma, epsilon)
+        damping, dk = findDamping(hess, phiD, delta, gamma, epsilon, a)
     end
 
     if norm(dk) > delta
         dk = (delta / norm(dk)) * dk
     end
 
-    return dk', phiD, hess, damping
+    return dk, phiD, hess, damping
 
 end
 
@@ -150,8 +154,8 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
 
         # Take a Newton Step
         # Negative sign addressed above
-        (dirNewton, residual, hess, damp) = newtonStepALPSOCP(yCurr, al,
-                                                                    trustDelta)
+        (dirNewton, residual, hess, damp) = newtonStepALPSOCP(
+                                                        yCurr, al, trustDelta)
         push!(residNewt, residual)
 
         if true
@@ -175,17 +179,24 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
             fObjApprox(d) = residual'd + (1/2) * d'hess*d
 
             rho = (currentObjVal - baseObjVal) / (-fObjApprox(dirNewton))
+            roundingErrorTol = UInt8(round(-log10(sp.xTol)) / 2)
 
             println("Rho = $rho")
-            if rho ≥ 0.75 && norm(dirNewton) < trustDelta
+            roundedDkNorm = round(norm(dirNewton), digits = roundingErrorTol)
+            roundedTrustDelta = round(trustDelta, digits = roundingErrorTol)
+
+            print("||dk|| = $(norm(dirNewton)) → $roundedDkNorm")
+            print(" vs Δ = $trustDelta → $roundedTrustDelta")
+            println(" at $roundingErrorTol digits")
+
+            if rho ≥ 0.2 && roundedDkNorm < roundedTrustDelta
                 # Condition 1: No change
-                trustDelta = trustDelta # Probably not needed
+                # trustDelta = trustDelta # Probably not needed
                 println("Trust Region Size unchanged. Still at $trustDelta")
-            elseif rho < 0.75
+            elseif rho < 0.2
                 trustDelta = (0.2 * norm(dirNewton) + 0.4 * trustDelta) / 2
                 println("Trust Region Size decreased. Now $trustDelta")
             else
-                println("||dk|| = $(norm(dirNewton)) vs Δ = $trustDelta")
                 trustDelta = 2 * trustDelta
                 println("Trust Region Size increased. Now $trustDelta")
             end

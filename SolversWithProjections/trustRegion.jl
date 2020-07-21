@@ -29,7 +29,7 @@ end
 
 
 function findDamping(B, g, delta = 1, gamma = 1.5, epsilon = 0.5,
-                        verbose = false)
+                        a = 0.1, verbose = false)
     #=
     Implements a search for the appropriate trust region.
 
@@ -46,8 +46,11 @@ function findDamping(B, g, delta = 1, gamma = 1.5, epsilon = 0.5,
 
     This corresponds to algorithm 2.6 in Nocedal et Yuan (1998)
     =#
-    damping, dampingMax = dampingInitialization(B, g, delta, epsilon)
-    dk = -g \ (B + damping * I)
+    damping, dampingMax = dampingInitialization(B, g, delta, epsilon, a)
+
+    ratio = 0.1
+
+    dk = - inv(B + ratio * damping * I) * g
 
     if verbose
         println("Damping Start = $damping")
@@ -58,15 +61,17 @@ function findDamping(B, g, delta = 1, gamma = 1.5, epsilon = 0.5,
 
     while norm(dk) > delta
 
-        rCho = factorize(B + damping * I).U
+        rCho = factorize(B + ratio * damping * I).U
 
         if verbose
             println("Increasing Damping")
             println("Cholesky Factorization:")
             display(rCho)
+            println("dk")
+            display(dk)
         end
 
-        qk = dk' \ rCho'
+        qk = rCho' \ dk
 
         updateNumerator = norm(dk)^2 * (gamma * norm(dk) - delta)
         updateDenominator = norm(qk)^2 * delta
@@ -78,7 +83,7 @@ function findDamping(B, g, delta = 1, gamma = 1.5, epsilon = 0.5,
             println("New Damping: $damping")
         end
 
-        dk = -g \ (B + damping * I)
+        dk = - inv(B + ratio * damping * I) * g
         counter += 1
 
         if counter >= 10
@@ -87,7 +92,7 @@ function findDamping(B, g, delta = 1, gamma = 1.5, epsilon = 0.5,
 
         if damping >= dampingMax
             damping = min(damping, dampingMax)
-            return damping, -g \ (B + damping * I)
+            return damping, - inv(B + ratio * damping * I) * g
         end
     end
 
