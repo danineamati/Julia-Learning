@@ -98,13 +98,17 @@ function newtonStepALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone, delta = 1,
         end
 
         # Note the negative sign
-        return -phiHinv * phiD, phiD, hess, 0
+        dk = -phiHinv * phiD
+        damping = 0
     else
         damping, dk = findDamping(hess, phiD, delta, gamma, epsilon)
-
-        return dk', phiD, hess, damping
     end
 
+    if norm(dk) > delta
+        dk = (delta / norm(dk)) * dk
+    end
+
+    return dk', phiD, hess, damping
 
 end
 
@@ -115,7 +119,7 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
     # push!(yNewtStates, y0)
     yCurr = y0
 
-    trustDelta = 0.5 #10^-10
+    trustDelta = 2 #10^-10
 
     # For printing
     early = false
@@ -159,6 +163,7 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
         # Determine if the trust region is sufficient
         y0New = primalVec(yCurr) + dirNewton
         baseObjVal = lineSearchObj(y0New)
+        println("Objective from $currentObjVal → $baseObjVal")
         if baseObjVal ≤ currentObjVal
             # Trust region was a success
             # Step 4 of algorithm 3.1 in the Nocedal et Yuan paper
@@ -221,7 +226,7 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
         y0New_Struct = primalStruct(y0New, xSize, sSize, tSize)
         push!(yNewtStates, y0New_Struct)
 
-        if verbose
+        if true
             println("Added State: $y0New_Struct\n")
         end
 
