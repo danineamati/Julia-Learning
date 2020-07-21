@@ -89,7 +89,7 @@ function newtonStepALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone, damp = 10^-10)
         phiH = hess
     else
         damp = max(damp, 10^-15)
-        phiH = hess + damp * Diagonal(ones(size(primalVec(y0), 1)))
+        phiH = hess + damp * I
         if !isposdef(phiH)
             print("Hessian is NOT Positive Semidefinite! (y0 = $y0)")
             println("Damping = $damp")

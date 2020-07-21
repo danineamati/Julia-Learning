@@ -127,7 +127,7 @@ println("Evaluating the AL hessian: (Pos. Def.? $(isposdef(hess0)))")
 display(hess0)
 
 damp = 10^-2
-hessDamp = hess0 + damp * Diagonal(ones(size(primalVec(y0), 1)))
+hessDamp = hess0 + damp * I
 print("Evaluating the AL hessian with damping")
 println(" (Pos. Def.? $(isposdef(hessDamp)))")
 display(hessDamp)
