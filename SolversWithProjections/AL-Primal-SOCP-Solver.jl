@@ -107,7 +107,7 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
     # push!(yNewtStates, y0)
     yCurr = y0
 
-    trustDelta = 2 #10^-10
+    trustDelta = sp.trSizeStart
 
     # For printing
     early = false
@@ -173,15 +173,19 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
             print(" vs Δ = $trustDelta → $roundedTrustDelta")
             println(" at $roundingErrorTol digits")
 
-            if rho ≥ 0.2 && roundedDkNorm < roundedTrustDelta
+            if rho ≥ sp.trc2 && roundedDkNorm < roundedTrustDelta
+                # ρ ≥ c2 AND ||dk|| < Δ
                 # Condition 1: No change
                 # trustDelta = trustDelta # Probably not needed
                 println("Trust Region Size unchanged. Still at $trustDelta")
-            elseif rho < 0.2
-                trustDelta = (0.2 * norm(dirNewton) + 0.4 * trustDelta) / 2
+            elseif rho < sp.trc2
+                # ρ < c2, but ||dk|| ≤ Δ
+                trustDelta = (sp.trc3 * norm(dirNewton) +
+                                            sp.trc4 * trustDelta) / 2
                 println("Trust Region Size decreased. Now $trustDelta")
             else
-                trustDelta = 2 * trustDelta
+                # Implies that ρ ≥ c2 AND ||dk|| = Δ
+                trustDelta = sp.trc1 * trustDelta
                 println("Trust Region Size increased. Now $trustDelta")
             end
 
@@ -201,7 +205,7 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
 
             if true
                 println("    Recommended Line Search Step: $stepLS")
-                if stepLS < 0.125
+                if stepLS < (sp.paramB ^ 3)
                     println("    Very low step. Newton Step was $dirNewton")
                 end
             end
@@ -213,7 +217,7 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
 
             # Now we update the trust region
             yChange = norm(stepLS * dirNewton)
-            trustDelta = (yChange + 0.4 * trustDelta) / 2
+            trustDelta = (yChange + sp.trc4 * trustDelta) / 2
 
         end
 

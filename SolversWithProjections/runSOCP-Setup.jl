@@ -9,22 +9,36 @@ include("montecarlo.jl")
 # -------------------------
 # Solver Parameters
 #=
+    Line Search Parameters (Notation from Toussaint Notes (2020))
 paramA::Float16         # Used in Line Search, should be [0.01, 0.3]
 paramB::Float16         # Used in Line Search, should be [0.1, 0.8]
+    Iteration Counter Parameters
 maxOuterIters::Int32    # Number of Outer Loop iterations
 maxNewtonSteps::Int32   # Number of Newton Steps per Outer Loop iterations
-rTol::Float64           # When residual is within rTol, loop will stop.
+    Exit Condition Parameter
+rTol::Float64           # When steps are within rTol, loop will stop.
+    Penalty Update Parameters
 penaltyStep::Float16    # Multiplies the penalty parameter per outer loop
 penaltyMax::Float64     # Maximum value of the penalty parameter
+    Trust Region Parameters (Notation from Nocedal et Yuan (1998))
+trSizeStart::Float32    # Starting size of the trust region
+trc1::Float16           # Success Size Increase Parameter (1 < c1)
+trc2::Float16           # Taylor Series Error Parameter (0 < c2 < 1)
+trc3::Float16           # Failed Size Reduction Parameter (0 < c3 < c4)
+trc4::Float16           # Failed Size Reduction Parameter (c3 < c4 < 1)
 =#
 # -------------------------
-currSolveParams = solverParams(0.1, 0.5, 6, 4, 10^-4, 10, 10^6)
+currSolveParams = solverParams(0.1, 0.5,
+                                6, 4,
+                                10^-4,
+                                10, 10^6,
+                                2.5, 2, 0.2, 0.2, 0.4)
 solParamPrint(currSolveParams)
 
 # --------------------------
 # Set an example initial starting point
 # --------------------------
-x0 = [-0.5; 3]
+x0 = getPoint([-5,-1],[0,3])
 # Test 1: [-2; 3]
 # Test 2: [-4.5; 3.5]
 # Test 3: [-2.5; -0.75]
