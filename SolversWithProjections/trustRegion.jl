@@ -2,14 +2,27 @@
 
 using LinearAlgebra
 
+
+@doc raw"""
+    dampingInitialization(B, g, delta, epsilon, a = 0.5)
+
+Finds an appropriate damping parameter to start the search.
+
+Specifically,
+```math
+λ ∈ [0, ||B|| + (1 + ϵ) \frac{||g||}{Δ}]
+```
+
+## Arguments
+- `B`: The (approximate or true) Hessian Matrix
+- `g`: The (approximate or true) gradient vector
+- `epsilon`: Parameter (> 0) weighes the gradient versus the hessian in
+determining the damping ratio size
+- `a`: Parameter (> 0) How quickly to damp the Hessian
+
+See also: [`findDamping`](@ref)
+"""
 function dampingInitialization(B, g, delta, epsilon, a = 0.5)
-    #=
-    Finds an appropriate damping parameter to start the search
-
-    Specifically,
-    λ ∈ {0, ||B|| + (1 + ϵ) ||g|| / Δ}
-    =#
-
     dampingMax = (norm(B) + ((1 + epsilon) * norm(g) / delta))
 
     if isposdef(B)
@@ -40,25 +53,31 @@ function dampingInitialization(B, g, delta, epsilon, a = 0.5)
     end
 end
 
+"""
+    findDamping(B, g, delta = 1, gamma = 1.5, epsilon = 0.5,
+                      condNumMax = 1e7, a = 1e-6, verbose = false)
 
+Implements a search for the appropriate trust region.
+
+## Arguments:
+- `B`: The (approximate or true) Hessian Matrix
+- `g`: The (approximate or true) gradient vector
+- `delta`: is the initial trust region size
+- `condNumMax`: The max condition number on the damped Hessian
+
+for `gamma`, `epsilon`, and `a`, see [`dampingInitialization`](@ref)
+
+returns the damping factor `damping`, the newton step `dk`, and the damped
+hessian represented as a Cholesky Decomposition `rCho`
+
+This corresponds to algorithm 2.6 in Nocedal et Yuan (1998)
+
+"""
 function findDamping(B, g, delta = 1, gamma = 1.5, epsilon = 0.5,
                         condNumMax = 1e7, a = 1e-6, verbose = false)
-    #=
-    Implements a search for the appropriate trust region.
 
-    B           is the approximate or true Hessian matrix.
-    g           is the gradient of the function
-    delta      is the initial trust region size
-    gamma > 1   is a parameter for how aggressive to increase the
-                            trust region size
-    epsilon > 0 is a parameter which weighes the gradient versus the
-                            hessian in determining the damoping ratio size
-
-
-    return damping (damping parameter)
-
-    This corresponds to algorithm 2.6 in Nocedal et Yuan (1998)
-    =#
+    # Initialize the damping factor and find the initial damped hessian
+    # represented as a Cholesky Decomposition (rCho)
     damping, dampingMax, rCho = dampingInitialization(B, g,
                                                             delta, epsilon, a)
 

@@ -78,14 +78,49 @@ include("constraints.jl")
 include("trustRegion.jl")
 
 
+@doc raw"""
+    newtonStepALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone, delta = 1,
+                      gamma = 1.5, epsilon = 0.5, condNumMax = 1e5, a = 1e-6)
 
+Evaluates the Newton Step for an Augmented Lagrangian of an SOCP.
+
+```math
+y ← y - [H(φ(y)) + λI]^{-1} ∇φ(y)
+```
+
+This function internally calculates the step `dk` using Cholesky Decomposition.
+```math
+dk = [H(φ(y)) + λI] \ ∇φ(y)
+```
+
+## Core Arguments
+- `y0::SOCP_primals`: The primal vectors of the SOCP.
+- `al::augLagQP_2Cone`: The SOCP Augmented Lagrangian.
+See: [`SOCP_primals`](@ref), [`augLagQP_2Cone`](@ref)
+
+## Trust Region and Regularization Arguements
+- `delta`: Current trust region size
+- `gamma`: Parameter (> 1) for how aggressive to increase the trust region size
+- `epsilon`: Parameter (> 0) weighes the gradient versus the hessian in
+determining the damping ratio size
+- `condNumMax`: The max condition number on the damped Hessian
+- `a`: Parameter (> 0) How quickly to damp the Hessian
+
+See: [`findDamping`](@ref) for more information
+
+
+## Return Values
+returns `dk`, `phiD`, `rCho`, `damping` which are
+- `dk`: the Newton step
+- `phiD`: the residual (``∇φ(y)``)
+- `rCho`: the Cholesky decomposition of `H(φ(y)) + λI`
+- `damping`: the damping parameter (`λ` above)
+
+See: [`findDamping`](@ref) for more information
+
+"""
 function newtonStepALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone, delta = 1,
                     gamma = 1.5, epsilon = 0.5, condNumMax = 1e5, a = 1e-6)
-    #=
-    y ← y - [H(φ(y))]^-1 ∇φ(y)
-    returns -[H(φ(y))]^-1 ∇φ(y) and ∇φ(y)
-    since -[H(φ(y))]^-1 ∇φ(y) is the step and ∇φ(y) is the residual
-    =#
     hess = evalHessAl(al, y0)
     phiD = evalGradAL(al, y0)
 
@@ -100,8 +135,27 @@ function newtonStepALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone, delta = 1,
 
 end
 
-function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
-                                        sp::solverParams, verbose = false)
+"""
+    newtonTRLS_ALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
+                            sp::solverParams, verbose = false)
+
+Performs a maximum on `N` newton steps as specified by [`solverParams`](@ref).
+May return early if the residual is lower than the tolerance specified by
+[`solverParams`](@ref).
+
+The function operates on an augmented lagrangian (AL) with primals (P) only
+(as opposed to a Primal-Dual set-up) for second-order cone programs (SOCP).
+The function uses a combined trust region (TR) and line search (LS) approach
+as specified in Nocedal et Yuan (1998).
+
+returns (yNewtStates, residNewt) which are:
+- `yNewtStates`: An array with one entry of the primal vector per Newton step
+- `residNewt`: An array with one entry of the residual vector per Newton step
+
+See also: [`augLagQP_2Cone`](@ref), [`SOCP_primals`](@ref)
+"""
+function newtonTRLS_ALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
+                                 sp::solverParams, verbose = false)
     yNewtStates = SOCP_primals[]
     residNewt = []
     # push!(yNewtStates, y0)
@@ -258,6 +312,24 @@ function newtonLineSearchALPSOCP(y0::SOCP_primals, al::augLagQP_2Cone,
 
 end
 
+"""
+    ALPrimalNewtonSOCPmain(y0::SOCP_primals, al::augLagQP_2Cone,
+                           sp::solverParams, verbose = false)
+
+Performs a maximum on `N` outer steps as specified by [`solverParams`](@ref).
+May return early if the residual is lower than the tolerance specified by
+[`solverParams`](@ref) and the constraint penalty is high enough.
+
+The function operates on an augmented lagrangian (AL) with primals (P) only
+(as opposed to a Primal-Dual set-up) for second-order cone programs (SOCP).
+See [`newtonTRLS_ALPSOCP`](@ref) for more information on the Newton Steps
+
+returns (yStates, residuals) which are:
+- `yStates`: An array with one entry of the primal vector per Newton step
+- `residuals`: An array with one entry of the residual vector per Newton step
+
+See also: [`augLagQP_2Cone`](@ref), [`SOCP_primals`](@ref)
+"""
 function ALPrimalNewtonSOCPmain(y0::SOCP_primals, al::augLagQP_2Cone,
                                 sp::solverParams, verbose = false)
 
@@ -273,7 +345,7 @@ function ALPrimalNewtonSOCPmain(y0::SOCP_primals, al::augLagQP_2Cone,
             println("Next Full Update starting at $y0")
         end
 
-        (yNewStates, resAtStates) = newtonLineSearchALPSOCP(y0, al, sp, verbose)
+        (yNewStates, resAtStates) = newtonTRLS_ALPSOCP(y0, al, sp, verbose)
 
         # Take each step in the arrays above and save it to the respective
         # overall arrays
@@ -311,7 +383,7 @@ function ALPrimalNewtonSOCPmain(y0::SOCP_primals, al::augLagQP_2Cone,
             println("################\n")
         end
 
-        if norm(primalVec(yNewest) - primalVec(y0), 2) < sp.rTol
+        if (norm(residuals[end], 2) < sp.rTol) && (al.rho == sp.penaltyMax)
             println("Ended early at $i outer steps")
             break
         else
