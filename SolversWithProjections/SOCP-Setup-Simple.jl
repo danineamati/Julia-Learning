@@ -73,10 +73,18 @@ end
 # ---------------------------
 # Objective Function
 # (1/2) xT Q x + cT x
-# Q is an nxn Symmetric Matrix (that is positive definite for convex
+# Q is an nxn Symmetric Matrix (that is positive definite for convex)
 # c is an nx1 vector
 # --------------------------
+"""
+Objective Function
 
+(1/2) xT Q x + cT x
+
+Q is an nxn Symmetric Matrix (that is positive definite for convex)
+
+c is an nx1 vector
+"""
 struct objectiveQP
     Q
     p
