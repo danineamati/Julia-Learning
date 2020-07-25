@@ -25,41 +25,41 @@ include("constraints.jl")
 """
 Line Search Parameters (Notation from Toussaint Notes (2020))
 
-paramA::Float16         # Used in Line Search, should be [0.01, 0.3]
+`paramA::Float16`         # Used in Line Search, should be [0.01, 0.3]
 
-paramB::Float16         # Used in Line Search, should be [0.1, 0.8]
+`paramB::Float16`         # Used in Line Search, should be [0.1, 0.8]
 
 ----
 Iteration Counter Parameters
 
-maxOuterIters::Int32    # Number of Outer Loop iterations
+`maxOuterIters::Int32`    # Number of Outer Loop iterations
 
-maxNewtonSteps::Int32   # Number of Newton Steps per Outer Loop iterations
+`maxNewtonSteps::Int32`   # Number of Newton Steps per Outer Loop iterations
 
 ----
 Exit Condition Parameter
 
-rTol::Float64           # When steps are within rTol, loop will stop.
+`rTol::Float64`           # When steps are within rTol, loop will stop.
 
 ----
 Penalty Update Parameters
 
-penaltyStep::Float16    # Multiplies the penalty parameter per outer loop
+`penaltyStep::Float16`    # Multiplies the penalty parameter per outer loop
 
-penaltyMax::Float64     # Maximum value of the penalty parameter
+`penaltyMax::Float64`     # Maximum value of the penalty parameter
 
 ----
 Trust Region Parameters (Notation from Nocedal et Yuan (1998))
 
-trSizeStart::Float32    # Starting size of the trust region
+`trSizeStart::Float32`    # Starting size of the trust region
 
-trc1::Float16           # Success Size Increase Parameter (1 < c1)
+`trc1::Float16`           # Success Size Increase Parameter (1 < c1)
 
-trc2::Float16           # Taylor Series Error Parameter (0 < c2 < 1)
+`trc2::Float16`           # Taylor Series Error Parameter (0 < c2 < 1)
 
-trc3::Float16           # Failed Size Reduction Parameter (0 < c3 < c4)
+`trc3::Float16`           # Failed Size Reduction Parameter (0 < c3 < c4)
 
-trc4::Float16           # Failed Size Reduction Parameter (c3 < c4 < 1)
+`trc4::Float16`           # Failed Size Reduction Parameter (c3 < c4 < 1)
 """
 struct solverParams
     # Line Search Parameters (Notation from Toussaint Notes (2020))
