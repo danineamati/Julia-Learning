@@ -42,7 +42,7 @@ We have a linear dynamics system
 ```math
 x_{k+1} = A x_k + B u_k + G
 ```
-We compute and return A, B, and G for a [`simple rocket`](@ref rocket_simple).
+We compute and return A, B, and G for a [`rocket_simple`](@ref).
 
 For a simple rocket, we have
 
@@ -65,7 +65,7 @@ end
 We want to take the per discretization dynamics and write it as a full matrix.
 
 Specifically, we get the system:
-[A B -I] * [xk; uk; xk+1] = G
+`[A B -I] * [xk; uk; xk+1] = G`
 which we can stack as
 
 ```math
@@ -84,7 +84,9 @@ which we can stack as
 [0 \ 0 \ 0 \ 0 \ 0 \ 0 \ A \ B \ -I]
 ```
 
-We return the above matrix and the stacked G matrix
+We return the above matrix and the stacked `G` matrix.
+
+See: [`rocketDynamicsFull`](@ref) and [`rocketDynamics`](@ref)
 """
 function rocketDynamicsStack(r::rocket_simple, nDim::Int64, NSteps::Int64)
     # First calculate the A and B matrices. The C vector is not needed in this
@@ -127,12 +129,15 @@ end
     rocketDynamicsFull(r::rocket_simple, x0::Array{Float64, 1},
                              xN::Array{Float64, 1}, NSteps::Int64)
 
-We combine the stack at each xk with the initial and final conditions. Namely,
+We combine the stack at each `xk` with the initial and final conditions. Namely,
 
 `[I0; AStack; IN] * XU = [x0; GStack; xN]`
 
-Wee return `[I0; AStack; IN]` and `[x0; GStack; xN]`
+where `XU` is the stacked trajectory vector (x states and u controls). We
+return `[I0; AStack; IN]` and `[x0; GStack; xN]`
 
+See [`rocketDynamicsStack`](@ref), [`rocketDynamics`](@ref),
+[`rocket_simple`](@ref)
 """
 function rocketDynamicsFull(r::rocket_simple, x0::Array{Float64, 1},
                                  xN::Array{Float64, 1}, NSteps::Int64)
