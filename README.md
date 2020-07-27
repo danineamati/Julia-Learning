@@ -2,7 +2,7 @@
 (For now the repository is known as Julia-Learning. Subject to change.)
 
 ## Overview
-This is a repository where I am storing my files as I learn Julia. Work here is in collaboration with the REx Lab at Stanford (June 2020 - August 2020). If you have questions, please contact me at [dneamati@caltech.edu](dneamati@caltech.edu). Also, find me at [https://sites.google.com/view/danielneamati/](https://sites.google.com/view/danielneamati/). Thanks!
+This is a repository where I am storing my files as I learn Julia. Work here is in collaboration with the REx Lab at Stanford (June 2020 - August 2020). If you have questions, please contact me at <dneamati@caltech.edu>. Also, find me at [https://sites.google.com/view/danielneamati/](https://sites.google.com/view/danielneamati/). Thanks!
 
 ## Funding
 Funding for this research is graciously provided by the Caltech Summer Undergraduate Research Fellowship (SURF) program. Specifically, I am very thankful to be the 2020 __Homer J. Stewart SURF Fellow__.
