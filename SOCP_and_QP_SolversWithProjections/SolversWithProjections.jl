@@ -4,7 +4,6 @@
 A mini-package that solves simple SOCP problems.
 
 """
-
 module SolversWithProjections
 
 using LinearAlgebra, Plots
