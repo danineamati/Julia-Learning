@@ -41,12 +41,12 @@ function initializeTraj(x0::Array{Float64, 1}, xN::Array{Float64, 1},
     sizeXU = 3 * NSteps * nDim + 2 * nDim
     XUfull = zeros(sizeXU, 1)
 
-    println("Dimensions = $nDim")
+    # println("Dimensions = $nDim")
 
     for k in 1:(NSteps + 1)
         iStart = 1 + (k - 1) * (3 * nDim)
         iEnd = iStart + (2 * nDim - 1)
-        println("Accessing ($iStart, $iEnd)")
+        # println("Accessing ($iStart, $iEnd)")
         XUfull[iStart:iEnd] = xSteps[k]
     end
 
