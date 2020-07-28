@@ -32,7 +32,7 @@ include("..\\other_utils\\utils.jl")
 # rhoInit = 1
 
 @doc raw"""
-    augLag(obj::objectiveFunc, cM::constraintManager, ρ)
+    augLag(obj::objectiveFunc, cM::constraintManager, rho::Float64)
 
 This is a mutable struct that stores an SOCP Augmented Lagrangian.
 
@@ -53,7 +53,7 @@ See also: [`evalAL`](@ref), [`evalGradAL`](@ref), [`evalHessAl`](@ref)
 mutable struct augLag
     obj::objectiveFunc
     cM::constraintManager
-    rho
+    rho::Float64
 end
 
 """

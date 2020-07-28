@@ -50,22 +50,3 @@ function inBox(x2D)
     end
     return false
 end
-
-
-runTests = false
-
-if runTests
-    println("\n")
-    print("Generating a 3D point: ")
-    pt1 = getPoint([3; 2; -5], [10; 100; 0.5])
-    println(pt1)
-    print("Checking that the point is in the bounds: ")
-    print("$(10 > pt1[1] > 3) & $(100 > pt1[2] > 2)")
-    println(" & $(0.5 > pt1[3] > -5)")
-
-    println("Generating 3 Random 4D Points")
-    display(montecarlo([3; 2; -5; -0.01], [10; 100; 0.5; 0.01], 3))
-
-    println("Generating 2 Random Points in a smaller [0, 1] box")
-    display(montecarlo([-20; -20], [20; 20], 2, inBox))
-end

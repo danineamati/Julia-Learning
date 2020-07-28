@@ -16,6 +16,32 @@ struct constraintManager
     lambdaList
 end
 
+#############################################################
+###      Update the dual variable of the constraints      ###
+#############################################################
+@doc raw"""
+    updateDual(cM::constraintManager, yCurr, penalty::Float64)
+
+Updates (in place) each λ in the lambdaList stores in the
+[`constraintManager`](@ref).
+
+```math
+λ ⟵ λ + ρ c(y)
+```
+
+for each constraint
+
+"""
+function updateDual!(cM::constraintManager, yCurr, penalty::Float64)
+    for (i, c) in enumerate(cM.lambdaList)
+        # Obtain the dual variable matching this constraint
+        lambda = cM.lambdaList[i]
+        # Evaluate the current constraint
+        cVal = getNormToProjVals(c, yCurr)
+
+        lambda = lambda + penalty * cVal
+    end
+end
 
 #############################################################
 ###            Evaluate a List of Constraints             ###
