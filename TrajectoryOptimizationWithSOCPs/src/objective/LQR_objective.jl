@@ -29,13 +29,13 @@ Pseudo-constructor for an LQR objective function (which is really an
 An LQR struct for a trajectory is one that holds the sparse matrix matching:
 
 ```math
-QRFull = [Q 0 0 0; 0 R 0 0; 0 0 Q 0; 0 0 0 R]
+B_{QR} = [Q 0 0 0; 0 R 0 0; 0 0 Q 0; 0 0 0 R]
 ```
 
 Where size corresponds to the size of the trajectory (or trajectory horizon).
 
 ```math
-f(XU) = (1/2) XU^{\top} * QRFull * XU
+f(y) = \frac{1}{2} \ y^{\top} * B_{QR} * y
 ```
 
 See also: [`LQR_simple`](@ref)
