@@ -1,5 +1,5 @@
 
-
+using SparseArrays
 abstract type constraint end
 
 # Constraint Types and settings
@@ -52,7 +52,9 @@ function getNormToProjVals(r::AL_AffineEquality, x)
 end
 
 # Lastly, we do some calculus
-function getGradC(r::AL_AffineEquality)
+# The variable "x" is passed to the header to maintain the same function header
+# but it is not used in the function.
+function getGradC(r::AL_AffineEquality, x)
     #=
     We want the gradient of the constraints. This is piecewise in the
     inequality case. But it is a single function in the equality case
@@ -65,7 +67,7 @@ function getHessC(r::AL_AffineEquality)
     We want the hessian of the constraints. This is just zero for affine
     constraints, but we need to match the dimensions.
     =#
-    return zeros(size(r.A, 2), size(r.A, 2)) # nxn
+    return spzeros(size(r.A, 2), size(r.A, 2)) # nxn
 end
 
 # -----------------------
@@ -132,7 +134,7 @@ function getHessC(r::AL_AffineInequality)
     We want the hessian of the constraints. This is just zero for affine
     constraints, but we need to match the dimensions.
     =#
-    return zeros(size(r.A, 2), size(r.A, 2)) # nxn
+    return spzeros(size(r.A, 2), size(r.A, 2)) # nxn
 end
 
 
