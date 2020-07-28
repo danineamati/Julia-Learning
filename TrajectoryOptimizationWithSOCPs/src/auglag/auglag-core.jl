@@ -66,9 +66,12 @@ returns a real number
 function evalAL(alQP::augLag, y)
     # φ(y) = f(x) + (ρ/2) c(y)'c(y)    + λ c(y)
     # φ(y) = [(1/2) xT Q x + cT x] + (ρ/2) (c(y))'(c(y)) + λ (c(y))
-    fCurr = fObjQP(alQP.obj, y)
+    fCurr = fObjQP(alQP.obj, y)[1]
     cCurr = evalConstraints(alQP.cM, y, alQP.rho)
-
+    # println("f(x) = $fCurr")
+    # println(" with size -> $(size(fCurr))")
+    # println("c(x) = $cCurr")
+    # println(" with size -> $(size(cCurr))")
     return fCurr + cCurr
 end
 
@@ -99,9 +102,9 @@ returns a Symmetric Matrix of size `y`x`y`
 """
 function evalHessAl(alQP::augLag, y, verbose = false)
 
-    hessf = hessQP(alQP.obj, y)
+    hessf = hessQP(alQP.obj)
     hessC = evalHessConstraints(alQP.cM, y)
-    return hessfPadded + alQP.rho * hessC
+    return hessf + alQP.rho * hessC
 end
 
 """

@@ -9,6 +9,7 @@ include("src\\rocket\\rocket-setup.jl")
 include("src\\dynamics\\trajectory-setup.jl")
 include("src\\objective\\LQR_objective.jl")
 include("src\\constraints\\constraintManager.jl")
+include("src\\auglag\\auglag-core.jl")
 
 
 # Based on the Falcon 9
@@ -41,5 +42,29 @@ cMRocket = constraintManager([dynConstraint], [lambdaInit])
 
 penaltyStart = 1.0
 
+# Test that the evaluations work
+println("\n--------------------------------------------")
+println(" Testing constraints are inputted correctly ")
+println("--------------------------------------------")
 println("Starting constraint violation: ")
-println(evalConstraints(cMRocket, initTraj, penaltyStart))
+println([evalConstraints(cMRocket, initTraj, penaltyStart)])
+println("Starting gradient of constraints: ")
+println(evalGradConstraints(cMRocket, initTraj, penaltyStart))
+println("Starting hessian of constraints: ")
+println(evalHessConstraints(cMRocket, initTraj))
+
+
+# Equiped with the constraint term and the objective term, I now build the
+# Augmented Lagrangian
+alRocket = augLag(costFun, cMRocket, penaltyStart)
+
+# Test that the evaluations work
+println("--------------------------------------------")
+println("           Testing AL is Functional         ")
+println("--------------------------------------------")
+println("Evaluating augmented lagrangian: ")
+println([evalAL(alRocket, initTraj)])
+println("Evaluating gradient of augmented lagrangian: ")
+println(evalGradAL(alRocket, initTraj))
+println("Evaluating hessian of augmented lagrangian: ")
+println(size(evalHessAl(alRocket, initTraj)))
