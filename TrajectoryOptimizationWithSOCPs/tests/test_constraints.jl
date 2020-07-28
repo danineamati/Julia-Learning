@@ -3,7 +3,7 @@
 include("..\\src\\constraints\\constraints.jl")
 
 runTestsAffine = false
-runTestsOldCone = false
+runTestsOldCone = false # NOT CURRENTLY WORKING AND NOT USED
 runTestsNewCone = true
 
 if runTestsAffine
