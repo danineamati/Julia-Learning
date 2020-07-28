@@ -1,6 +1,6 @@
 # Implements trust region code
 
-using LinearAlgebra
+using LinearAlgebra, SparseArrays
 
 
 @doc raw"""
@@ -78,11 +78,11 @@ function findDamping(B, g, delta = 1, gamma = 1.5, epsilon = 0.5,
 
     # Initialize the damping factor and find the initial damped hessian
     # represented as a Cholesky Decomposition (rCho)
-    damping, dampingMax, rCho = dampingInitialization(B, g,
-                                                            delta, epsilon, a)
+    damping, dampingMax, rCho = dampingInitialization(B, g, delta, epsilon, a)
 
     # Use the Cholesky decomposition to more easily solve the problem.
-    dk = - rCho.U \ (rCho.U' \ g)
+    LCho = sparse(rCho.L)
+    dk = - LCho' \ (LCho \ g)
 
     if verbose
         println("Damping Start = $damping and dampingMax = $dampingMax")
@@ -91,7 +91,9 @@ function findDamping(B, g, delta = 1, gamma = 1.5, epsilon = 0.5,
 
     counter = 1
 
-    while (norm(dk) > delta) && (cond(rCho.U'rCho.U) > condNumMax)
+    # Have to use Array to convert briefly to a dense matrix in order
+    # to determine the condition number.
+    while (norm(dk) > delta) && (cond(Array(LCho * LCho')) > condNumMax)
 
         if verbose
             println("Increasing Damping")
@@ -101,7 +103,7 @@ function findDamping(B, g, delta = 1, gamma = 1.5, epsilon = 0.5,
             display(dk)
         end
 
-        qk = rCho.U' \ dk
+        qk = LCho \ dk
 
         updateNumerator = norm(dk)^2 * (gamma * norm(dk) - delta)
         updateDenominator = norm(qk)^2 * delta
@@ -116,7 +118,8 @@ function findDamping(B, g, delta = 1, gamma = 1.5, epsilon = 0.5,
         rCho = cholesky(B + damping * I, check = false)
 
         if issuccess(rCho)
-            dk = - rCho.U \ (rCho.U' \ g)
+            LCho = sparse(rCho.L)
+            dk = - LCho' \ (LCho \ g)
             counter += 1
 
             if damping == dampingMax
@@ -133,7 +136,7 @@ function findDamping(B, g, delta = 1, gamma = 1.5, epsilon = 0.5,
         end
     end
 
-    println("Condition Number: $(cond(rCho.L * rCho.U))")
+    println("Condition Number: $(cond(Array(LCho * LCho')))")
 
     return damping, dk, rCho
 

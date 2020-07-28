@@ -33,7 +33,7 @@ for each constraint
 
 """
 function updateDual!(cM::constraintManager, yCurr, penalty::Float64)
-    for (i, c) in enumerate(cM.lambdaList)
+    for (i, c) in enumerate(cM.cList)
         # Obtain the dual variable matching this constraint
         lambda = cM.lambdaList[i]
         # Evaluate the current constraint

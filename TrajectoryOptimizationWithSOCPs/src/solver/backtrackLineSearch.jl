@@ -28,7 +28,7 @@ function backtrackLineSearch(xInit, dirΔ, f, dfdx, paramA, paramB, verbose = fa
 
     # Check the condition:
     # f(x + alpha * dir) > f(x) + a * grad f of (alpha * delta)
-    while f(xInit + α * dirΔ) > (f(xInit) + paramA * α * dirΔ'dfdx(xInit))
+    while f(xInit + α * dirΔ) > (f(xInit) + paramA * α * (dirΔ'dfdx(xInit))[1])
         # If the condition passes, set α to b * α
         if verbose
             print("Left side: ")

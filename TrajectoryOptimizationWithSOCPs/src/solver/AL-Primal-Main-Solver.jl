@@ -128,6 +128,7 @@ function newtonTRLS_ALP(y0, al::augLag, sp::solverParams, verbose = false)
         # Negative sign addressed above
         (dk, residual, rCho, damp) = newtonStepALP(yCurr, al, trustDelta)
         push!(residNewt, residual)
+        LCho = sparse(rCho.L)
 
         if true
             println("\nNewton Direction: $dk")
@@ -147,9 +148,9 @@ function newtonTRLS_ALP(y0, al::augLag, sp::solverParams, verbose = false)
                 println("Trust Region Success")
             end
 
-            fObjApprox(d) = residual'd + (1/2) * d'*(rCho.L * rCho.U)*d
-
-            rho = (currentObjVal - baseObjVal) / (-fObjApprox(dk))
+            fObjApprox(d) = residual'd + (1/2) * d'*(LCho * LCho')*d
+            println("fObjApprox(d) = $(fObjApprox(dk))")
+            rho = (currentObjVal - baseObjVal) / (-fObjApprox(dk)[1])
             roundingErrorTol = UInt8(round(-log10(sp.rTol)) / 2)
 
             println("Rho = $rho")
@@ -185,6 +186,16 @@ function newtonTRLS_ALP(y0, al::augLag, sp::solverParams, verbose = false)
                 println("Trying Line Search.")
             end
 
+            println("Attempting Line Search: ")
+            lc = lineSearchObj(yCurr)
+            println("Base Fun lineSearchObj -> $(size(lc)) -> $lc")
+            lgc = lineSearchdfdx(yCurr)
+            println("Base Grad lineSearchdfdx -> $(size(lgc)) ->")
+            display(lgc)
+            rlgc = dk'lgc
+            println("Results include $(size(rlgc)) ->")
+            display(rlgc)
+
             # Attempt a linesearch
             # Get the line search recommendation
             y0New, stepLS = backtrackLineSearch(yCurr, dk,
@@ -212,7 +223,7 @@ function newtonTRLS_ALP(y0, al::augLag, sp::solverParams, verbose = false)
         push!(yNewtStates, y0New)
 
         if true
-            println("Added State: $y0New_Struct\n")
+            println("Added State: $y0New\n")
         end
 
         # Break by tolerance and trust region size
@@ -286,7 +297,7 @@ function ALPrimalNewtonMain(y0, al::augLag, sp::solverParams, verbose = false)
         # λ ← λ + ρ c(x_k*)       - Which is to say update with prior x*
         # ρ ← min(ρ * 10, 10^6)   - Which is to say we bound ρ's growth by 10^6
         yNewest = yNewStates[end]
-        cCurr = evalConstraints(al.cM, yCurr, al.rho)
+        cCurr = evalConstraints(al.cM, yNewest, al.rho)
 
         # Only turn on if the solver is not returning all of the points.
         # if false

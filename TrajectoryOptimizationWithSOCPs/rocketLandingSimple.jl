@@ -10,6 +10,7 @@ include("src\\dynamics\\trajectory-setup.jl")
 include("src\\objective\\LQR_objective.jl")
 include("src\\constraints\\constraintManager.jl")
 include("src\\auglag\\auglag-core.jl")
+include("src\\solver\\AL-Primal-Main-Solver.jl")
 
 
 # Based on the Falcon 9
@@ -68,3 +69,14 @@ println("Evaluating gradient of augmented lagrangian: ")
 println(evalGradAL(alRocket, initTraj))
 println("Evaluating hessian of augmented lagrangian: ")
 println(size(evalHessAl(alRocket, initTraj)))
+
+# Next we select resonable solver parameters
+currSolveParams = solverParams(0.1, 0.5,
+                                6, 4,
+                                10^-4,
+                                10, 10^6,
+                                2.5, 2, 0.2, 0.2, 0.4)
+solParamPrint(currSolveParams)
+
+
+trajStates, resArr = ALPrimalNewtonMain(initTraj, alRocket, currSolveParams)
