@@ -38,7 +38,7 @@ This function returns the following part:
 
 See also: [`constraintManager`](@ref)
 """
-function evalConstraints(yCurr, cM::constraintManager, penalty::Float64)
+function evalConstraints(cM::constraintManager, yCurr, penalty::Float64)
 
     total_eval = 0
 
@@ -76,7 +76,7 @@ This function returns the following part:
 
 See also: [`constraintManager`](@ref)
 """
-function evalGradConstraints(yCurr, cM::constraintManager, penalty::Float64)
+function evalGradConstraints(cM::constraintManager, yCurr, penalty::Float64)
 
     if size(yCurr, 1) == 1
         # If this is a one dimensional optimization problem, the gradient
@@ -129,7 +129,7 @@ H(ρ Σ ||cᵢ(x)||² + Σ λᵢ^{\top}cᵢ(x)) = Σ H(ρ ||cᵢ(x)||² + λᵢ^
 
 See also: [`constraintManager`](@ref)
 """
-function evalHessConstraints(yCurr, cM::constraintManager, penalty::Float64)
+function evalHessConstraints(cM::constraintManager, yCurr)
 
     total_hess = spzeros(size(yCurr, 1), size(yCurr, 1))
 

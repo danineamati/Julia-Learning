@@ -17,13 +17,13 @@ cM1 = constraintManager([c1, c2, c3], lambdaVec)
 x0Test = [5]
 penaltyTest = 10.0
 println("Evaluating the Constraints: ")
-println(evalConstraints(x0Test, cM1, penaltyTest))
+println(evalConstraints(cM1, x0Test, penaltyTest))
 
 println("Evaluate Gradient of the Constraint Terms: ")
-println(evalGradConstraints(x0Test, cM1, penaltyTest))
+println(evalGradConstraints(cM1, x0Test, penaltyTest))
 
 println("Evaluate Hessian of the Constraint Terms: ")
-println(evalHessConstraints(x0Test, cM1, penaltyTest))
+println(evalHessConstraints(cM1, x0Test))
 
 println("########################")
 println("#    2D Test Case 1    #")
@@ -37,13 +37,13 @@ cM1 = constraintManager([c1, c2, c3], lambdaVec)
 x0Test = [5; -3]
 penaltyTest = 10.0
 println("Evaluating the Constraints: ")
-println(evalConstraints(x0Test, cM1, penaltyTest))
+println(evalConstraints(cM1, x0Test, penaltyTest))
 
 println("Evaluate Gradient of the Constraint Terms: ")
-println(evalGradConstraints(x0Test, cM1, penaltyTest))
+println(evalGradConstraints(cM1, x0Test, penaltyTest))
 
 println("Evaluate Hessian of the Constraint Terms: ")
-println(evalHessConstraints(x0Test, cM1, penaltyTest))
+println(evalHessConstraints(cM1, x0Test))
 
 
 println("########################")
@@ -58,13 +58,13 @@ cM1 = constraintManager([c1, c2, c3], lambdaVec)
 x0Test = [5; -3]
 penaltyTest = 10.0
 println("Evaluating the Constraints: ")
-println(evalConstraints(x0Test, cM1, penaltyTest))
+println(evalConstraints(cM1, x0Test, penaltyTest))
 
 println("Evaluate Gradient of the Constraint Terms: ")
-println(evalGradConstraints(x0Test, cM1, penaltyTest))
+println(evalGradConstraints(cM1, x0Test, penaltyTest))
 
 println("Evaluate Hessian of the Constraint Terms: ")
-println(evalHessConstraints(x0Test, cM1, penaltyTest))
+println(evalHessConstraints(cM1, x0Test))
 
 println("###############################")
 println("#  2D Affine Mixed Test Case  #")
@@ -78,10 +78,10 @@ cM1 = constraintManager([c1, c2, c3], lambdaVec)
 x0Test = [5; -3]
 penaltyTest = 10.0
 println("Evaluating the Constraints: ")
-println(evalConstraints(x0Test, cM1, penaltyTest))
+println(evalConstraints(cM1, x0Test, penaltyTest))
 
 println("Evaluate Gradient of the Constraint Terms: ")
-println(evalGradConstraints(x0Test, cM1, penaltyTest))
+println(evalGradConstraints(cM1, x0Test, penaltyTest))
 
 println("Evaluate Hessian of the Constraint Terms: ")
-println(evalHessConstraints(x0Test, cM1, penaltyTest))
+println(evalHessConstraints(cM1, x0Test))
