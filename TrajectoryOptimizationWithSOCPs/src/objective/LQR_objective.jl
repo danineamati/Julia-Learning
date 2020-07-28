@@ -43,7 +43,7 @@ See also: [`LQR_simple`](@ref)
 function makeLQR_TrajSimple(Q, R, NSteps::Int64)
     QSize = size(Q, 1)
     RSize = size(R, 1)
-    totSize = (QSize + RSize) * NSteps
+    totSize = (QSize + RSize) * NSteps + QSize
 
     # Initialize and empty sparse array
     QRFull = spzeros(totSize, totSize)
@@ -61,6 +61,8 @@ function makeLQR_TrajSimple(Q, R, NSteps::Int64)
 
         rStart += RSize
     end
+    rEnd = rStart + QSize - 1
+    QRFull[rStart:rEnd, rStart:rEnd] = Q
 
     return objectiveQ(QRFull)
 end

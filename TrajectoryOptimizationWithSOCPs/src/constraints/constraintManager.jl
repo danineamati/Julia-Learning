@@ -42,15 +42,20 @@ function evalConstraints(cM::constraintManager, yCurr, penalty::Float64)
 
     total_eval = 0
 
+    println("Evaluating the constraints")
+
     for (i, c) in enumerate(cM.cList)
         # Obtain the dual variable matching this constraint
         lambda = cM.lambdaList[i]
         # Evaluate the current constraint
         cVal = getNormToProjVals(c, yCurr)
-        # println("Lambda = $lambda and cVal = $cVal")
+        println("Lambda = $(size(lambda)) and cVal = $(size(cVal))")
+        println()
+        println("So, ||c(x)|| = $(size(norm(cVal)))")
+        println()
 
         # Evaluate and add the full constraint term
-        total_eval += penalty * (norm(cVal)^2) + lambda' * cVal
+        # total_eval += penalty * (norm(cVal)^2) + lambda' * cVal
     end
 
     return total_eval
