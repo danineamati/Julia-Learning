@@ -87,6 +87,24 @@ function evalConstraints(cM::constraintManager, yCurr, penalty::Float64)
     return total_eval
 end
 
+"""
+    getConstraintViolationList(cM::constraintManager, yList,
+                               penalty::Float64 = 1.0)
+
+Takes a list of trajectories and calculates the TOTAL constraint violation
+at each trajectory.
+"""
+function getConstraintViolationList(cM::constraintManager, yList,
+                                    penalty::Float64 = 1.0)
+    constVio = zeros(size(yList, 1))
+
+    for (ind, y) in enumerate(yList)
+        constVio[ind] = evalConstraints(cM, y, penalty)
+    end
+
+    return constVio
+end
+
 #############################################################
 ###     Evaluate the Gradient of a List of Constraints    ###
 #############################################################

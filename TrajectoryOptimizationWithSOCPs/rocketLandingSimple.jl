@@ -13,6 +13,8 @@ include("src\\auglag\\auglag-core.jl")
 include("src\\solver\\AL-Primal-Main-Solver.jl")
 include("src\\results\\trajectoryParsing.jl")
 include("src\\results\\plotTrajectory.jl")
+include("src\\results\\plotConstraintViolation.jl")
+include("src\\results\\plotObjective.jl")
 
 # Based on the Falcon 9
 # 549,054 kg (Mass)
@@ -26,8 +28,8 @@ rocket = rocket_simple(mass, isp, grav, deltaTime)
 
 # in km
 # roughly half of the Karman Line (100 km)
-rocketStart = [5.0; 50.0; 0.0; -1.0]
-rocketEnd = [0.0; 0.0; 0.0; 0.0]#[-5.0; 0.0; 0.0; 0.0]
+rocketStart = [2.0; 20.0; 0.0; -1.0]
+rocketEnd = [0.0; 20.0; 0.0; 0.0]#[-5.0; 0.0; 0.0; 0.0]
 
 # Number of time steps to discretize the trajectory
 NSteps = 40
@@ -45,7 +47,7 @@ lambdaInit = zeros(size(BDyn))
 
 cMRocket = constraintManager([dynConstraint], [lambdaInit])
 
-penaltyStart = 1.0
+penaltyStart = 1.0e4
 
 # Test that the evaluations work
 println("\n--------------------------------------------")
@@ -93,7 +95,15 @@ trajStates, resArr = ALPrimalNewtonMain(initTraj, alRocket, currSolveParams)
 
 # Get the parsed list of trajectories
 ptList = [getParseTrajectory(traj, 2) for traj in trajStates]
-plotTrajPos2D_Multiple(ptList)
-xlabel!("X")
-ylabel!("Y")
+pltTraj = plotTrajPos2D_Multiple(ptList)
+xlabel!("X (km)")
+ylabel!("Y (km)")
 title!("Test Trajectory")
+display(pltTraj)
+
+pltCV = plotConstraintViolation(cMRocket, trajStates, penaltyStart)
+display(pltCV)
+pltObj = plotObjective(costFun, trajStates)
+display(pltObj)
+
+plts, pltv, pltu = plotSVUTime_Simple(ptList[end])

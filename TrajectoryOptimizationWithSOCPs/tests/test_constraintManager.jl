@@ -17,7 +17,7 @@ cM1 = constraintManager([c1, c2, c3], lambdaVec)
 x0Test = [5]
 penaltyTest = 10.0
 println("Evaluating the Constraints: ")
-println(evalConstraints(cM1, x0Test, penaltyTest))
+println([evalConstraints(cM1, x0Test, penaltyTest)])
 
 println("Evaluate Gradient of the Constraint Terms: ")
 println(evalGradConstraints(cM1, x0Test, penaltyTest))

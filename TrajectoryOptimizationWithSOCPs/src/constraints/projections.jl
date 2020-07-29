@@ -57,8 +57,14 @@ function projAffineEq(a, b, x)
     proj(x) = x + (b - a'x) * a / a'a
             = x + a * [b] / a'a - a * (a'x) / a'a
     =#
+    if a'a == 0
+        println("Divide by zero error in projection, returning zero.")
+        return 0
+    end
     t1 = a * b / a'a
+    # println("T1 = $t1")
     t2 = a * (a'x) / a'a
+    # println("T2 = $t2")
     return x + t1 - t2
 end
 
