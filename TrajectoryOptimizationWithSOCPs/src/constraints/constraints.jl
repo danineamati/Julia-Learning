@@ -48,7 +48,9 @@ function getNormToProjVals(r::AL_AffineEquality, x)
     =#
     projVecs = getProjVecs(r, x)
     pvsDiff = [pv - x for pv in projVecs]
-    return norm.(pvsDiff, 2)
+
+    # NaN removal due to floating point error near 0.0
+    return replace(norm.(pvsDiff, 2), NaN=>0.0)
 end
 
 # Lastly, we do some calculus
