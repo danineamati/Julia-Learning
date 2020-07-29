@@ -131,7 +131,7 @@ function newtonTRLS_ALP(y0, al::augLag, sp::solverParams, verbose = false)
         LCho = sparse(rCho.L)
 
         if true
-            println("\nNewton Direction: $dk")
+            # println("\nNewton Direction: $dk")
             println("Damping of ($damp) and trust size of ($trustDelta)")
             # println("AL: $al")
         end
@@ -186,15 +186,15 @@ function newtonTRLS_ALP(y0, al::augLag, sp::solverParams, verbose = false)
                 println("Trying Line Search.")
             end
 
-            println("Attempting Line Search: ")
+            # println("Attempting Line Search: ")
             lc = lineSearchObj(yCurr)
-            println("Base Fun lineSearchObj -> $(size(lc)) -> $lc")
+            # println("Base Fun lineSearchObj -> $(size(lc)) -> $lc")
             lgc = lineSearchdfdx(yCurr)
-            println("Base Grad lineSearchdfdx -> $(size(lgc)) ->")
-            display(lgc)
+            # println("Base Grad lineSearchdfdx -> $(size(lgc)) ->")
+            # display(lgc)
             rlgc = dk'lgc
-            println("Results include $(size(rlgc)) ->")
-            display(rlgc)
+            # println("Results include $(size(rlgc)) ->")
+            # display(rlgc)
 
             # Attempt a linesearch
             # Get the line search recommendation
@@ -204,7 +204,7 @@ function newtonTRLS_ALP(y0, al::augLag, sp::solverParams, verbose = false)
             if true
                 println("    Recommended Line Search Step: $stepLS")
                 if stepLS < (sp.paramB ^ 3)
-                    println("    Very low step. Newton Step was $dk")
+                    println("    Very low step.")
                 end
             end
 
@@ -223,7 +223,7 @@ function newtonTRLS_ALP(y0, al::augLag, sp::solverParams, verbose = false)
         push!(yNewtStates, y0New)
 
         if true
-            println("Added State: $y0New\n")
+            println("Added State")#"$y0New\n")
         end
 
         # Break by tolerance and trust region size
@@ -329,6 +329,8 @@ function ALPrimalNewtonMain(y0, al::augLag, sp::solverParams, verbose = false)
             y0 = yNewest
         end
     end
+
+    println("\nSOLVE COMPLETE\n")
 
     return yStates, residuals
 end

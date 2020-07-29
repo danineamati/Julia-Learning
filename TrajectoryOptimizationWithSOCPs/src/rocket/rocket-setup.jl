@@ -32,17 +32,47 @@ struct rocket_simple
     mass
     isp
     grav
+    deltaTime
 end
 
 
 @doc raw"""
     rocketDynamics(r::rocket_simple, nDim::Int64)
 
-We have a linear dynamics system
+We have a linear dynamics system, that when continuous is
 ```math
-x_{k+1} = A x_k + B u_k + G
+\frac{dx}{dt} = Ax + Bu + g
 ```
-We compute and return A, B, and G for a [`rocket_simple`](@ref).
+If we have `y = [x; u; g]`, then,
+```math
+\frac{dy}{dt} = [A B I; 0 0 0; 0 0 0] y = W y
+```
+which has solution
+```math
+y(t) = e^{W t} y0
+```
+where W is square. In a discrete system,
+```math
+yk+1 = e^{W Δt} yk = E yk
+```
+
+Note that due to all the zeros in W, we get:
+```math
+xk+1 = E11 xk + E12 uk + E13 g
+```
+```math
+uk+1 = E21 xk + E22 uk + E23 g = uk
+```
+```math
+g = E31 xk + E32 uk + E33 g = g
+```
+
+Thus, once we calculate E, we extract E11, E12, and E13 to a system of the
+form:
+```math
+x_{k+1} = Aₑ x_k + Bₑ u_k + Gₑ
+```
+We compute and return Aₑ, Bₑ, and Gₑ for a [`rocket_simple`](@ref).
 
 For a simple rocket, we have
 
@@ -50,13 +80,40 @@ For a simple rocket, we have
 A = [0 \ I; 0 \ 0] \quad B = [0; \frac{1}{m} I] \quad G = [0; -g]
 ```
 
+We then take the exponent and return a resulting sparse matrices
+
 """
 function rocketDynamics(r::rocket_simple, nDim::Int64)
-    sp0 = spzeros(nDim, nDim)
-    aMat = [sp0 I; sp0 sp0]
-    bMat = [sp0; (1/r.mass) * I]
-    gVec = [spzeros(nDim, 1); r.grav]
-    return aMat, bMat, gVec
+
+    # Start off with a dense representation bc it is needed for the
+    # exponentiation.
+    z0 = zeros(nDim, nDim)
+    aMat = [z0 I; z0 z0]
+    bMat = [z0; (1/r.mass) * I]
+    gMat = [z0; I]
+    # gVec = [spzeros(nDim, 1); r.grav]
+
+    # Top Row
+    abg = [aMat bMat gMat]
+    abg_size = size(abg)
+
+    # We need to pad the remaining rows to make a square matrix
+    remainingRows = abg_size[2] - abg_size[1]
+    abgTot = [abg; zeros(remainingRows, abg_size[2])]
+
+    # Take the exponent e^(W Δt)
+    eMat = exp(abgTot * r.deltaTime)
+
+    # Extract the effective matrices
+    rowsA = size(aMat, 1)
+    colsA = size(aMat, 2)
+    colsB = size(bMat, 2)
+
+    aEffMat = sparse(eMat[1:rowsA, 1:colsA])
+    bEffMat = sparse(eMat[1:rowsA, colsA + 1:colsA + colsB])
+    gEffMat = sparse(eMat[1:rowsA, colsA + colsB + 1:end])
+
+    return aEffMat, bEffMat, gEffMat
 end
 
 @doc raw"""
@@ -114,7 +171,7 @@ function rocketDynamicsStack(r::rocket_simple, nDim::Int64, NSteps::Int64)
         AStacked[rStart:rEnd, cStart:cEnd] = ABI_unit
 
         # Second, we calculate the stacked G vector
-        GStacked[rStart:rEnd] = Gk
+        GStacked[rStart:rEnd] = Gk * r.grav
 
         # Prepare for next iteration.
         rStart += 2 * nDim

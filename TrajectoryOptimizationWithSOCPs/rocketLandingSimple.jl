@@ -11,22 +11,26 @@ include("src\\objective\\LQR_objective.jl")
 include("src\\constraints\\constraintManager.jl")
 include("src\\auglag\\auglag-core.jl")
 include("src\\solver\\AL-Primal-Main-Solver.jl")
-
+include("src\\results\\trajectoryParsing.jl")
+include("src\\results\\plotTrajectory.jl")
 
 # Based on the Falcon 9
 # 549,054 kg (Mass)
 # 282 s (Specific Impulse)
 # select "y" as the vertical
+mass = 549054
+isp = 282
 grav = [0; -9.81]
-rocket = rocket_simple(549054, 282, grav)
+deltaTime = 0.1
+rocket = rocket_simple(mass, isp, grav, deltaTime)
 
 # in km
 # roughly half of the Karman Line (100 km)
 rocketStart = [5.0; 50.0; 0.0; -1.0]
-rocketEnd = [-5.0; 0.0; 0.0; 0.0]
+rocketEnd = [0.0; 0.0; 0.0; 0.0]#[-5.0; 0.0; 0.0; 0.0]
 
 # Number of time steps to discretize the trajectory
-NSteps = 10
+NSteps = 40
 # Initialize the trajectory with a line
 initTraj = initializeTraj(rocketStart, rocketEnd, NSteps)
 
@@ -72,11 +76,24 @@ println(size(evalHessAl(alRocket, initTraj)))
 
 # Next we select resonable solver parameters
 currSolveParams = solverParams(0.1, 0.5,
-                                6, 4,
+                                3, 2,
                                 10^-4,
                                 10, 10^6,
                                 2.5, 2, 0.2, 0.2, 0.4)
 solParamPrint(currSolveParams)
+println()
+println()
 
+println("--------------------------------------------")
+println("             Beginning Solve                ")
+println("--------------------------------------------")
 
+# Solve the Trajectory Optimization problem
 trajStates, resArr = ALPrimalNewtonMain(initTraj, alRocket, currSolveParams)
+
+# Get the parsed list of trajectories
+ptList = [getParseTrajectory(traj, 2) for traj in trajStates]
+plotTrajPos2D_Multiple(ptList)
+xlabel!("X")
+ylabel!("Y")
+title!("Test Trajectory")

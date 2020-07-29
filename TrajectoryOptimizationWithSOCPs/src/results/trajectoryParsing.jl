@@ -27,7 +27,7 @@ function getParseTrajectory(traj, nDim)
 
     kStart = 1
     maxK = length(traj)
-    println("Max = $maxK")
+    # println("Max = $maxK")
 
     while kStart < (maxK - 2 * nDim)
         # println("Accessing $kStart to $(kStart + 3 * nDim - 1)")
