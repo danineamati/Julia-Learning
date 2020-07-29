@@ -26,20 +26,22 @@ grav = [0; -9.81]
 deltaTime = 0.1
 rocket = rocket_simple(mass, isp, grav, deltaTime)
 
-# in km
-# roughly half of the Karman Line (100 km)
-rocketStart = [2.0; 20.0; 0.0; -1.0]
+# in m
+# The Karman Line (100 km)
+rocketStart = [2.0; 20.0; 0.0; 0.0]
 rocketEnd = [0.0; 20.0; 0.0; 0.0]#[-5.0; 0.0; 0.0; 0.0]
+
+uHover = -mass * grav
 
 # Number of time steps to discretize the trajectory
 NSteps = 40
 # Initialize the trajectory with a line
-initTraj = initializeTraj(rocketStart, rocketEnd, NSteps)
+initTraj = initializeTraj(rocketStart, rocketEnd, uHover, uHover, NSteps)
 
 # Use a Linear Quadratic Regulator as the cost function
 lqrQMat = 10 * Diagonal(I, size(rocketStart, 1))
 lqrRMat = 2 * Diagonal(I, Int64(size(rocketStart, 1) / 2))
-costFun = makeLQR_TrajSimple(lqrQMat, lqrRMat, NSteps)
+costFun = makeLQR_TrajReferenced(lqrQMat, lqrRMat, NSteps, initTraj)
 
 ADyn, BDyn = rocketDynamicsFull(rocket, rocketStart, rocketEnd, NSteps)
 dynConstraint = AL_AffineEquality(ADyn, BDyn)
@@ -47,7 +49,7 @@ lambdaInit = zeros(size(BDyn))
 
 cMRocket = constraintManager([dynConstraint], [lambdaInit])
 
-penaltyStart = 1.0e4
+penaltyStart = 1.0
 
 # Test that the evaluations work
 println("\n--------------------------------------------")
@@ -78,7 +80,7 @@ println(size(evalHessAl(alRocket, initTraj)))
 
 # Next we select resonable solver parameters
 currSolveParams = solverParams(0.1, 0.5,
-                                3, 2,
+                                6, 2,
                                 10^-4,
                                 10, 10^6,
                                 2.5, 2, 0.2, 0.2, 0.4)
@@ -93,17 +95,20 @@ println("--------------------------------------------")
 # Solve the Trajectory Optimization problem
 trajStates, resArr = ALPrimalNewtonMain(initTraj, alRocket, currSolveParams)
 
-# Get the parsed list of trajectories
-ptList = [getParseTrajectory(traj, 2) for traj in trajStates]
-pltTraj = plotTrajPos2D_Multiple(ptList)
-xlabel!("X (km)")
-ylabel!("Y (km)")
-title!("Test Trajectory")
-display(pltTraj)
 
-pltCV = plotConstraintViolation(cMRocket, trajStates, penaltyStart)
-display(pltCV)
-pltObj = plotObjective(costFun, trajStates)
-display(pltObj)
+if false
+    # Get the parsed list of trajectories
+    ptList = [getParseTrajectory(traj, 2) for traj in trajStates]
+    pltTraj = plotTrajPos2D_Multiple(ptList)
+    xlabel!("X (km)")
+    ylabel!("Y (km)")
+    title!("Test Trajectory")
+    display(pltTraj)
 
-plts, pltv, pltu = plotSVUTime_Simple(ptList[end])
+    pltCV = plotConstraintViolation(cMRocket, trajStates, penaltyStart)
+    display(pltCV)
+    pltObj = plotObjective(costFun, trajStates)
+    display(pltObj)
+
+    plts, pltv, pltu = plotSVUTime_Simple(ptList[end])
+end

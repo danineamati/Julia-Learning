@@ -171,7 +171,7 @@ function rocketDynamicsStack(r::rocket_simple, nDim::Int64, NSteps::Int64)
         AStacked[rStart:rEnd, cStart:cEnd] = ABI_unit
 
         # Second, we calculate the stacked G vector
-        GStacked[rStart:rEnd] = Gk * r.grav
+        GStacked[rStart:rEnd] = -Gk * r.grav
 
         # Prepare for next iteration.
         rStart += 2 * nDim

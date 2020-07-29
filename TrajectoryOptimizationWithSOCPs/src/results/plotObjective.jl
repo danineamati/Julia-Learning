@@ -3,7 +3,7 @@
 include("..\\objective\\QP_Linear_objectives.jl")
 
 
-function plotObjective(obj::objectiveQP_abstract, trajList)
+function plotObjective(obj::objectiveFunc, trajList)
     fList = [fObjQP(obj, traj)[1] for traj in trajList]
 
     pltObj = plot(fList, markershape = :square)

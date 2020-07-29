@@ -25,6 +25,17 @@ struct LQR_QP <: objectiveLQR_abstract
     QR_Full
 end
 
+"""
+    LQR_QP
+
+An LQR what acts like a QP objective function, but with a reference
+trajectory.
+"""
+struct LQR_QP_Referenced <: objectiveLQR_abstract
+    lqr_qp::LQR_QP
+    xRef
+end
+
 
 #####################################
 #  LQR -> ObjectiveQP Constructors  #
@@ -80,6 +91,16 @@ function makeLQR_TrajSimple(lqr::LQR_simple, NSteps::Int64)
     return makeLQR_TrajSimple(lqr.Q, lqr.R, NSteps)
 end
 
+function makeLQR_TrajReferenced(Q, R, NSteps::Int64, xRef)
+    baseLQR = makeLQR_TrajSimple(Q, R, NSteps)
+    return LQR_QP_Referenced(baseLQR, xRef)
+end
+
+function makeLQR_TrajReferenced(lqr::LQR_simple, NSteps::Int64, xRef)
+    baseLQR = makeLQR_TrajSimple(lqr.Q, lqr.R, NSteps)
+    return LQR_QP_Referenced(baseLQR, xRef)
+end
+
 
 #######################################
 ###       Evaluate An LQR QP        ###
@@ -104,6 +125,18 @@ See [`LQR_QP`](@ref).
 function fObjQP(lqr::LQR_QP, x, xRef)
     xDiff = x - xRef
     return fObjQP(lqr, xDiff)
+end
+
+"""
+    fObjQP(lqrRef::LQR_QP_Referenced, x)
+
+Evaluates a full QP-like LQR relative to a reference. (i.e. x -> (x - xRef))
+
+See [`LQR_QP`](@ref), [`LQR_QP_Referenced`](@ref)
+"""
+function fObjQP(lqrRef::LQR_QP_Referenced, x)
+    xDiff = x - lqrRef.xRef
+    return fObjQP(lqrRef.lqr_qp, xDiff)
 end
 
 #######################################
@@ -133,6 +166,18 @@ function dfdxQP(lqr::LQR_QP, x, xRef)
     return dfdxQP(lqr, xDiff)
 end
 
+"""
+    dfdxQP(lqrRef::LQR_QP_Referenced, x)
+
+Evaluates the derivative of a full QP-like LQR at input `x` with respect to
+a reference `xRef`.
+
+See [`LQR_QP_Referenced`](@ref), [`LQR_QP`](@ref), [`dfdxQP`](@ref)
+"""
+function dfdxQP(lqrRef::LQR_QP_Referenced, x)
+    return dfdxQP(lqrRef.lqr_qp, x, lqrRef.xRef)
+end
+
 #######################################
 ###      Hessians of LQR QP         ###
 #######################################
@@ -145,4 +190,15 @@ See [`LQR_QP`](@ref)
 """
 function hessQP(lqr::LQR_QP)
     return lqr.QR_Full
+end
+
+"""
+    hessQP(lqr::LQR_QP)
+
+Evaluates the hessian of a full QP-like LQR, which is simple the base matrix.
+
+See [`LQR_QP`](@ref)
+"""
+function hessQP(lqrRef::LQR_QP_Referenced)
+    return hessQP(lqrRef.lqr_qp)
 end
