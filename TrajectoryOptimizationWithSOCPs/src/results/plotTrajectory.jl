@@ -133,18 +133,28 @@ function plotSVUTime_Multiple(sListStack, vListStack, uListStack)
     display(plt_v)
 
     # Plot the Controls
-    plt_u = plot()
     colorSelect = 1
-    for (ind, uList) in enumerate(uListStack)
-        uxyzList = splitDimensions(uList)
-        for d in 1:nDim
-            scatter!(uxyzList[d], markershape = markerShapeArr[ind],
+
+    uxyzListSplit = splitDimensions.(uListStack)
+
+    uPltList = []
+
+    for d in 1:nDim
+        pltNew = plot()
+        for ind in 1:length(uxyzListSplit)
+            uxyzList = uxyzListSplit[ind][d]
+            scatter!(uxyzList, markershape = markerShapeArr[ind],
                      markersize = markerSizeArr[ind],
                      markercolor = markerColorArr[colorSelect],
                      label = uxyzLabels[d])
             colorSelect += 1
         end
+        push!(uPltList, pltNew)
+        # display(pltNew)
     end
+
+    plt_u = plot(uPltList..., layout = (length(uPltList), 1))
+
     title!("Change in thrust over time")
     xlabel!("Time")
     ylabel!("Contol (Thrust)")

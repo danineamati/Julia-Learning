@@ -20,10 +20,10 @@ include("src\\results\\plotObjective.jl")
 # 549,054 kg (Mass)
 # 282 s (Specific Impulse)
 # select "y" as the vertical
-mass = 549054
-isp = 282
+mass = 1
+isp = 1
 grav = [0; -9.81]
-deltaTime = 0.1
+deltaTime = 1
 rocket = rocket_simple(mass, isp, grav, deltaTime)
 
 # in m
@@ -98,7 +98,8 @@ trajStates, resArr = ALPrimalNewtonMain(initTraj, alRocket, currSolveParams)
 
 if true
     # Get the parsed list of trajectories
-    ptList = [getParseTrajectory(traj, 2) for traj in trajStates]
+    nDim = size(grav, 1)
+    ptList = [getParseTrajectory(traj, nDim) for traj in trajStates]
     pltTraj = plotTrajPos2D_Multiple(ptList)
     xlabel!("X (km)")
     ylabel!("Y (km)")
