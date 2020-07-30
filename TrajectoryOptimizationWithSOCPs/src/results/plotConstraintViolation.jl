@@ -7,9 +7,9 @@ function plotConstraintViolation(cM::constraintManager, trajList,
     cVList = getConstraintViolationList(cM, trajList, penalty)
 
     pltCV = plot(cVList, markershape = :square)
-    title!("Constraint Violation per Newton Step")
+    title!("Constraint Violation")
     ylabel!("Constraint Violation at Penalty of $penalty")
-    xlabel!("Newton Step")
+    xlabel!("Step")
 
     return pltCV
 end
