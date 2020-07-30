@@ -11,6 +11,9 @@ include("src\\objective\\LQR_objective.jl")
 include("src\\constraints\\constraintManager.jl")
 include("src\\auglag\\auglag-core.jl")
 include("src\\solver\\AL-Primal-Main-Solver.jl")
+include("src\\solver\\QP-AffineEquality-Solver.jl")
+include("src\\other_utils\\parsePrimalDual.jl")
+
 include("src\\results\\trajectoryParsing.jl")
 include("src\\results\\plotTrajectory.jl")
 include("src\\results\\plotConstraintViolation.jl")
@@ -29,9 +32,9 @@ rocket = rocket_simple(mass, isp, grav, deltaTime)
 # in m
 # The Karman Line (100 km)
 rocketStart = [2.0; 20.0; 0.0; 0.0]
-rocketEnd = [0.0; 20.0; 0.0; 0.0]#[-5.0; 0.0; 0.0; 0.0]
+rocketEnd = [0.0; 0.0; 0.0; 0.0]#[-5.0; 0.0; 0.0; 0.0]
 
-uHover = -mass * grav
+uHover = mass * grav
 
 # Number of time steps to discretize the trajectory
 NSteps = 40
@@ -92,25 +95,30 @@ println("--------------------------------------------")
 println("             Beginning Solve                ")
 println("--------------------------------------------")
 
-# Solve the Trajectory Optimization problem
-trajStates, resArr = ALPrimalNewtonMain(initTraj, alRocket, currSolveParams)
+# # Solve the Trajectory Optimization problem
+# trajStates, resArr = ALPrimalNewtonMain(initTraj, alRocket, currSolveParams)
+#
+#
+# if true
+#     # Get the parsed list of trajectories
+#     nDim = size(grav, 1)
+#     pltTraj, pltCV, pltObj, plts, pltv, pltu = batchPlot(trajStates, nDim)
+# end
 
+costQ = costFun.lqr_qp.QR_Full
+costP = - (initTraj' * costQ)'
+trajLambdaSolved = solveQP_AffineEq(costQ, costP, ADyn, BDyn)
+trajSolved = parsePrimalDualVec(trajLambdaSolved, size(initTraj, 1))
 
 if true
     # Get the parsed list of trajectories
     nDim = size(grav, 1)
-    ptList = [getParseTrajectory(traj, nDim) for traj in trajStates]
-    pltTraj = plotTrajPos2D_Multiple(ptList)
-    xlabel!("X (km)")
-    ylabel!("Y (km)")
-    title!("Test Trajectory")
-    display(pltTraj)
+    pltTraj, pltCV, pltObj, plts, pltv, pltu = batchPlot(
+                                    [initTraj, trajSolved.primals], nDim)
+end
 
-    pltCV = plotConstraintViolation(cMRocket, trajStates, penaltyStart)
-    display(pltCV)
-    pltObj = plotObjective(costFun, trajStates)
-    display(pltObj)
 
-    # plotSVUTime_Simple(ptList[1])
-    plts, pltv, pltu = plotSVUTime_StartEnd(ptList)
+if true
+    header = "DirectLanding"
+    saveBulk(pltTraj, pltCV, pltObj, plts, pltv, pltu, header)
 end

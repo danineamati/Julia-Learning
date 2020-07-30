@@ -89,7 +89,7 @@ function rocketDynamics(r::rocket_simple, nDim::Int64)
     # exponentiation.
     z0 = zeros(nDim, nDim)
     aMat = [z0 I; z0 z0]
-    bMat = [z0; (1/r.mass) * I]
+    bMat = [z0; -(1/r.mass) * I]
     gMat = [z0; I]
     # gVec = [spzeros(nDim, 1); r.grav]
 

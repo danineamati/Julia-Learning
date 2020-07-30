@@ -92,7 +92,7 @@ function plotSVUTime_Multiple(sListStack, vListStack, uListStack)
 
     markerShapeArr = [:rect, :diamond]
     markerSizeArr = [8; 4]
-    markerColorArr = [:blue, :purple, :yellow, :orange]
+    markerColorArr = [:blue, :purple, :orange2, :gold]
 
     # Plot the Positions
     plt_s = plot()
@@ -102,9 +102,10 @@ function plotSVUTime_Multiple(sListStack, vListStack, uListStack)
         xyzList = splitDimensions(sList)
         for d in 1:nDim
             thisLabel = sxyzLabels[d] * " for traj $ind"
-            scatter!(xyzList[d], markershape = markerShapeArr[ind],
+            plot!(xyzList[d], markershape = markerShapeArr[ind],
                      markersize = markerSizeArr[ind],
                      markercolor = markerColorArr[colorSelect],
+                     linecolor = markerColorArr[colorSelect],
                      label = thisLabel)
             colorSelect += 1
         end
@@ -120,9 +121,10 @@ function plotSVUTime_Multiple(sListStack, vListStack, uListStack)
     for (ind, vList) in enumerate(vListStack)
         vxyzList = splitDimensions(vList)
         for d in 1:nDim
-            scatter!(vxyzList[d], markershape = markerShapeArr[ind],
+            plot!(vxyzList[d], markershape = markerShapeArr[ind],
                      markersize = markerSizeArr[ind],
                      markercolor = markerColorArr[colorSelect],
+                     linecolor = markerColorArr[colorSelect],
                      label = vxyzLabels[d])
             colorSelect += 1
         end
@@ -134,6 +136,7 @@ function plotSVUTime_Multiple(sListStack, vListStack, uListStack)
 
     # Plot the Controls
     colorSelect = 1
+    markerColorArr = [:blue, :orange2, :purple, :gold]
 
     uxyzListSplit = splitDimensions.(uListStack)
 
@@ -143,9 +146,10 @@ function plotSVUTime_Multiple(sListStack, vListStack, uListStack)
         pltNew = plot()
         for ind in 1:length(uxyzListSplit)
             uxyzList = uxyzListSplit[ind][d]
-            scatter!(uxyzList, markershape = markerShapeArr[ind],
+            plot!(uxyzList, markershape = markerShapeArr[ind],
                      markersize = markerSizeArr[ind],
                      markercolor = markerColorArr[colorSelect],
+                     linecolor = markerColorArr[colorSelect],
                      label = uxyzLabels[d])
             colorSelect += 1
         end
