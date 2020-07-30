@@ -96,7 +96,7 @@ println("--------------------------------------------")
 trajStates, resArr = ALPrimalNewtonMain(initTraj, alRocket, currSolveParams)
 
 
-if false
+if true
     # Get the parsed list of trajectories
     ptList = [getParseTrajectory(traj, 2) for traj in trajStates]
     pltTraj = plotTrajPos2D_Multiple(ptList)
@@ -110,5 +110,6 @@ if false
     pltObj = plotObjective(costFun, trajStates)
     display(pltObj)
 
-    plts, pltv, pltu = plotSVUTime_Simple(ptList[end])
+    # plotSVUTime_Simple(ptList[1])
+    plts, pltv, pltu = plotSVUTime_StartEnd(ptList)
 end

@@ -81,3 +81,85 @@ end
 function plotSVUTime_Simple(pt::parseTrajectory)
     return plotSVUTime_Simple(pt.sList, pt.vList, pt.uList)
 end
+
+function plotSVUTime_Multiple(sListStack, vListStack, uListStack)
+
+    # Variables needed for later
+    nDim = size(sListStack[1][1], 1)
+    sxyzLabels = ["x", "y", "z"]
+    vxyzLabels = ["vx", "vy", "vz"]
+    uxyzLabels = ["ux", "uy", "uz"]
+
+    markerShapeArr = [:rect, :diamond]
+    markerSizeArr = [8; 4]
+    markerColorArr = [:blue, :purple, :yellow, :orange]
+
+    # Plot the Positions
+    plt_s = plot()
+
+    colorSelect = 1
+    for (ind, sList) in enumerate(sListStack)
+        xyzList = splitDimensions(sList)
+        for d in 1:nDim
+            thisLabel = sxyzLabels[d] * " for traj $ind"
+            scatter!(xyzList[d], markershape = markerShapeArr[ind],
+                     markersize = markerSizeArr[ind],
+                     markercolor = markerColorArr[colorSelect],
+                     label = thisLabel)
+            colorSelect += 1
+        end
+    end
+    title!("Change in position over time")
+    xlabel!("Time")
+    ylabel!("Position")
+    display(plt_s)
+
+    # Plot the Velocities
+    plt_v = plot()
+    colorSelect = 1
+    for (ind, vList) in enumerate(vListStack)
+        vxyzList = splitDimensions(vList)
+        for d in 1:nDim
+            scatter!(vxyzList[d], markershape = markerShapeArr[ind],
+                     markersize = markerSizeArr[ind],
+                     markercolor = markerColorArr[colorSelect],
+                     label = vxyzLabels[d])
+            colorSelect += 1
+        end
+    end
+    title!("Change in velocity over time")
+    xlabel!("Time")
+    ylabel!("Velocity")
+    display(plt_v)
+
+    # Plot the Controls
+    plt_u = plot()
+    colorSelect = 1
+    for (ind, uList) in enumerate(uListStack)
+        uxyzList = splitDimensions(uList)
+        for d in 1:nDim
+            scatter!(uxyzList[d], markershape = markerShapeArr[ind],
+                     markersize = markerSizeArr[ind],
+                     markercolor = markerColorArr[colorSelect],
+                     label = uxyzLabels[d])
+            colorSelect += 1
+        end
+    end
+    title!("Change in thrust over time")
+    xlabel!("Time")
+    ylabel!("Contol (Thrust)")
+    display(plt_u)
+
+    return  plt_s, plt_v, plt_u
+end
+
+function plotSVUTime_StartEnd(ptList::Array{parseTrajectory, 1})
+    ptStart = ptList[1]
+    ptEnd = ptList[end]
+
+    sListStack = [ptStart.sList, ptEnd.sList]
+    vListStack = [ptStart.vList, ptEnd.vList]
+    uListStack = [ptStart.uList, ptEnd.uList]
+
+    plotSVUTime_Multiple(sListStack, vListStack, uListStack)
+end
