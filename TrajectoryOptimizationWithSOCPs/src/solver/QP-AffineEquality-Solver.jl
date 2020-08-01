@@ -31,7 +31,7 @@ function solveQP_AffineEq(Q, p, A, b)
     hMat = [Q A'; A spzeros(size(A, 1), size(A, 1))]
     dMat = [-p; b]
 
-    return Array(hMat) \ Array(dMat)
+    return hMat \ Array(dMat)
 end
 
 function solveQP_AffineEq(obj::objectiveQP, constraints::AL_AffineEquality)

@@ -5,13 +5,17 @@ include("constraints.jl")
 
 using SparseArrays
 
+abstract type constraintManager end
+
 """
-    constraintManager
+    constraintManager_Base
 
 Contains a list of constraints and the dual variables (lambda) that correspond
 with each constraint.
+
+See also [`constraintManager_Dynamics`](@ref)
 """
-struct constraintManager
+struct constraintManager_Base <: constraintManager
     cList::Array{constraint, 1}
     lambdaList
 end

@@ -110,6 +110,7 @@ costP = - (initTraj' * costQ)'
 trajLambdaSolved = solveQP_AffineEq(costQ, costP, ADyn, BDyn)
 trajSolved = parsePrimalDualVec(trajLambdaSolved, size(initTraj, 1))
 
+# Blocked so that it can be run independently after the fact
 if true
     # Get the parsed list of trajectories
     nDim = size(grav, 1)
@@ -117,8 +118,8 @@ if true
                                     [initTraj, trajSolved.primals], nDim)
 end
 
-
-if true
+# Blocked so that it can be run independently after the fact
+if false
     header = "DirectLanding"
     saveBulk(pltTraj, pltCV, pltObj, plts, pltv, pltu, header)
 end
