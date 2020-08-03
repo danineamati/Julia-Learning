@@ -9,6 +9,7 @@ include("src\\rocket\\rocket-setup.jl")
 include("src\\dynamics\\trajectory-setup.jl")
 include("src\\objective\\LQR_objective.jl")
 include("src\\constraints\\constraintManager.jl")
+include("src\\constraints\\constraintManagerDynamics.jl")
 include("src\\auglag\\auglag-core.jl")
 include("src\\solver\\AL-Primal-Main-Solver.jl")
 include("src\\solver\\QP-AffineEquality-Solver.jl")
@@ -18,6 +19,8 @@ include("src\\results\\trajectoryParsing.jl")
 include("src\\results\\plotTrajectory.jl")
 include("src\\results\\plotConstraintViolation.jl")
 include("src\\results\\plotObjective.jl")
+include("src\\results\\batchPlots.jl")
+
 
 # Based on the Falcon 9
 # 549,054 kg (Mass)
@@ -42,15 +45,19 @@ NSteps = 40
 initTraj = initializeTraj(rocketStart, rocketEnd, uHover, uHover, NSteps)
 
 # Use a Linear Quadratic Regulator as the cost function
-lqrQMat = 10 * Diagonal(I, size(rocketStart, 1))
-lqrRMat = 2 * Diagonal(I, Int64(size(rocketStart, 1) / 2))
+lqrQMat = 1 * Diagonal(I, size(rocketStart, 1))
+lqrRMat = 0.25 * Diagonal(I, Int64(size(rocketStart, 1) / 2))
 costFun = makeLQR_TrajReferenced(lqrQMat, lqrRMat, NSteps, initTraj)
 
 ADyn, BDyn = rocketDynamicsFull(rocket, rocketStart, rocketEnd, NSteps)
 dynConstraint = AL_AffineEquality(ADyn, BDyn)
 lambdaInit = zeros(size(BDyn))
 
-cMRocket = constraintManager([dynConstraint], [lambdaInit])
+# cMRocket = constraintManager_Base([dynConstraint], [lambdaInit])
+
+cMRocket = constraintManager_Dynamics([], [], dynConstraint, lambdaInit)
+
+initTrajPD = [initTraj; lambdaInit]
 
 penaltyStart = 1.0
 
@@ -59,11 +66,11 @@ println("\n--------------------------------------------")
 println(" Testing constraints are inputted correctly ")
 println("--------------------------------------------")
 println("Starting constraint violation: ")
-println([evalConstraints(cMRocket, initTraj, penaltyStart)])
+println([evalConstraints(cMRocket, initTrajPD, penaltyStart)])
 println("Starting gradient of constraints: ")
-println(evalGradConstraints(cMRocket, initTraj, penaltyStart))
+println(evalGradConstraints(cMRocket, initTrajPD, penaltyStart))
 println("Starting hessian of constraints: ")
-println(evalHessConstraints(cMRocket, initTraj))
+println(evalHessConstraints(cMRocket, initTrajPD))
 
 
 # Equiped with the constraint term and the objective term, I now build the
@@ -75,11 +82,11 @@ println("--------------------------------------------")
 println("           Testing AL is Functional         ")
 println("--------------------------------------------")
 println("Evaluating augmented lagrangian: ")
-println([evalAL(alRocket, initTraj)])
+println([evalAL(alRocket, initTrajPD)])
 println("Evaluating gradient of augmented lagrangian: ")
-println(evalGradAL(alRocket, initTraj))
+println(evalGradAL(alRocket, initTrajPD))
 println("Evaluating hessian of augmented lagrangian: ")
-println(size(evalHessAl(alRocket, initTraj)))
+println(size(evalHessAl(alRocket, initTrajPD)))
 
 # Next we select resonable solver parameters
 currSolveParams = solverParams(0.1, 0.5,
@@ -95,27 +102,28 @@ println("--------------------------------------------")
 println("             Beginning Solve                ")
 println("--------------------------------------------")
 
-# # Solve the Trajectory Optimization problem
-# trajStates, resArr = ALPrimalNewtonMain(initTraj, alRocket, currSolveParams)
-#
-#
-# if true
-#     # Get the parsed list of trajectories
-#     nDim = size(grav, 1)
-#     pltTraj, pltCV, pltObj, plts, pltv, pltu = batchPlot(trajStates, nDim)
-# end
+# Solve the Trajectory Optimization problem
+useALMethod = true
 
-costQ = costFun.lqr_qp.QR_Full
-costP = - (initTraj' * costQ)'
-trajLambdaSolved = solveQP_AffineEq(costQ, costP, ADyn, BDyn)
-trajSolved = parsePrimalDualVec(trajLambdaSolved, size(initTraj, 1))
+if useALMethod
+    # Use an augmented lagrangian method
+    trajLambdaSolved, resArr = ALPrimalNewtonMain(initTrajPD, alRocket,
+                                            currSolveParams)
+    trajStateLast = parsePrimalDualVec(trajLambdaSolved[end], size(initTraj, 1))
+else
+    # Solve only the objective and linear dynamics
+    costQ = costFun.lqr_qp.QR_Full
+    costP = - (initTraj' * costQ)'
+    trajLambdaSolved = solveQP_AffineEq(costQ, costP, ADyn, BDyn)
+    trajStateLast = parsePrimalDualVec(trajLambdaSolved, size(initTraj, 1))
+end
 
 # Blocked so that it can be run independently after the fact
 if true
     # Get the parsed list of trajectories
     nDim = size(grav, 1)
     pltTraj, pltCV, pltObj, plts, pltv, pltu = batchPlot(
-                                    [initTraj, trajSolved.primals], nDim)
+                                    [initTraj, trajStateLast.primals], nDim)
 end
 
 # Blocked so that it can be run independently after the fact

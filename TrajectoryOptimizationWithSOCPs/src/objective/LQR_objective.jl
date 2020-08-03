@@ -135,6 +135,8 @@ Evaluates a full QP-like LQR relative to a reference. (i.e. x -> (x - xRef))
 See [`LQR_QP`](@ref), [`LQR_QP_Referenced`](@ref)
 """
 function fObjQP(lqrRef::LQR_QP_Referenced, x)
+    # println("x = $(size(x))")
+    # println("xRef = $(size(lqrRef.xRef))")
     xDiff = x - lqrRef.xRef
     return fObjQP(lqrRef.lqr_qp, xDiff)
 end

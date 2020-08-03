@@ -56,6 +56,22 @@ mutable struct augLag
     rho::Float64
 end
 
+
+function getPrimals(al::augLag, primalDualVec)
+    if typeof(al.cM) == constraintManager_Dynamics
+        # println("Adjusting Primal Vec")
+        affLambdaSize = size(al.cM.affineLambdaList, 1)
+        primalSize = size(primalDualVec, 1) - affLambdaSize
+        primals = primalDualVec[1:primalSize]
+    else
+        # There are no duals
+        primals = primalDualVec
+    end
+
+    return primals
+end
+
+
 """
     evalAL(alQP::augLag, y)
 
@@ -66,17 +82,33 @@ returns a real number
 function evalAL(alQP::augLag, y)
     # φ(y) = f(x) + (ρ/2) c(y)'c(y)    + λ c(y)
     # φ(y) = [(1/2) xT Q x + cT x] + (ρ/2) (c(y))'(c(y)) + λ (c(y))
-    fCurr = fObjQP(alQP.obj, y)[1]
-    cCurr = evalConstraints(alQP.cM, y, alQP.rho)
+
+    primals = getPrimals(alQP, y)
+
+    fCurr = fObjQP(alQP.obj, primals)[1]
+    cCurr = evalConstraints(alQP.cM, primals, alQP.rho)
+    println("cCurr = $(size(cCurr)) = $cCurr")
     # println("f(x) = $fCurr")
     # println(" with size -> $(size(fCurr))")
     # println("c(x) = $cCurr")
     # println(" with size -> $(size(cCurr))")
+
+    if typeof(alQP.cM) == constraintManager_Dynamics
+        duals = alQP.cM.affineLambdaList
+        cAff = evalAffineEq(alQP.cM, primals)
+        println("Duals (λ) = $(size(duals))")
+        println("Ax - b = $(size(cAff))")
+        cAffVal = duals'cAff
+        println("λ'(Ax-b) = $(size(cAffVal)) = $cAffVal")
+        println("-> $(cAffVal[1])")
+        cCurr += cAffVal[1]
+    end
+
     return fCurr + cCurr
 end
 
 """
-    evalGradAL(alQP::augLag, y::SOCP_primals, verbose = false)
+    evalGradAL(alQP::augLag, y)
 
 Evaluates the gradient of the augmented lagrangian with the primals `y`. The
 format is adjusted depending on the type of constraint manager.
@@ -94,20 +126,25 @@ function evalGradAL(alQP::augLag, y)
     # ∇φ(y) = ∇f(x) + J(c(y))'(ρ c(y) + λ)
     # y = [x; s; t]
     # ∇φ(y) is (n+m+1)x1
-    gradfCurr = dfdxQP(alQP.obj, y)
-    gradCCurr = evalGradConstraints(alQP.cM, y, alQP.rho)
+
+    primals = getPrimals(alQP, y)
+
+    gradfCurr = dfdxQP(alQP.obj, primals)
+    gradCCurr = evalGradConstraints(alQP.cM, primals, alQP.rho)
 
     gradPhiPrimal = gradfCurr + gradCCurr
 
     if typeof(alQP.cM) == constraintManager_Base
         return gradPhiPrimal
-    elseif type(alQP.cM) == constraintManager_Dynamics
-        return [gradPhiPrimal; evalAffineEq(alQP.cM, y)]
+    elseif typeof(alQP.cM) == constraintManager_Dynamics
+        duals = alQP.cM.affineLambdaList
+        Aaff = affineBlock(alQP.cM)
+        return [gradPhiPrimal + Aaff'duals; evalAffineEq(alQP.cM, primals)]
     end
 end
 
 """
-    evalHessAl(alQP::augLag, y::SOCP_primals, verbose = false)
+    evalHessAl(alQP::augLag, y)
 
 Evaluates the Hessian of the Augmented Lagrangian of an SOCP with the
 primals `y`. The format is adjusted depending on the type of constraint manager.
@@ -121,16 +158,18 @@ constraints. So Hφ = [(Hf + Σ Hci)     A'; A    0]
 
 returns a Symmetric Matrix of size `y`×`y` or `y + b`×`y + b`
 """
-function evalHessAl(alQP::augLag, y, verbose = false)
+function evalHessAl(alQP::augLag, y)
+
+    primals = getPrimals(alQP, y)
 
     hessf = hessQP(alQP.obj)
-    hessC = evalHessConstraints(alQP.cM, y)
+    hessC = evalHessConstraints(alQP.cM, primals)
 
     hessPhiPrimals = hessf + alQP.rho * hessC
 
     if typeof(alQP.cM) == constraintManager_Base
         return hessPhiPrimals
-    elseif type(alQP.cM) == constraintManager_Dynamics
+    elseif typeof(alQP.cM) == constraintManager_Dynamics
         Aaff = affineBlock(alQP.cM)
         blockSize = size(Aaff, 1)
         return [hessPhiPrimals Aaff'; Aaff spzeros(blockSize, blockSize)]
@@ -138,8 +177,7 @@ function evalHessAl(alQP::augLag, y, verbose = false)
 end
 
 """
-    calcNormGradResiduals(alQP::augLag,
-                          yList::Array{SOCP_primals, 1})
+    calcNormGradResiduals(alQP::augLag, yList)
 
 Calculates the 2-norm of the residuals of an augmented lagrangian at each of
 the inputs `y`. The 2-norm in safe in that it is bounded below (e.g. by
@@ -153,14 +191,9 @@ function calcNormGradResiduals(alQP::augLag, yList)
     Returns the norm of the gradient of the AL at each point in xArr
     =#
 
-    resArr = [evalGradAL(alQP, y) for y in yList]
-
-    if typeof(alQP.cM) == constraintManager_Base
-        resArr = [evalGradAL(alQP, y) for y in yList]
-    elseif type(alQP.cM) == constraintManager_Dynamics
-        ySize = size(y, 1)
-        resArr = [evalGradAL(alQP, y)[1:ySize] for y in yList]
-    end
+    primals = getPrimals(alQP, yList[1])
+    pSize = size(primals, 1)
+    resArr = [evalGradAL(alQP, y[1:pSize]) for y in yList]
 
     return safeNorm(resArr)
 end

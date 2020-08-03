@@ -17,7 +17,7 @@
 # minimize_x f(x) + (ρ/2) Σ ||g_i(x)||_2^2 + Σ ν_i g_i(x)
 # The first-order condition of the KKT is
 # ∇f(x) + ρ Σ g_i(x) * ∇g_i(x) + Σ ν_i ∇g_i(x) = 0
-#∇f(x) + Σ (ρ g_i(x) + ν_i) * ∇g_i(x) + Σ∇g_i(x) = 0
+#∇f(x) + Σ (ρ g_i(x) + ν_i) * ∇g_i(x) = 0
 # So, ρ g_i(x) + ν_i = λ_i
 # Or, equivalently, g(x) + (1/ρ) (ν - λ) = 0
 #

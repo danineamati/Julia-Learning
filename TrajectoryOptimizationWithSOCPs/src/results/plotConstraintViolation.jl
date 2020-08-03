@@ -11,5 +11,15 @@ function plotConstraintViolation(cM::constraintManager, trajList,
     ylabel!("Constraint Violation at Penalty of $penalty")
     xlabel!("Step")
 
+    if typeof(cM) == constraintManager_Dynamics
+        cVListDyn = [safeNorm(norm(evalAffineEq(cM, traj))) for traj in trajList]
+        pltCV2 = plot(cVListDyn, markershape = :square, markercolor = :darkred,
+                    linecolor = :darkred, yaxis = :log)
+        title!("Dynamics Constraint Violation")
+        ylabel!("Constraint Violation at Penalty of $penalty")
+        xlabel!("Step")
+        display(pltCV2)
+    end
+
     return pltCV
 end
