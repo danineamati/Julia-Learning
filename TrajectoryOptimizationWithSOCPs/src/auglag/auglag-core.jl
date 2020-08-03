@@ -14,7 +14,7 @@
 # A is an mxn Matrix
 # b is an mx1 vector
 
-using LinearAlgebra
+using LinearAlgebra, SparseArrays
 
 include("..\\objective\\QP_Linear_objectives.jl")
 include("..\\constraints\\constraintManager.jl")
@@ -78,7 +78,15 @@ end
 """
     evalGradAL(alQP::augLag, y::SOCP_primals, verbose = false)
 
-Evaluates the gradient of the Augmented Lagrangian with the primals `y`.
+Evaluates the gradient of the augmented lagrangian with the primals `y`. The
+format is adjusted depending on the type of constraint manager.
+
+For a base constraint manager (all constraints in the augmented lagrangian),
+the gradient is just ∇φ = ∇f + Σ ∇ci.
+
+For a constraint manager that separates the equality constraints, the gradient
+also includes the derivatives with respect to the duals of the equality
+constraints. So ∇φ = [∇f + Σ ∇ci; Ax - b]
 
 returns a vector of size `y`
 """
@@ -89,22 +97,44 @@ function evalGradAL(alQP::augLag, y)
     gradfCurr = dfdxQP(alQP.obj, y)
     gradCCurr = evalGradConstraints(alQP.cM, y, alQP.rho)
 
-    return gradfCurr + gradCCurr
+    gradPhiPrimal = gradfCurr + gradCCurr
+
+    if typeof(alQP.cM) == constraintManager_Base
+        return gradPhiPrimal
+    elseif type(alQP.cM) == constraintManager_Dynamics
+        return [gradPhiPrimal; evalAffineEq(alQP.cM, y)]
+    end
 end
 
 """
     evalHessAl(alQP::augLag, y::SOCP_primals, verbose = false)
 
 Evaluates the Hessian of the Augmented Lagrangian of an SOCP with the
-primals `y`
+primals `y`. The format is adjusted depending on the type of constraint manager.
 
-returns a Symmetric Matrix of size `y`x`y`
+For a base constraint manager (all constraints in the augmented lagrangian),
+the hessian is just Hφ = Hf + Σ Hci.
+
+For a constraint manager that separates the equality constraints, the gradient
+also includes the derivatives with respect to the duals of the equality
+constraints. So Hφ = [(Hf + Σ Hci)     A'; A    0]
+
+returns a Symmetric Matrix of size `y`×`y` or `y + b`×`y + b`
 """
 function evalHessAl(alQP::augLag, y, verbose = false)
 
     hessf = hessQP(alQP.obj)
     hessC = evalHessConstraints(alQP.cM, y)
-    return hessf + alQP.rho * hessC
+
+    hessPhiPrimals = hessf + alQP.rho * hessC
+
+    if typeof(alQP.cM) == constraintManager_Base
+        return hessPhiPrimals
+    elseif type(alQP.cM) == constraintManager_Dynamics
+        Aaff = affineBlock(alQP.cM)
+        blockSize = size(Aaff, 1)
+        return [hessPhiPrimals Aaff'; Aaff spzeros(blockSize, blockSize)]
+    end
 end
 
 """
@@ -122,7 +152,16 @@ function calcNormGradResiduals(alQP::augLag, yList)
     Calculate the residuals where the AL is the merit function.
     Returns the norm of the gradient of the AL at each point in xArr
     =#
+
     resArr = [evalGradAL(alQP, y) for y in yList]
+
+    if typeof(alQP.cM) == constraintManager_Base
+        resArr = [evalGradAL(alQP, y) for y in yList]
+    elseif type(alQP.cM) == constraintManager_Dynamics
+        ySize = size(y, 1)
+        resArr = [evalGradAL(alQP, y)[1:ySize] for y in yList]
+    end
+
     return safeNorm(resArr)
 end
 

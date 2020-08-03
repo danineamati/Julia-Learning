@@ -14,18 +14,22 @@ Unlike [`constraintManager_Base`](@ref), this constraint manager also has the
 dynamics constraints embedded such that the nearest dynamically feasible
 trajectory can be determined at any given time.
 """
-struct constraintManager_Dynamics
+struct constraintManager_Dynamics <: constraintManager
     cList::Array{constraint, 1}
     lambdaList
     dynamicsConstraint::AL_AffineEquality
-    lqr::LQR_QP_Referenced
+    affineLambdaList
 end
 
 
 #############################################################
-###    Get the nearest dynamically feasible trajectory    ###
+###            Evaluate the Affine Constraints            ###
 #############################################################
 
-function getNearestDynamicallyFeasibleTraj(args)
-    body
+function evalAffineEq(cM::constraintManager_Dynamics, yCurr)
+    return getRaw(cM.dynamicsConstraint, yCurr)
+end
+
+function affineBlock(cM::constraintManager_Dynamics)
+    return cM.dynamicsConstraint.A
 end
