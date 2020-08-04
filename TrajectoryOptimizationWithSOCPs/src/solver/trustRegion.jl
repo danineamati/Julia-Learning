@@ -43,14 +43,15 @@ function dampingInitialization(B, g, delta, epsilon, IPD, a = 0.5,
         Bdamped = B + damping * IPD
 
         # Get the Cholesky decomposition without throwing an exception
-        cholBdamp = lu(Bdamped, check = false)
+        luB = lu(Bdamped, check = false)
 
         # Checks positive definite and non-singular
-        if issuccess(cholBdamp)
-            return damping, dampingMax, cholBdamp
+        if issuccess(luB)
+            return damping, dampingMax, Bdamped
         else
             # If the it fails, increase damping factor
             a = (a + 1)/ 2
+            println("More Damping...")
         end
     end
 end
@@ -85,12 +86,15 @@ function findDamping(B, g, dualSize = 0, delta = 1, gamma = 1.5, epsilon = 0.5,
 
     # Initialize the damping factor and find the initial damped hessian
     # represented as a Cholesky Decomposition (rCho)
-    damping, dampingMax, rCho = dampingInitialization(B, g, delta, epsilon,
+    # damping, dampingMax, rCho = dampingInitialization(B, g, delta, epsilon,
+    #                                                   IPD, a)
+    damping, dampingMax, BDamp = dampingInitialization(B, g, delta, epsilon,
                                                       IPD, a)
 
     # Use the Cholesky decomposition to more easily solve the problem.
-    LCho = sparse(rCho.L)
-    dk = - LCho' \ (LCho \ g)
+    # LCho = sparse(rCho.L)
+    # dk = - LCho' \ (LCho \ g)
+    dk = - BDamp \ g
 
     if verbose
         println("Damping Start = $damping and dampingMax = $dampingMax")
@@ -101,8 +105,8 @@ function findDamping(B, g, dualSize = 0, delta = 1, gamma = 1.5, epsilon = 0.5,
 
     # Have to use Array to convert briefly to a dense matrix in order
     # to determine the condition number.
-    while (norm(dk) > delta) && (cond(Array(LCho * LCho')) > condNumMax)
-
+    # while (norm(dk) > delta) && (cond(Array(LCho * LCho')) > condNumMax)
+    while (norm(dk) > delta) && (cond(Array(BDamp)) > condNumMax)
         if verbose
             println("Increasing Damping")
             println("Cholesky Factorization:")
@@ -111,7 +115,9 @@ function findDamping(B, g, dualSize = 0, delta = 1, gamma = 1.5, epsilon = 0.5,
             display(dk)
         end
 
-        qk = LCho \ dk
+        LCho = lu(BDamp).L
+
+        qk = LCho \ dk # Problematic
 
         updateNumerator = norm(dk)^2 * (gamma * norm(dk) - delta)
         updateDenominator = norm(qk)^2 * delta
@@ -123,11 +129,12 @@ function findDamping(B, g, dualSize = 0, delta = 1, gamma = 1.5, epsilon = 0.5,
             println("New Damping: $damping")
         end
 
-        rCho = lu(B + damping * IPD, check = false)
+        # rCho = lu(B + damping * IPD, check = false)
+        BDamp = B + damping * IPD
+        luB = lu(BDamp, check = false)
 
-        if issuccess(rCho)
-            LCho = sparse(rCho.L)
-            dk = - LCho' \ (LCho \ g)
+        if issuccess(luB)
+            dk = - BDamp \ g
             counter += 1
 
             if damping == dampingMax
@@ -144,8 +151,8 @@ function findDamping(B, g, dualSize = 0, delta = 1, gamma = 1.5, epsilon = 0.5,
         end
     end
 
-    println("Condition Number: $(cond(Array(LCho * LCho')))")
+    println("Condition Number: $(cond(Array(BDamp)))")
 
-    return damping, dk, rCho
+    return damping, dk, BDamp
 
 end

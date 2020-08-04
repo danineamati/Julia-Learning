@@ -132,9 +132,10 @@ function newtonTRLS_ALP(y0, al::augLag, sp::solverParams, verbose = false)
 
         # Take a Newton Step
         # Negative sign addressed above
-        (dk, residual, rCho, damp) = newtonStepALP(yCurr, al, trustDelta)
+        # (dk, residual, rCho, damp) = newtonStepALP(yCurr, al, trustDelta)
+        (dk, residual, BDamp, damp) = newtonStepALP(yCurr, al, trustDelta)
         push!(residNewt, residual)
-        LCho = sparse(rCho.L)
+        # LCho = sparse(rCho.L)
 
         if true
             # println("\nNewton Direction: $dk")
@@ -154,7 +155,8 @@ function newtonTRLS_ALP(y0, al::augLag, sp::solverParams, verbose = false)
                 println("Trust Region Success")
             end
 
-            fObjApprox(d) = residual'd + (1/2) * d'*(LCho * LCho')*d
+            # fObjApprox(d) = residual'd + (1/2) * d'*(LCho * LCho')*d
+            fObjApprox(d) = residual'd + (1/2) * d'*(BDamp)*d
             println("fObjApprox(d) = $(fObjApprox(dk))")
             rho = (currentObjVal - baseObjVal) / (-fObjApprox(dk)[1])
             roundingErrorTol = UInt8(round(-log10(sp.rTol)) / 2)
