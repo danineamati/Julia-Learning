@@ -64,7 +64,13 @@ function newtonStepALP(y0, al::augLag, delta = 1,
     hess = evalHessAl(al, y0)
     phiD = evalGradAL(al, y0)
 
-    damping, dk, rCho = findDamping(hess, phiD, delta, gamma, epsilon,
+    if typeof(al.cM) == constraintManager_Dynamics
+        dualSize = size(al.cM.affineLambdaList, 1)
+    else
+        dualSize = 0
+    end
+
+    damping, dk, rCho = findDamping(hess, phiD, dualSize, delta, gamma, epsilon,
                                             condNumMax, a)
 
     if norm(dk) > delta
@@ -235,6 +241,12 @@ function newtonTRLS_ALP(y0, al::augLag, sp::solverParams, verbose = false)
 
         # Update the current state with the new state
         yCurr = y0New
+
+        if typeof(al.cM) == constraintManager_Dynamics
+            aSize = size(al.cM.affineLambdaList, 1)
+            ySize = size(y0New, 1)
+            al.cM.affineLambdaList = y0New[ySize - aSize + 1:end]
+        end
 
     end
 

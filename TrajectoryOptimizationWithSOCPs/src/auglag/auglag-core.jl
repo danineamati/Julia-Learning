@@ -87,7 +87,7 @@ function evalAL(alQP::augLag, y)
 
     fCurr = fObjQP(alQP.obj, primals)[1]
     cCurr = evalConstraints(alQP.cM, primals, alQP.rho)
-    println("cCurr = $(size(cCurr)) = $cCurr")
+    
     # println("f(x) = $fCurr")
     # println(" with size -> $(size(fCurr))")
     # println("c(x) = $cCurr")
@@ -96,11 +96,11 @@ function evalAL(alQP::augLag, y)
     if typeof(alQP.cM) == constraintManager_Dynamics
         duals = alQP.cM.affineLambdaList
         cAff = evalAffineEq(alQP.cM, primals)
-        println("Duals (λ) = $(size(duals))")
-        println("Ax - b = $(size(cAff))")
+        # println("Duals (λ) = $(size(duals))")
+        # println("Ax - b = $(size(cAff))")
         cAffVal = duals'cAff
-        println("λ'(Ax-b) = $(size(cAffVal)) = $cAffVal")
-        println("-> $(cAffVal[1])")
+        # println("λ'(Ax-b) = $(size(cAffVal)) = $cAffVal")
+        # println("-> $(cAffVal[1])")
         cCurr += cAffVal[1]
     end
 

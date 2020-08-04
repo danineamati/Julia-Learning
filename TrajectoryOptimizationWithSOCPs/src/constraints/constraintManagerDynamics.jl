@@ -14,7 +14,7 @@ Unlike [`constraintManager_Base`](@ref), this constraint manager also has the
 dynamics constraints embedded such that the nearest dynamically feasible
 trajectory can be determined at any given time.
 """
-struct constraintManager_Dynamics <: constraintManager
+mutable struct constraintManager_Dynamics <: constraintManager
     cList::Array{constraint, 1}
     lambdaList
     dynamicsConstraint::AL_AffineEquality

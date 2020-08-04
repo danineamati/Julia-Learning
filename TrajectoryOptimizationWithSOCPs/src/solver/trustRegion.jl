@@ -22,12 +22,14 @@ determining the damping ratio size
 
 See also: [`findDamping`](@ref)
 """
-function dampingInitialization(B, g, delta, epsilon, a = 0.5)
+function dampingInitialization(B, g, delta, epsilon, IPD, a = 0.5,
+                                    basedamping = 1e-6)
+
     dampingMax = (norm(B) + ((1 + epsilon) * norm(g) / delta))
 
     if isposdef(B)
-        damping = 1e-6
-        Bdamped = B + damping * I
+        damping = basedamping
+        Bdamped = B + damping * IPD
         cholBdamp = cholesky(Bdamped, check = false)
 
         if issuccess(cholBdamp)
@@ -38,10 +40,10 @@ function dampingInitialization(B, g, delta, epsilon, a = 0.5)
     while true
         damping = a * dampingMax
 
-        Bdamped = B + damping * I
+        Bdamped = B + damping * IPD
 
         # Get the Cholesky decomposition without throwing an exception
-        cholBdamp = cholesky(Bdamped, check = false)
+        cholBdamp = lu(Bdamped, check = false)
 
         # Checks positive definite and non-singular
         if issuccess(cholBdamp)
@@ -73,12 +75,18 @@ hessian represented as a Cholesky Decomposition `rCho`
 This corresponds to algorithm 2.6 in Nocedal et Yuan (1998)
 
 """
-function findDamping(B, g, delta = 1, gamma = 1.5, epsilon = 0.5,
+function findDamping(B, g, dualSize = 0, delta = 1, gamma = 1.5, epsilon = 0.5,
                         condNumMax = 1e7, a = 1e-6, verbose = false)
+
+    # For Primal-Dual the effective Identity is [I 0; 0 -I] (albeit with
+    # correct dimensions)
+    getIPD(p, d) = Diagonal([ones(p); -ones(d)])
+    IPD = getIPD(size(g, 1) - dualSize, dualSize)
 
     # Initialize the damping factor and find the initial damped hessian
     # represented as a Cholesky Decomposition (rCho)
-    damping, dampingMax, rCho = dampingInitialization(B, g, delta, epsilon, a)
+    damping, dampingMax, rCho = dampingInitialization(B, g, delta, epsilon,
+                                                      IPD, a)
 
     # Use the Cholesky decomposition to more easily solve the problem.
     LCho = sparse(rCho.L)
@@ -115,7 +123,7 @@ function findDamping(B, g, delta = 1, gamma = 1.5, epsilon = 0.5,
             println("New Damping: $damping")
         end
 
-        rCho = cholesky(B + damping * I, check = false)
+        rCho = lu(B + damping * IPD, check = false)
 
         if issuccess(rCho)
             LCho = sparse(rCho.L)

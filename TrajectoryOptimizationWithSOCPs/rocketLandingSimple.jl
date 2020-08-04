@@ -51,7 +51,7 @@ costFun = makeLQR_TrajReferenced(lqrQMat, lqrRMat, NSteps, initTraj)
 
 ADyn, BDyn = rocketDynamicsFull(rocket, rocketStart, rocketEnd, NSteps)
 dynConstraint = AL_AffineEquality(ADyn, BDyn)
-lambdaInit = zeros(size(BDyn))
+lambdaInit = ones(size(BDyn))
 
 # cMRocket = constraintManager_Base([dynConstraint], [lambdaInit])
 
@@ -103,20 +103,20 @@ println("             Beginning Solve                ")
 println("--------------------------------------------")
 
 # Solve the Trajectory Optimization problem
-useALMethod = true
+useALMethod = false
 
-if useALMethod
+# if useALMethod
     # Use an augmented lagrangian method
     trajLambdaSolved, resArr = ALPrimalNewtonMain(initTrajPD, alRocket,
                                             currSolveParams)
     trajStateLast = parsePrimalDualVec(trajLambdaSolved[end], size(initTraj, 1))
-else
+# else
     # Solve only the objective and linear dynamics
     costQ = costFun.lqr_qp.QR_Full
     costP = - (initTraj' * costQ)'
-    trajLambdaSolved = solveQP_AffineEq(costQ, costP, ADyn, BDyn)
-    trajStateLast = parsePrimalDualVec(trajLambdaSolved, size(initTraj, 1))
-end
+    trajLambdaSolvedTrue = solveQP_AffineEq(costQ, costP, ADyn, BDyn)
+    trajStateLastTrue = parsePrimalDualVec(trajLambdaSolvedTrue, size(initTraj, 1))
+# end
 
 # Blocked so that it can be run independently after the fact
 if true
@@ -127,7 +127,7 @@ if true
 end
 
 # Blocked so that it can be run independently after the fact
-if false
-    header = "DirectLanding"
+if true
+    header = "lambda1Start"
     saveBulk(pltTraj, pltCV, pltObj, plts, pltv, pltu, header)
 end
