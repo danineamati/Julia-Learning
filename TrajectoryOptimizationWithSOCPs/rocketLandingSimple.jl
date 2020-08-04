@@ -34,7 +34,7 @@ rocket = rocket_simple(mass, isp, grav, deltaTime)
 
 # in m
 # The Karman Line (100 km)
-rocketStart = [2.0; 20.0; 0.0; 0.0]
+rocketStart = [2.0; 20.0; 0.0; -1.0]
 rocketEnd = [0.0; 0.0; 0.0; 0.0]#[-5.0; 0.0; 0.0; 0.0]
 
 uHover = mass * grav
@@ -103,31 +103,34 @@ println("             Beginning Solve                ")
 println("--------------------------------------------")
 
 # Solve the Trajectory Optimization problem
-useALMethod = false
+useALMethod = true
 
-# if useALMethod
+if useALMethod
     # Use an augmented lagrangian method
     trajLambdaSolved, resArr = ALPrimalNewtonMain(initTrajPD, alRocket,
                                             currSolveParams)
-    trajStateLast = parsePrimalDualVec(trajLambdaSolved[end], size(initTraj, 1))
-# else
+    trajStatesAllPD = [parsePrimalDualVec(trajL, size(initTraj, 1))
+                                                for trajL in trajLambdaSolved]
+    trajStatesAll = [trajPDThis.primals for trajPDThis in trajStatesAllPD]
+else
     # Solve only the objective and linear dynamics
     costQ = costFun.lqr_qp.QR_Full
     costP = - (initTraj' * costQ)'
     trajLambdaSolvedTrue = solveQP_AffineEq(costQ, costP, ADyn, BDyn)
-    trajStateLastTrue = parsePrimalDualVec(trajLambdaSolvedTrue, size(initTraj, 1))
-# end
+    trajStateLastTrue = parsePrimalDualVec(trajLambdaSolvedTrue,
+                                                        size(initTraj, 1))
+end
 
 # Blocked so that it can be run independently after the fact
 if true
     # Get the parsed list of trajectories
     nDim = size(grav, 1)
-    pltTraj, pltCV, pltObj, plts, pltv, pltu = batchPlot(
-                                    [initTraj, trajStateLast.primals], nDim)
+    pltTraj, pltCV, pltCV2, pltObj, plts, pltv, pltu =
+                                    batchPlot(trajStatesAll, cMRocket, nDim)
 end
 
 # Blocked so that it can be run independently after the fact
 if true
-    header = "lambda1StartFIXED"
+    header = "freefalling" * string(Int64(rocketStart[4])) * "_"
     saveBulk(pltTraj, pltCV, pltObj, plts, pltv, pltu, header)
 end

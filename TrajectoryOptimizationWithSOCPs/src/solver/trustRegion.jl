@@ -49,9 +49,14 @@ function dampingInitialization(B, g, delta, epsilon, IPD, a = 0.5,
         if issuccess(luB)
             return damping, dampingMax, Bdamped
         else
-            # If the it fails, increase damping factor
+            # If the it fails, increase damping factor. Converge to a -> 1
             a = (a + 1)/ 2
             println("More Damping...")
+
+            # Once "a" gets close to 1, might as well stop
+            if a > 0.99
+                return dampingMax, dampingMax, Bdamped
+            end
         end
     end
 end
