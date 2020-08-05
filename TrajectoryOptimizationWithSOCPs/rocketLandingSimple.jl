@@ -6,11 +6,14 @@ Units in kg, m, s
 
 =#
 include("src\\rocket\\rocket-setup.jl")
+include("src\\rocket\\ground.jl")
+
 include("src\\dynamics\\trajectory-setup.jl")
 include("src\\objective\\LQR_objective.jl")
 include("src\\constraints\\constraintManager.jl")
 include("src\\constraints\\constraintManagerDynamics.jl")
 include("src\\auglag\\auglag-core.jl")
+
 include("src\\solver\\AL-Primal-Main-Solver.jl")
 include("src\\solver\\QP-AffineEquality-Solver.jl")
 include("src\\other_utils\\parsePrimalDual.jl")
@@ -49,16 +52,25 @@ lqrQMat = 0.0001 * Diagonal(I, size(rocketStart, 1))
 lqrRMat = 0.0025 * Diagonal(I, Int64(size(rocketStart, 1) / 2))
 costFun = makeLQR_TrajReferenced(lqrQMat, lqrRMat, NSteps, initTraj)
 
+# Create the Dynamics Constraints
 ADyn, BDyn = rocketDynamicsFull(rocket, rocketStart, rocketEnd, NSteps)
 dynConstraint = AL_AffineEquality(ADyn, BDyn)
 lambdaInit = -1 * ones(size(BDyn))
 
+# Create the Ground Constraints
+groundConstraint = makeGroundConstraint(NSteps, size(grav, 1), size(grav, 1))
+groundLambda = zeros(size(groundConstraint.b, 1))
+
+# Create the constraint manager
 # cMRocket = constraintManager_Base([dynConstraint], [lambdaInit])
+# cMRocket = constraintManager_Dynamics([], [], dynConstraint, lambdaInit)
+cMRocket = constraintManager_Dynamics([groundConstraint], [groundLambda],
+                                        dynConstraint, lambdaInit)
 
-cMRocket = constraintManager_Dynamics([], [], dynConstraint, lambdaInit)
-
+# Initialize the primal-dual vector
 initTrajPD = [initTraj; lambdaInit]
 
+# Initialize the Augmented Lagrangian penalty on the constraints
 penaltyStart = 1.0
 
 # Test that the evaluations work
