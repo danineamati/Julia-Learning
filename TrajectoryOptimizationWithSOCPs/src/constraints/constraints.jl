@@ -7,7 +7,14 @@ abstract type constraint end
 include("..\\other_utils\\feasibleCheck.jl")
 include("projections.jl")
 
-# Augmented Lagrangian Constraints
+#= Augmented Lagrangian Constraints
+These are presented in the order:
+- AffineEquality
+- AffineInequality
+- (Old) SOCP Constraints
+- Functional SOCP Constraints with Slack Variables
+- Simple SOCP Constraints
+=#
 
 # ---------------------
 # Equality constraints
@@ -45,8 +52,20 @@ Check constraint satisfaction. See also [`satisfied`](@ref)
 whichSatisfied(r::AL_AffineEquality, x) = (r.A * x .== r.b)
 
 # Evaluate the constraint.
-# Raw = Evaluate the function without projection
+"""
+    getRaw(r::AL_AffineEquality, x) = r.A * x - r.b
+
+Evaluate the constraint without projection
+"""
 getRaw(r::AL_AffineEquality, x) = r.A * x - r.b
+
+"""
+    getProjVecs(r::AL_AffineEquality, x)
+
+For every row, get the projection onto the line `a'x = b`.
+
+See [`projAffineEq`](@ref) for more information.
+"""
 function getProjVecs(r::AL_AffineEquality, x)
     #=
     We want to project each constraint
@@ -64,6 +83,16 @@ function getProjVecs(r::AL_AffineEquality, x)
     return projVecs
 end
 
+"""
+    getNormToProjVals(r::AL_AffineEquality, x)
+
+Get the row by row constraint violation based on projections. This is better
+than [`getRaw`](@ref) since it doesn't depend on the magnitude of the elements
+in `r.A` and `r.b`.
+
+See also [`AL_AffineEquality`](@ref), [`getProjVecs`](@ref),
+[`projAffineEq`](@ref)
+"""
 function getNormToProjVals(r::AL_AffineEquality, x)
     #=
     We want to get the projected vector and calculate the distance between the
@@ -82,7 +111,7 @@ end
 
 Calculates the gradient of a constraint.
 
-For `r::AL_AffineEquality`, ∇c(x) = A
+For `r::AL_AffineEquality`, `∇c(x) = A`
 
 The variable "x" is passed to the header to maintain the same function header
 but it is not used in the function.
@@ -100,7 +129,7 @@ end
 
 Calculates the hessian of a constraint.
 
-For `r::AL_AffineEquality`, H(c(x)) = 0
+For `r::AL_AffineEquality`, `H(c(x)) = 0`
 """
 function getHessC(r::AL_AffineEquality)
     #=
@@ -132,12 +161,35 @@ struct AL_AffineInequality <: constraint
 end
 
 # Check that a constraint is satisfied (Ax - b ≤ 0)
+"""
+    satisfied(r::AL_AffineInequality, x)
+
+Check constraint satisfaction. See also [`whichSatisfied`](@ref)
+"""
 satisfied(r::AL_AffineInequality, x) = isFeasiblePolyHedron(r.A, r.b, x)
+
+"""
+    whichSatisfied(r::AL_AffineInequality, x)
+
+Check constraint satisfaction. See also [`satisfied`](@ref)
+"""
 whichSatisfied(r::AL_AffineInequality, x) = (r.A * x .≤ r.b)
 
 # Evaluate the constraint.
-# Raw = Evaluate the function without projection
+"""
+    getRaw(r::AL_AffineInequality, x) = r.A * x - r.b
+
+Evaluate the constraint without projection
+"""
 getRaw(r::AL_AffineInequality, x) = r.A * x - r.b
+
+"""
+    getProjVecs(r::AL_AffineInequality, x)
+
+For every row, get the projection onto the line `a'x = b`.
+
+See [`projAffineEq`](@ref) for more information.
+"""
 function getProjVecs(r::AL_AffineInequality, x)
     #=
     We want to project each constraint
@@ -155,6 +207,16 @@ function getProjVecs(r::AL_AffineInequality, x)
     return projVecs
 end
 
+"""
+    getNormToProjVals(r::AL_AffineInequality, x)
+
+Get the row by row constraint violation based on projections. This is better
+than [`getRaw`](@ref) since it doesn't depend on the magnitude of the elements
+in `r.A` and `r.b`. It also automatically accounts for the inequality.
+
+See also [`AL_AffineInequality`](@ref), [`getProjVecs`](@ref),
+[`projAffineEq`](@ref)
+"""
 function getNormToProjVals(r::AL_AffineInequality, x)
     #=
     We want to get the projected vector and calculate the distance between the
@@ -166,6 +228,17 @@ function getNormToProjVals(r::AL_AffineInequality, x)
 end
 
 # Lastly, we do some calculus
+"""
+    getGradC(r::AL_AffineInequality, x)
+
+Calculates the gradient of a constraint.
+
+For `r::AL_AffineInequality`, `∇c(x) = A` for rows where the constraint is NOT
+satisfied.
+
+The variable "x" is passed to the header to maintain the same function header
+but it is not used in the function.
+"""
 function getGradC(r::AL_AffineInequality, x)
     #=
     We want the gradient of the constraints. This is piecewise in the
@@ -182,6 +255,13 @@ function getGradC(r::AL_AffineInequality, x)
     return APost
 end
 
+"""
+    getHessC(r::AL_AffineEquality)
+
+Calculates the hessian of a constraint.
+
+For `r::AL_AffineInequality`, `H(c(x)) = 0`
+"""
 function getHessC(r::AL_AffineInequality)
     #=
     We want the hessian of the constraints. This is just zero for affine
@@ -302,21 +382,62 @@ end
 # -----------------------
 # Second-Order Cone Constraints
 # -----------------------
-#=
-Specifically has the form:
+@doc raw"""
+    AL_coneSlack(A, b, c, d)
+
+Creates a Second Order Cone Constraint (SOCP) that uses slack variables.
+
+We start with
+```math
+||Ax - b|| ≤ c^{\top} x - d
+```
+
+Using Slack variables, this becomes:
+```math
 ||s|| ≤ t
+```
+```math
 Ax - b = s
-c'x - d = t
+```
+```math
+c^{\top} x - d = t
+```
 
-So,
+So, in more standard form, this is becomes:
+```math
 ||s|| - t ≤ 0
+```
+```math
 Ax - b - s = 0
-c'x - d - t = 0
+```
+```math
+c^{\top}x - d - t = 0
+```
 
-I use the second order cone
-=#
+To check constraint satisfaction, use:
+[`satisified`](@ref), [`whichSatisfied`](@ref), and [`coneSatisfied`](ref)
 
+To evaluate the constraint, use:
+- [`getRaw`](@ref) to evaluate each of `||s|| - t`, etc.
+- [`getNormToProjVals`](@ref) to evaluate the projection to the affine
+equalities and (more critically) the second order cone.
 
+If the original `||Ax - b|| ≤ c'x - d` violation is needed, use
+[`coneValOriginal`](@ref)
+
+---
+
+This ONLY works for second order cones. It will NOT work for any other p-cone,
+i.e.
+```math
+||s||_2
+```
+works, but
+```math
+||s||_{10}
+```
+is not covered under this framework.
+"""
 struct AL_coneSlack <: constraint
     A
     b
@@ -325,26 +446,55 @@ struct AL_coneSlack <: constraint
 end
 
 # Evaluate the constraint.
-# Raw = Evaluate the function without projection
+"""
+    getRaw(r::AL_coneSlack, x, s, t)
+
+Evaluate the constraint without projection. See [`AL_coneSlack`](@ref)
+"""
 getRaw(r::AL_coneSlack, x, s, t) = [norm(s, 2) - t;
                                     r.A * x - r.b - s;
                                     r.c'x - r.d - t]
 
-# Check that a constraint is satisfied (||Ax - b|| ≤ c'x - d)
+"""
+    coneSatisfied(r::AL_coneSlack, s, t)
+
+Checks if `||s|| - t ≤ 0`. See [`AL_coneSlack`](@ref)
+"""
 function coneSatisfied(r::AL_coneSlack, s, t)
     return (norm(s, 2) - t ≤ 0)
 end
 
+@doc raw"""
+    coneValOriginal(r::AL_coneSlack, x)
+
+Evaluates the raw cone value without slack variables, namely:
+```math
+||Ax - b|| ≤ c^{\top} x - d
+```
+
+See [`AL_coneSlack`](@ref)
+"""
 function coneValOriginal(r::AL_coneSlack, x)
     sInt = norm(r.A * x - r.b, 2)
     tInt = r.c'x - r.d
     return sInt - tInt
 end
 
+"""
+    whichSatisfied(r::AL_coneSlack, x, s, t)
+
+Check constraint satisfaction. See also [`satisfied`](@ref)
+"""
 function whichSatisfied(r::AL_coneSlack, x, s, t)
     raw = getRaw(r, x, s, t)
     return [raw[1] ≤ 0; raw[2:end] .== 0]
 end
+
+"""
+    satisfied(r::AL_coneSlack, x, s, t)
+
+Check constraint satisfaction. See also [`whichSatisfied`](@ref)
+"""
 function satisfied(r::AL_coneSlack, x, s, t)
     wSat = whichSatisfied(r, x, s, t)
     for iw in wSat
@@ -357,6 +507,14 @@ function satisfied(r::AL_coneSlack, x, s, t)
     return true
 end
 
+"""
+    coneActive(s, t, λ)
+
+Checks if the cone constraint is "active." This prevents the solver from
+getting stuck due to an inability to accurately update the dual λ.
+
+We want to "activate" this constraint when `||s|| - t > 0` OR `λ > 0`.
+"""
 function coneActive(s, t, λ)
     #=
     returns "ACITVE" and "FILLED"
@@ -395,6 +553,7 @@ function coneActive(s, t, λ)
         # INSIDE CONE
         if λ > 0
             # ACTIVE
+            # This is the "Solver might be stuck case."
             println("ACTIVE & NOT FILLED")
             active = true
             filled = false
@@ -409,6 +568,24 @@ function coneActive(s, t, λ)
 
 end
 
+"""
+    getProjVecs(r::AL_coneSlack, x, s, t, filled = true, verbose = false)
+
+Gets the projection vectors for each of the constraints that make up
+[`AL_coneSlack`](@ref). In particular, we project onto the second order cone
+and project each of the two affine equalities.
+
+For the exact projections, see [`projSecondOrderCone`](@ref) and
+[`projAffineEq`](@ref).
+
+---
+
+The parameter "filled" adjusts the projections onto the solid second order
+cone (`||s|| ≤ t`) if `true` or the boundary of the second order cone
+(`||s|| = t`) if `false`.
+
+This is toggled based on [`coneActive`](@ref)
+"""
 function getProjVecs(r::AL_coneSlack, x, s, t, filled = true, verbose = false)
     #=
     We want to get each of the projection vectors.
@@ -459,7 +636,23 @@ function getProjVecs(r::AL_coneSlack, x, s, t, filled = true, verbose = false)
     return projVecs, signs
 end
 
+"""
+    getNormToProjVals(r::AL_coneSlack, x, s, t, λ = 0)
 
+Get the row by row constraint violation based on projections for the affine
+constraints. This is better than [`getRaw`](@ref) since it uses the minimum
+distance to the second-order cone rather than the 1D evaluation of `||s|| - t`.
+It is also better than [`getRaw`](@ref) since it doesn't depend on
+the magnitude of the elements in `r.A` and `r.b`.
+
+See also [`AL_coneSlack`](@ref), [`getProjVecs`](@ref),
+[`projSecondOrderCone`](@ref), [`projAffineEq`](@ref)
+
+---
+
+The parameter `λ` describes the dual of `||s|| - t` and is used to determine
+if the constraint is active. See [`coneActive`](@ref) for more information.
+"""
 function getNormToProjVals(r::AL_coneSlack, x, s, t, λ = 0)
     #=
     We want to get the projected vector and calculate the distance between the
@@ -477,6 +670,14 @@ function getNormToProjVals(r::AL_coneSlack, x, s, t, λ = 0)
 end
 
 # Lastly, we do some calculus
+"""
+    getGradC(r::AL_coneSlack, x, s, t, verbose = false)
+
+Calculates the gradient of a constraint.
+
+For `r::AL_coneSlack`, this is actually the Jacobian with respect to the
+variables `x`, `s`, and `t` in that order.
+"""
 function getGradC(r::AL_coneSlack, x, s, t, verbose = false)
     #=
     We want the gradient of the constraints. This is piecewise due to the
@@ -545,6 +746,18 @@ function getGradC(r::AL_coneSlack, x, s, t, verbose = false)
     return jacob
 end
 
+"""
+    getHessC(r::AL_coneSlack, x, s, t, λCone = 0)
+
+Calculates the hessian of a constraint.
+
+For `r::AL_coneSlack`, this is the hessian of the *constraint term* as it
+appears in the augmented lagrangian!!
+
+returns `H(ρc(x)'c(x) + λ c(x))`
+
+See the source code for more technical details.
+"""
 function getHessC(r::AL_coneSlack, x, s, t, λCone = 0)
     #=
     We want the hessian of the combined constraint terms. Namely:
