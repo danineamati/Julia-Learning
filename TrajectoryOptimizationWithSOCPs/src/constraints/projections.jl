@@ -77,7 +77,10 @@ function projAffineIneq(a, b, x)
     projAffineEq(x) for a'x > b
     x               for a'x ≤ b
     =#
-    if a'x > b
+    # println("a = $(size(a))")
+    # display(a)
+    # println("x = $(size(x))")
+    if (a'x)[1] > b
         return projAffineEq(a, b, x)
     end
     return x

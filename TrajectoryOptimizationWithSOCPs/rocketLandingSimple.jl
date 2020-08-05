@@ -78,11 +78,11 @@ println("\n--------------------------------------------")
 println(" Testing constraints are inputted correctly ")
 println("--------------------------------------------")
 println("Starting constraint violation: ")
-println([evalConstraints(cMRocket, initTrajPD, penaltyStart)])
+println([evalConstraints(cMRocket, initTraj, penaltyStart)])
 println("Starting gradient of constraints: ")
-println(evalGradConstraints(cMRocket, initTrajPD, penaltyStart))
+println(evalGradConstraints(cMRocket, initTraj, penaltyStart))
 println("Starting hessian of constraints: ")
-println(evalHessConstraints(cMRocket, initTrajPD))
+println(evalHessConstraints(cMRocket, initTraj))
 
 
 # Equiped with the constraint term and the objective term, I now build the

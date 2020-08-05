@@ -311,7 +311,10 @@ function ALPrimalNewtonMain(y0, al::augLag, sp::solverParams, verbose = false)
         # λ ← λ + ρ c(x_k*)       - Which is to say update with prior x*
         # ρ ← min(ρ * 10, 10^6)   - Which is to say we bound ρ's growth by 10^6
         yNewest = yNewStates[end]
-        cCurr = evalConstraints(al.cM, yNewest, al.rho)
+
+        yNewPrimals = getPrimals(al, yNewest)
+
+        cCurr = evalConstraints(al.cM, yNewPrimals, al.rho)
 
         # Only turn on if the solver is not returning all of the points.
         # if false
@@ -325,7 +328,7 @@ function ALPrimalNewtonMain(y0, al::augLag, sp::solverParams, verbose = false)
             println("Former Lambda: $(al.lambda)")
         end
 
-        updateDual!(al.cM, yNewest, al.rho)
+        updateDual!(al.cM, yNewPrimals, al.rho)
         al.rho = clamp(al.rho * sp.penaltyStep, 0, sp.penaltyMax)
 
         if verbose

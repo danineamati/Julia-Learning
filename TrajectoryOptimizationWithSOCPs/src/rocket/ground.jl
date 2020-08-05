@@ -29,6 +29,9 @@ function makeGroundConstraint(NSteps::Int64, nDim::Int64, index = 2)
     AMat = spzeros(NSteps, sizeTraj)
     bVec = spzeros(NSteps)
 
+    # AMat = zeros(NSteps, sizeTraj)
+    # bVec = zeros(NSteps)
+
     # Iterate through and select each index that needs to be flipped to -1
     currInd = index
     currRow = 1
