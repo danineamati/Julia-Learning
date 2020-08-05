@@ -19,7 +19,7 @@ function plotTrajPos2D_Simple(pt::parseTrajectory)
 end
 
 function plotTrajPos2D_Multiple(ptList)
-    plt = plot()
+    plt = plot(legend = :outerright)
 
     for (ind, pt) in enumerate(ptList)
         xyList = splitDimensions(pt.sList)

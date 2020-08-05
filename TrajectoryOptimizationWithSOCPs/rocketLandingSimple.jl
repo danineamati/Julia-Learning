@@ -34,7 +34,7 @@ rocket = rocket_simple(mass, isp, grav, deltaTime)
 
 # in m
 # The Karman Line (100 km)
-rocketStart = [2.0; 20.0; 0.0; -1.0]
+rocketStart = [2.0; 20.0; 0.0; -25.0]
 rocketEnd = [0.0; 0.0; 0.0; 0.0]#[-5.0; 0.0; 0.0; 0.0]
 
 uHover = mass * grav
@@ -45,13 +45,13 @@ NSteps = 40
 initTraj = initializeTraj(rocketStart, rocketEnd, uHover, uHover, NSteps)
 
 # Use a Linear Quadratic Regulator as the cost function
-lqrQMat = 1 * Diagonal(I, size(rocketStart, 1))
-lqrRMat = 0.25 * Diagonal(I, Int64(size(rocketStart, 1) / 2))
+lqrQMat = 0.0001 * Diagonal(I, size(rocketStart, 1))
+lqrRMat = 0.0025 * Diagonal(I, Int64(size(rocketStart, 1) / 2))
 costFun = makeLQR_TrajReferenced(lqrQMat, lqrRMat, NSteps, initTraj)
 
 ADyn, BDyn = rocketDynamicsFull(rocket, rocketStart, rocketEnd, NSteps)
 dynConstraint = AL_AffineEquality(ADyn, BDyn)
-lambdaInit = ones(size(BDyn))
+lambdaInit = -1 * ones(size(BDyn))
 
 # cMRocket = constraintManager_Base([dynConstraint], [lambdaInit])
 
@@ -90,7 +90,7 @@ println(size(evalHessAl(alRocket, initTrajPD)))
 
 # Next we select resonable solver parameters
 currSolveParams = solverParams(0.1, 0.5,
-                                6, 2,
+                                14, 4,
                                 10^-4,
                                 10, 10^6,
                                 2.5, 2, 0.2, 0.2, 0.4)
