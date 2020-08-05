@@ -18,10 +18,20 @@ function plotTrajPos2D_Simple(pt::parseTrajectory)
     return plotTrajPos2D_Simple(xList, yList)
 end
 
-function plotTrajPos2D_Multiple(ptList)
+function plotTrajPos2D_Multiple(ptList, showN = 10)
     plt = plot(legend = :outerright)
 
-    for (ind, pt) in enumerate(ptList)
+    if length(ptList) >= showN
+        indices = floor.(Int, LinRange(1, length(ptList), showN))
+    else
+        indices = collect(1:length(ptList))
+    end
+
+    println("Plotting the following indices: ")
+    println(indices)
+
+    for ind in indices
+        pt = ptList[ind]
         xyList = splitDimensions(pt.sList)
         xList = xyList[1]
         yList = xyList[2]
@@ -31,6 +41,7 @@ function plotTrajPos2D_Multiple(ptList)
     xlabel!("X (km)")
     ylabel!("Y (km)")
     title!("Test Trajectory")
+    # yflip!()
 
     return plt
 end

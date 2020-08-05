@@ -37,13 +37,13 @@ rocket = rocket_simple(mass, isp, grav, deltaTime)
 
 # in m
 # The Karman Line (100 km)
-rocketStart = [2.0; 20.0; 0.0; -25.0]
+rocketStart = [2.0; 20.0; 0.0; -75.0]
 rocketEnd = [0.0; 0.0; 0.0; 0.0]#[-5.0; 0.0; 0.0; 0.0]
 
 uHover = mass * grav
 
 # Number of time steps to discretize the trajectory
-NSteps = 40
+NSteps = 60
 # Initialize the trajectory with a line
 initTraj = initializeTraj(rocketStart, rocketEnd, uHover, uHover, NSteps)
 
@@ -102,7 +102,7 @@ println(size(evalHessAl(alRocket, initTrajPD)))
 
 # Next we select resonable solver parameters
 currSolveParams = solverParams(0.1, 0.5,
-                                14, 4,
+                                10, 10,
                                 10^-4,
                                 10, 10^6,
                                 2.5, 2, 0.2, 0.2, 0.4)
@@ -143,6 +143,6 @@ end
 
 # Blocked so that it can be run independently after the fact
 if true
-    header = "freefalling" * string(Int64(rocketStart[4])) * "_"
-    saveBulk(pltTraj, pltCV, pltObj, plts, pltv, pltu, header)
+    header = "freefallingAllPlots" * string(Int64(rocketStart[4])) * "_"
+    saveBulk(pltTraj, pltCV, pltCV2, pltObj, plts, pltv, pltu, header)
 end

@@ -32,9 +32,11 @@ function batchPlot(trajStates, cM::constraintManager, nDim::Int64,
 end
 
 
-function saveBulk(pltTraj, pltCV, pltObj, plts, pltv, pltu, header::String)
+function saveBulk(pltTraj, pltCV, pltCV2, pltObj, plts, pltv, pltu,
+                    header::String)
     savefig(pltTraj, header * "Trajectory")
     savefig(pltCV, header * "ConstraintViolation")
+    savefig(pltCV2, header * "DynamicsViolation")
     savefig(pltObj, header * "Objective")
     savefig(plts, header * "PositionTime")
     savefig(pltv, header * "VelocityTime")

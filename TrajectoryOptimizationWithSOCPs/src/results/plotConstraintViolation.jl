@@ -6,7 +6,7 @@ function plotConstraintViolation(cM::constraintManager, trajList,
                                  penalty::Float64 = 1.0)
     cVList = getConstraintViolationList(cM, trajList, penalty)
 
-    pltCV = plot(cVList, markershape = :square)
+    pltCV = plot(safeNorm(cVList), markershape = :square, yaxis = :log)
     title!("Inequality Constraint Violation")
     ylabel!("Constraint Violation at Penalty of $penalty")
     xlabel!("Step")
