@@ -12,13 +12,36 @@ include("projections.jl")
 # ---------------------
 # Equality constraints
 # ---------------------
+"""
+    AL_AffineEquality(A, b)
+
+Creates an Affine Equality Constraint of the form `Ax = b`.
+
+To check constraint satisfaction, use:
+[`satisified`](@ref) and [`whichSatisfied`](@ref)
+
+To evaluate the constraint, use:
+- [`getRaw`](@ref) to evaluate `Ax - b`
+- [`getNormToProjVals`](@ref) to evaluate the projection to `Ax = b`
+"""
 struct AL_AffineEquality <: constraint
     A
     b
 end
 
 # Check that a constraint is satisfied (Ax - b = 0)
+"""
+    satisfied(r::AL_AffineEquality, x) = (r.A * x == r.b)
+
+Check constraint satisfaction. See also [`whichSatisfied`](@ref)
+"""
 satisfied(r::AL_AffineEquality, x) = (r.A * x == r.b)
+
+"""
+    whichSatisfied(r::AL_AffineEquality, x) = (r.A * x .== r.b)
+
+Check constraint satisfaction. See also [`satisfied`](@ref)
+"""
 whichSatisfied(r::AL_AffineEquality, x) = (r.A * x .== r.b)
 
 # Evaluate the constraint.
@@ -54,8 +77,16 @@ function getNormToProjVals(r::AL_AffineEquality, x)
 end
 
 # Lastly, we do some calculus
-# The variable "x" is passed to the header to maintain the same function header
-# but it is not used in the function.
+"""
+    getGradC(r::AL_AffineEquality, x)
+
+Calculates the gradient of a constraint.
+
+For `r::AL_AffineEquality`, ∇c(x) = A
+
+The variable "x" is passed to the header to maintain the same function header
+but it is not used in the function.
+"""
 function getGradC(r::AL_AffineEquality, x)
     #=
     We want the gradient of the constraints. This is piecewise in the
@@ -64,6 +95,13 @@ function getGradC(r::AL_AffineEquality, x)
     return r.A
 end
 
+"""
+    getHessC(r::AL_AffineEquality)
+
+Calculates the hessian of a constraint.
+
+For `r::AL_AffineEquality`, H(c(x)) = 0
+"""
 function getHessC(r::AL_AffineEquality)
     #=
     We want the hessian of the constraints. This is just zero for affine
@@ -75,6 +113,19 @@ end
 # -----------------------
 # Inequality constraints
 # -----------------------
+
+"""
+    AL_AffineInequality(A, b)
+
+Creates an Affine Inequality Constraint of the form `Ax ≤ b`.
+
+To check constraint satisfaction, use:
+[`satisified`](@ref) and [`whichSatisfied`](@ref)
+
+To evaluate the constraint, use:
+- [`getRaw`](@ref) to evaluate `Ax - b`
+- [`getNormToProjVals`](@ref) to evaluate the projection to `Ax ≤ b`
+"""
 struct AL_AffineInequality <: constraint
     A
     b
@@ -146,6 +197,10 @@ end
 # Specifically has the form ||Ax - b||_p ≤ c'x - d
 # Where p denotes which norm (usually p = 2)
 
+"""
+Don't use this version. It is not yet functional. See [`AL_coneSlack`](@ref)
+instead
+"""
 struct AL_pCone <: constraint
     A
     b
