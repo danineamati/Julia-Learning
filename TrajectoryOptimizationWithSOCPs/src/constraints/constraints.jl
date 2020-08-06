@@ -324,7 +324,7 @@ function getHessC_ALTerm(r::AL_AffineInequality, x, rho = 1)
     =#
 
     jacob = getGradC(r, x)
-    return rho * jacob'jacob
+    return sparse(rho * jacob'jacob)
 end
 
 

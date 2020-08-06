@@ -37,23 +37,23 @@ rocket = rocket_simple(mass, isp, grav, deltaTime)
 
 # in m
 # The Karman Line (100 km)
-rocketStart = [2.0; 20.0; 0.0; -45.0]
-rocketEnd = [0.0; 0.0; 0.0; 0.0]#[-5.0; 0.0; 0.0; 0.0]
+const rocketStart = [2.0; 20.0; 0.0; -45.0]
+const rocketEnd = [0.0; 0.0; 0.0; 0.0]#[-5.0; 0.0; 0.0; 0.0]
 
 uHover = mass * grav
 
 # Number of time steps to discretize the trajectory
-NSteps = 60
+const NSteps = 60
 # Initialize the trajectory with a line
 initTraj = initializeTraj(rocketStart, rocketEnd, uHover, uHover, NSteps)
 
 # Use a Linear Quadratic Regulator as the cost function
-lqrQMat = 0.0001 * Diagonal(I, size(rocketStart, 1))
-lqrRMat = 0.0025 * Diagonal(I, Int64(size(rocketStart, 1) / 2))
+const lqrQMat = 0.0001 * Diagonal(I, size(rocketStart, 1))
+const lqrRMat = 0.0025 * Diagonal(I, Int64(size(rocketStart, 1) / 2))
 costFun = makeLQR_TrajReferenced(lqrQMat, lqrRMat, NSteps, initTraj)
 
 # Create the Dynamics Constraints
-ADyn, BDyn = rocketDynamicsFull(rocket, rocketStart, rocketEnd, NSteps)
+const ADyn, BDyn = rocketDynamicsFull(rocket, rocketStart, rocketEnd, NSteps)
 dynConstraint = AL_AffineEquality(ADyn, BDyn)
 lambdaInit = -1 * ones(size(BDyn))
 
@@ -80,9 +80,9 @@ println("--------------------------------------------")
 println("Starting constraint violation: ")
 println([evalConstraints(cMRocket, initTraj, penaltyStart)])
 println("Starting gradient of constraints: ")
-println(evalGradConstraints(cMRocket, initTraj, penaltyStart))
+println(size(evalGradConstraints(cMRocket, initTraj, penaltyStart)))
 println("Starting hessian of constraints: ")
-println(evalHessConstraints(cMRocket, initTraj))
+println(size(evalHessConstraints(cMRocket, initTraj)))
 
 
 # Equiped with the constraint term and the objective term, I now build the
@@ -96,7 +96,7 @@ println("--------------------------------------------")
 println("Evaluating augmented lagrangian: ")
 println([evalAL(alRocket, initTrajPD)])
 println("Evaluating gradient of augmented lagrangian: ")
-println(evalGradAL(alRocket, initTrajPD))
+println(size(evalGradAL(alRocket, initTrajPD)))
 println("Evaluating hessian of augmented lagrangian: ")
 println(size(evalHessAl(alRocket, initTrajPD)))
 
@@ -132,6 +132,12 @@ else
     trajStateLastTrue = parsePrimalDualVec(trajLambdaSolvedTrue,
                                                         size(initTraj, 1))
 end
+
+hDual = heatmap(hcat(trajStatesAllPD[end].duals))
+yflip!()
+ylabel!("Column")
+title!("Dual Vector for Dynamics Constraints")
+display(hDual)
 
 # Blocked so that it can be run independently after the fact
 if true

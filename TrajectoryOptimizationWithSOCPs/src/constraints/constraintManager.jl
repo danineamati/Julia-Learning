@@ -188,6 +188,7 @@ function evalHessConstraints(cM::constraintManager, yCurr, rho = 1)
 
     for c in cM.cList
         total_hess += getHessC_ALTerm(c, yCurr, rho)
+        #getHessC(c)#getHessC_ALTerm(c, yCurr, rho)
     end
 
     return total_hess

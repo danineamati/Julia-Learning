@@ -75,7 +75,8 @@ end
 """
     evalAL(alQP::augLag, y)
 
-Evaluates the Augmented Lagrangian with the primals `y`
+Evaluates the Augmented Lagrangian with the primals `y`. If linear dynamics are
+present, it will special case the dynamics.
 
 returns a real number
 """
@@ -87,13 +88,14 @@ function evalAL(alQP::augLag, y)
 
     fCurr = fObjQP(alQP.obj, primals)[1]
     cCurr = evalConstraints(alQP.cM, primals, alQP.rho)
-    
+
     # println("f(x) = $fCurr")
     # println(" with size -> $(size(fCurr))")
     # println("c(x) = $cCurr")
     # println(" with size -> $(size(cCurr))")
 
     if typeof(alQP.cM) == constraintManager_Dynamics
+        # φ(y) + λ d(y)
         duals = alQP.cM.affineLambdaList
         cAff = evalAffineEq(alQP.cM, primals)
         # println("Duals (λ) = $(size(duals))")
@@ -163,9 +165,9 @@ function evalHessAl(alQP::augLag, y)
     primals = getPrimals(alQP, y)
 
     hessf = hessQP(alQP.obj)
-    hessC = evalHessConstraints(alQP.cM, primals)
+    hessC = evalHessConstraints(alQP.cM, primals) #, alQP.rho)
 
-    hessPhiPrimals = hessf + alQP.rho * hessC
+    hessPhiPrimals = hessf + hessC
 
     if typeof(alQP.cM) == constraintManager_Base
         return hessPhiPrimals
