@@ -236,8 +236,8 @@ Calculates the gradient of a constraint.
 For `r::AL_AffineInequality`, `∇c(x) = A` for rows where the constraint is NOT
 satisfied.
 
-The variable "x" is passed to the header to maintain the same function header
-but it is not used in the function.
+Unlike the [`AL_AffineEquality`](@ref) case, the variable "x" is passed to
+is needed to determine if the constraint is satisfied.
 """
 function getGradC(r::AL_AffineInequality, x)
     #=
