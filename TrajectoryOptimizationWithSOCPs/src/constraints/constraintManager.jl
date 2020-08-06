@@ -182,12 +182,12 @@ H(ρ Σ ||cᵢ(x)||² + Σ λᵢ^{\top}cᵢ(x)) = Σ H(ρ ||cᵢ(x)||² + λᵢ^
 
 See also: [`constraintManager`](@ref)
 """
-function evalHessConstraints(cM::constraintManager, yCurr)
+function evalHessConstraints(cM::constraintManager, yCurr, rho = 1)
 
     total_hess = spzeros(size(yCurr, 1), size(yCurr, 1))
 
     for c in cM.cList
-        total_hess += getHessC(c)
+        total_hess += getHessC_ALTerm(c, yCurr, rho)
     end
 
     return total_hess

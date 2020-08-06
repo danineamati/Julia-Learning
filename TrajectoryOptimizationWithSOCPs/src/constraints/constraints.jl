@@ -139,6 +139,35 @@ function getHessC(r::AL_AffineEquality)
     return spzeros(size(r.A, 2), size(r.A, 2)) # nxn
 end
 
+"""
+    getHessC_ALTerm(r::AL_AffineEquality, x, rho = 1)
+
+Calculates the hessian of the augmented lagrangian constraint term.
+
+For `r::AL_AffineEquality`, `H(ρ c(x)'c(x) + λ c(x)) = ρ A'A`
+
+The variable "x" is passed to the header to maintain the same function header
+but it is not used in the function.
+"""
+function getHessC_ALTerm(r::AL_AffineEquality, x, rho = 1)
+    #=
+    The augmented lagrangian constraint term is of the form:
+    ρ c(x)'c(x) + λ c(x)
+
+    where c(x) = Ax - b.
+
+    The Hessian matrix is then
+    Htot = ρ (c.H + J.J + H.c) + λ H
+
+    But H = 0 for Affine equalities, so
+    Htot = ρ (J.J) = ρ A'A
+    =#
+
+    jacob = getGradC(r, x)
+    return rho * jacob'jacob
+end
+
+
 # -----------------------
 # Inequality constraints
 # -----------------------
@@ -269,6 +298,35 @@ function getHessC(r::AL_AffineInequality)
     =#
     return spzeros(size(r.A, 2), size(r.A, 2)) # nxn
 end
+
+"""
+    getHessC_ALTerm(r::AL_AffineInequality, x, rho = 1)
+
+Calculates the hessian of the augmented lagrangian constraint term.
+
+For `r::AL_AffineEquality`, `H(ρ c(x)'c(x) + λ c(x)) = ρ A+'A+`
+
+The variable "x" is passed to the header to maintain the same function header
+but it is not used in the function.
+"""
+function getHessC_ALTerm(r::AL_AffineInequality, x, rho = 1)
+    #=
+    The augmented lagrangian constraint term is of the form:
+    ρ c(x)'c(x) + λ c(x)
+
+    where c(x) = Ax - b.
+
+    The Hessian matrix is then
+    Htot = ρ (c.H + J.J + H.c) + λ H
+
+    But H = 0 for Affine equalities, so
+    Htot = ρ (J.J) = ρ A'A
+    =#
+
+    jacob = getGradC(r, x)
+    return rho * jacob'jacob
+end
+
 
 
 # -----------------------
@@ -752,9 +810,9 @@ end
 Calculates the hessian of a constraint.
 
 For `r::AL_coneSlack`, this is the hessian of the *constraint term* as it
-appears in the augmented lagrangian!!
+appears in the augmented lagrangian!! Namely, `H(ρc(x)'c(x) + λ c(x))`
 
-returns `H(ρc(x)'c(x) + λ c(x))`
+returns H, but user must multiply by ρ.
 
 See the source code for more technical details.
 """
