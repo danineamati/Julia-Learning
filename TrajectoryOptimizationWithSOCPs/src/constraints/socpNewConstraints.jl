@@ -166,7 +166,13 @@ equalities and (more critically) the second order cone.
 struct AL_Multiple_simpleCone <: constraint
     sc::AL_simpleCone
     nDim::Int64
-    indicatorList::Array{Int64,1} #Type of findnz(sparseArray)[1]
+    #Type of findnz(sparseArray)[1] or findall(!iszero, sparseArray)
+    indicatorList::Array{Int64,1}
+end
+
+function makeAL_Multiple_simpleCone(tMax::Float64, nDim::Int64,
+                                    indicatorList::Array{Int64,1})
+    return AL_Multiple_simpleCone(AL_simpleCone(tMax), nDim, indicatorList)
 end
 
 
@@ -260,17 +266,20 @@ function getNormToProjVals(r::AL_Multiple_simpleCone, x, λ)
 
     # If there are NaN values (this happens if you take the norm of a zero
     # vector that is large), use the snippet of code below.
-    # replace(constVio, NaN=>0.0)
-    return constVio
+    return replace(constVio, NaN=>0.0)
 end
 
+function getNormToProjVals(r::AL_Multiple_simpleCone, x)
+    lambdaVec = spzeros(size(r.indicatorList, 1))
+    return getNormToProjVals(r::AL_Multiple_simpleCone, x, lambdaVec)
+end
 
 """
     getGradC(r::AL_Multiple_simpleCone, x)
 
 Parses the relevant `x` vector for each cone constraint. It calculates the
-gradient of each and then stiches it into a vector of the same dimension
-as `x` with the zeros in relevant indicies.
+gradient of each and then stiches it into a jacobian of the same dimension
+as `x` and number of constraints with the zeros in relevant indicies.
 
 (Result is a sparse array)
 
@@ -284,10 +293,11 @@ function getGradC(r::AL_Multiple_simpleCone, x)
     gradList = [getGradC(r.sc, s) for s in steps]
 
     # Stitch it back together.
-    gradStitched = spzeros(size(x, 1))
+    gradStitched = spzeros(size(r.indicatorList, 1), size(x, 1))
 
     for (ind, pos) in enumerate(r.indicatorList)
-        gradStitched[pos:(pos + r.nDim - 1)] = gradList[ind]
+        posEnd = pos + r.nDim - 1
+        gradStitched[ind, pos:posEnd] = gradList[ind]
     end
 
     return gradStitched

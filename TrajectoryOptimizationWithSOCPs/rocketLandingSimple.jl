@@ -7,6 +7,8 @@ Units in kg, m, s
 =#
 include("src\\rocket\\rocket-setup.jl")
 include("src\\rocket\\ground.jl")
+include("src\\rocket\\maxThrust.jl")
+
 
 include("src\\dynamics\\trajectory-setup.jl")
 include("src\\objective\\LQR_objective.jl")
@@ -37,7 +39,7 @@ rocket = rocket_simple(mass, isp, grav, deltaTime)
 
 # in m
 # The Karman Line (100 km)
-const rocketStart = [2.0; 20.0; 0.0; -45.0]
+const rocketStart = [2.0; 20.0; 0.0; -5.0]
 const rocketEnd = [0.0; 0.0; 0.0; 0.0]#[-5.0; 0.0; 0.0; 0.0]
 
 uHover = mass * grav
@@ -61,11 +63,21 @@ lambdaInit = -1 * ones(size(BDyn))
 groundConstraint = makeGroundConstraint(NSteps, size(grav, 1), size(grav, 1))
 groundLambda = zeros(size(groundConstraint.b, 1))
 
+# Create the Max Thrust Constraints
+thrustMax = 20.0
+maxThrustConstraint = makeMaxThrustConstraint(NSteps, size(grav, 1), thrustMax)
+maxThrustLambda = zeros(size(maxThrustConstraint.indicatorList))
+
 # Create the constraint manager
+
 # cMRocket = constraintManager_Base([dynConstraint], [lambdaInit])
 # cMRocket = constraintManager_Dynamics([], [], dynConstraint, lambdaInit)
-cMRocket = constraintManager_Dynamics([groundConstraint], [groundLambda],
-                                        dynConstraint, lambdaInit)
+# cMRocket = constraintManager_Dynamics([groundConstraint], [groundLambda],
+#                                         dynConstraint, lambdaInit)
+cMRocket = constraintManager_Dynamics([groundConstraint, maxThrustConstraint],
+                                      [groundLambda, maxThrustLambda],
+                                      dynConstraint, lambdaInit)
+
 
 # Initialize the primal-dual vector
 initTrajPD = [initTraj; lambdaInit]
@@ -149,6 +161,6 @@ end
 
 # Blocked so that it can be run independently after the fact
 if true
-    header = "freefallingAllPlots18_4" * string(Int64(rocketStart[4])) * "_"
+    header = "freefallingAllPlotsMaxThrust18_4" * string(Int64(rocketStart[4])) * "_"
     saveBulk(pltTraj, pltCV, pltCV2, pltObj, plts, pltv, pltu, header)
 end
