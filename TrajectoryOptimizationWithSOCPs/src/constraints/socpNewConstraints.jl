@@ -129,3 +129,89 @@ function getHessC_ALTerm(r::AL_simpleCone, t, rho = 1)
 
     return rho * (t * t') / (norm(t)^2)
 end
+
+
+# -----------------------
+# Simple Second-Order Cone Constraints for Multiple
+# -----------------------
+@doc raw"""
+    AL_Multiple_simpleCone(
+                        sc::AL_simpleCone,
+                        nDim::Int64,
+                        indicatorList::Tuple{Array{Int64,1},Array{Int64,1}})
+
+Handles Multiple Second Order Cone Constraint (SOCP) of the form
+```math
+||t_k|| ≤ tMax \quad \text{for} \ t_k ∈ x
+```
+
+So, in more standard form, this is becomes:
+```math
+||t_k|| - tMax ≤ 0 \quad \text{for} \ t_k ∈ x
+```
+
+To check constraint satisfaction, use:
+[`satisified`](@ref) and [`whichSatisfied`](@ref)
+
+To evaluate the constraint, use:
+- [`getRaw`](@ref) to evaluate `||t|| - tMax`.
+- [`getNormToProjVals`](@ref) to evaluate the projection to the affine
+equalities and (more critically) the second order cone.
+
+"""
+struct AL_Multiple_simpleCone <: constraint
+    sc::AL_simpleCone
+    nDim::Int64
+    indicatorList::Array{Int64,1} #Type of findnz(sparseArray)[1]
+end
+
+
+
+"""
+    parseRelevantSteps(r::AL_Multiple_simpleCone, x)
+
+Run through the indicator list and use the dimensions to extract the
+relevant vectors from x
+"""
+function parseRelevantSteps(r::AL_Multiple_simpleCone, x)
+    # This array will store the relevant parts of the x vector.
+    steps = []
+
+    for ind in r.indicatorList
+        # Find the relevant parts and push them as a group
+        push!(steps, x[ind:(ind + r.nDim - 1)])
+    end
+
+    return steps
+end
+
+"""
+    getRaw(r::AL_Multiple_simpleCone, x)
+
+Evaluate each of the simple cone constraints without projection.
+"""
+function getRaw(r::AL_Multiple_simpleCone, x)
+    # Use the parsed steps and calculate the raw value for each set.
+    steps = parseRelevantSteps(r, x)
+    return [getRaw(r.sc, s) for s in steps]
+end
+
+"""
+    getProjVecs(r::AL_Multiple_simpleCone, x, filled)
+
+Get the projection defined by `||t|| - tMax` for each of the constraints.
+"""
+function getProjVecs(r::AL_Multiple_simpleCone, x, filled)
+    # Use the parsed steps to separate our each constraint
+    steps = parseRelevantSteps(r, x)
+
+    # Then loop through the parsed steps to get the projection.
+    pv = []
+    for (i, s) in enumerate(steps)
+        # Filled is needed to determine which projection and may be different
+        # for each of the different SOCP constraints in question.
+        push!(pv, getProjVecs(r.sc, s, filled[i]))
+    end
+
+    return pv
+end
