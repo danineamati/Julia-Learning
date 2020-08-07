@@ -40,8 +40,14 @@ function updateDual!(cM::constraintManager, yCurr, penalty::Float64)
     for (i, c) in enumerate(cM.cList)
         # Obtain the dual variable matching this constraint
         lambda = cM.lambdaList[i]
+
         # Evaluate the current constraint
-        cVal = getNormToProjVals(c, yCurr)
+        if (typeof(c) == AL_simpleCone) | (typeof(c) == AL_Multiple_simpleCone)
+            cVal = getNormToProjVals(c, yCurr, lambda)
+        else
+            cVal = getNormToProjVals(c, yCurr)
+        end
+        # cVal = getNormToProjVals(c, yCurr)
 
         lambda = lambda + penalty * cVal
     end
@@ -78,7 +84,12 @@ function evalConstraints(cM::constraintManager, yCurr, penalty::Float64)
         # Obtain the dual variable matching this constraint
         lambda = cM.lambdaList[i]
         # Evaluate the current constraint
-        cVal = getNormToProjVals(c, yCurr)
+        if (typeof(c) == AL_simpleCone) | (typeof(c) == AL_Multiple_simpleCone)
+            cVal = getNormToProjVals(c, yCurr, lambda)
+        else
+            cVal = getNormToProjVals(c, yCurr)
+        end
+        # cVal = getNormToProjVals(c, yCurr)
         # println("Lambda = $(size(lambda)) and cVal = $(size(cVal))")
         # println("So, ||c(x)|| = $(norm(cVal)) -> $(size(norm(cVal)))")
         # println("And λ'c = $(lambda' * cVal) -> $(size(lambda' * cVal))")
@@ -145,7 +156,12 @@ function evalGradConstraints(cM::constraintManager, yCurr, penalty::Float64)
         # Select the correct dual variables
         lambda = cM.lambdaList[i]
         # Evaluate the constraint
-        cVal = getNormToProjVals(c, yCurr)
+        if (typeof(c) == AL_simpleCone) | (typeof(c) == AL_Multiple_simpleCone)
+            cVal = getNormToProjVals(c, yCurr, lambda)
+        else
+            cVal = getNormToProjVals(c, yCurr)
+        end
+        # cVal = getNormToProjVals(c, yCurr)
         # Evaluate the jacobian of the constraint
         cJacob = getGradC(c, yCurr)
         # println("cJacob:")

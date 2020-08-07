@@ -39,7 +39,7 @@ rocket = rocket_simple(mass, isp, grav, deltaTime)
 
 # in m
 # The Karman Line (100 km)
-const rocketStart = [2.0; 20.0; 0.0; -5.0]
+const rocketStart = [2.0; 20.0; 0.0; -45.0]
 const rocketEnd = [0.0; 0.0; 0.0; 0.0]#[-5.0; 0.0; 0.0; 0.0]
 
 uHover = mass * grav
