@@ -114,7 +114,7 @@ println(size(evalHessAl(alRocket, initTrajPD)))
 
 # Next we select resonable solver parameters
 currSolveParams = solverParams(0.1, 0.5,
-                                18, 4,
+                                8, 10,
                                 10^-4,
                                 10, 10^6,
                                 2.5, 2, 0.2, 0.2, 0.4)
@@ -161,6 +161,8 @@ end
 
 # Blocked so that it can be run independently after the fact
 if true
-    header = "freefallingAllPlotsMaxThrust18_4" * string(Int64(rocketStart[4])) * "_"
+    header = "MaxThrustNew_" * string(currSolveParams.maxOuterIters) *
+             "Outer_" * string(currSolveParams.maxNewtonSteps) * "Newton" *
+             string(Int64(rocketStart[4])) * "Vel" * "_"
     saveBulk(pltTraj, pltCV, pltCV2, pltObj, plts, pltv, pltu, header)
 end

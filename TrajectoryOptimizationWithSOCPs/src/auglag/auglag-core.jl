@@ -165,7 +165,7 @@ function evalHessAl(alQP::augLag, y)
     primals = getPrimals(alQP, y)
 
     hessf = hessQP(alQP.obj)
-    hessC = evalHessConstraints(alQP.cM, primals) #, alQP.rho)
+    hessC = evalHessConstraints(alQP.cM, primals, alQP.rho)
 
     hessPhiPrimals = hessf + hessC
 

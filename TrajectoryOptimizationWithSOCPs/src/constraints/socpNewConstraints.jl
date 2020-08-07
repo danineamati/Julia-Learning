@@ -126,9 +126,15 @@ function getHessC_ALTerm(r::AL_simpleCone, t, rho = 1)
     The Hessian matrix is then
     Htot = ρ (c.H + J.J + H.c) + λ H
 
-    But H = 0 for Affine equalities, so
+    But H = 0 for Affine equalities, so when the constraint is not satisfied,
     Htot = ρ (J.J) = ρ s * s' / norm(s)^2
+    Wehen the constraint is satisfied, it is just zero.
     =#
+
+    if satisfied(r, t)
+        # Returns a sparse zero matrix of the right dimensions
+        return getHessC(r, t)
+    end
 
     return rho * (t * t') / (norm(t)^2)
 end
