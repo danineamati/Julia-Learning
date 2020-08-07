@@ -378,7 +378,7 @@ end
 Calculates the hessian of a constraint.
 
 For `r::AL_coneSlack`, this is the hessian of the *constraint term* as it
-appears in the augmented lagrangian!! Namely, `H(ρc(x)'c(x) + λ c(x))`
+appears in the augmented lagrangian. Namely, `H(ρc(x)'c(x) + λ c(x))`
 
 returns H, but user must multiply by ρ.
 

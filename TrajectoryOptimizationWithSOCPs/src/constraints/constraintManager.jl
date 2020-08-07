@@ -187,7 +187,7 @@ function evalHessConstraints(cM::constraintManager, yCurr, rho = 1)
     total_hess = spzeros(size(yCurr, 1), size(yCurr, 1))
 
     for c in cM.cList
-        total_hess += getHessC_ALTerm(c, yCurr, rho)
+        total_hess += Symmetric(getHessC_ALTerm(c, yCurr, rho))
         #getHessC(c)#getHessC_ALTerm(c, yCurr, rho)
     end
 

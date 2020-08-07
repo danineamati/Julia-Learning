@@ -111,6 +111,9 @@ end
 """
     getHessC_ALTerm(r::AL_simpleCone, t, rho = 1)
 
+This is the hessian of the *constraint term* as it appears in the
+augmented lagrangian.
+
 For `r::AL_simpleCone`, `H(ρ c(x)'c(x) + λ c(x)) = ρ s * s' / norm(s)^2`
 """
 function getHessC_ALTerm(r::AL_simpleCone, t, rho = 1)
@@ -142,12 +145,13 @@ end
 
 Handles Multiple Second Order Cone Constraint (SOCP) of the form
 ```math
-||t_k|| ≤ tMax \quad \text{for} \ t_k ∈ x
+||t_k|| ≤ t_{Max} \quad \text{for} \ t_k ∈ T
 ```
+where T is a list of primal decision vectors.
 
 So, in more standard form, this is becomes:
 ```math
-||t_k|| - tMax ≤ 0 \quad \text{for} \ t_k ∈ x
+||t_k|| - t_{Max} ≤ 0 \quad \text{for} \ t_k ∈ T
 ```
 
 To check constraint satisfaction, use:
@@ -197,14 +201,13 @@ function getRaw(r::AL_Multiple_simpleCone, x)
 end
 
 """
-    getProjVecs(r::AL_Multiple_simpleCone, x, filled)
+    getProjVecs(r::AL_Multiple_simpleCone, steps, filled)
 
 Get the projection defined by `||t|| - tMax` for each of the constraints.
-"""
-function getProjVecs(r::AL_Multiple_simpleCone, x, filled)
-    # Use the parsed steps to separate our each constraint
-    steps = parseRelevantSteps(r, x)
 
+See also [`AL_Multiple_simpleCone`](@ref)
+"""
+function getProjVecs(r::AL_Multiple_simpleCone, steps, filled)
     # Then loop through the parsed steps to get the projection.
     pv = []
     for (i, s) in enumerate(steps)
@@ -214,4 +217,142 @@ function getProjVecs(r::AL_Multiple_simpleCone, x, filled)
     end
 
     return pv
+end
+
+function getProjVecs(r::AL_Multiple_simpleCone, x::Array{Float64, 1}, filled)
+    steps = parseRelevantSteps(r, x)
+    return getProjVecs(r, steps, filled)
+end
+
+function getProjVecs(r::AL_Multiple_simpleCone, x::Array{Int64, 1}, filled)
+    steps = parseRelevantSteps(r, x)
+    return getProjVecs(r, steps, filled)
+end
+
+"""
+    getNormToProjVals(r::AL_Multiple_simpleCone, x, λ)
+
+Get the constraint violation for multiple second order cone constraints. The
+length of the vector `λ` must match the number of steps.
+
+See also [`AL_Multiple_simpleCone`](@ref) and [`coneActive`](@ref) for more
+information.
+"""
+function getNormToProjVals(r::AL_Multiple_simpleCone, x, λ)
+    # Use the parsed steps to separate our each constraint
+    steps = parseRelevantSteps(r, x)
+
+    # Determine which of the constraints (if any) require an unfilled cone/
+    fillVec = Bool[]
+    for (ind, s) in enumerate(steps)
+        push!(fillVec, coneActive(s, r.sc.tMax, λ[ind])[2])
+    end
+
+    # Using the filled information and the steps in question, get the
+    # projection vectors
+    pvs = getProjVecs(r, steps, fillVec)
+
+    # Use the projection vectors to calculate the constraints.
+    constVio = []
+    for (s, p) in zip(steps, pvs)
+        push!(constVio, norm([s; r.sc.tMax] - p))
+    end
+
+    # If there are NaN values (this happens if you take the norm of a zero
+    # vector that is large), use the snippet of code below.
+    # replace(constVio, NaN=>0.0)
+    return constVio
+end
+
+
+"""
+    getGradC(r::AL_Multiple_simpleCone, x)
+
+Parses the relevant `x` vector for each cone constraint. It calculates the
+gradient of each and then stiches it into a vector of the same dimension
+as `x` with the zeros in relevant indicies.
+
+(Result is a sparse array)
+
+See also [`AL_Multiple_simpleCone`](@ref) and [`AL_simpleCone`](@ref)
+"""
+function getGradC(r::AL_Multiple_simpleCone, x)
+    # Use the parsed steps to separate our each constraint
+    steps = parseRelevantSteps(r, x)
+
+    # Use the AL_simpleCone to get the gradient for each constraint
+    gradList = [getGradC(r.sc, s) for s in steps]
+
+    # Stitch it back together.
+    gradStitched = spzeros(size(x, 1))
+
+    for (ind, pos) in enumerate(r.indicatorList)
+        gradStitched[pos:(pos + r.nDim - 1)] = gradList[ind]
+    end
+
+    return gradStitched
+end
+
+"""
+    getHessC(r::AL_Multiple_simpleCone, x)
+
+Calculate the hessian of a constraint.
+
+For `r::AL_Multiple_simpleCone`, `H(c(x)) = 0`
+
+See also [`AL_Multiple_simpleCone`](@ref) and [`AL_simpleCone`](@ref)
+"""
+function getHessC(r::AL_Multiple_simpleCone, x)
+    return spzeros(size(x, 1), size(x, 1))
+end
+
+"""
+    getHessC_ALTerm(r::AL_Multiple_simpleCone, x, rho = 1)
+
+This is the hessian of the *constraint term* as it appears in the
+augmented lagrangian.
+
+For `r::AL_Multiple_simpleCone`,
+`H(ρ c(x)'c(x) + λ c(x)) = ρ s * s' / norm(s)^2` for each constraint.
+
+Parses the relevant `x` vector for each cone constraint. It calculates the
+hessian of each and then stiches it into a vector of the same dimension
+as `x`×`x` with the zeros in relevant indicies.
+
+(Result is a sparse array)
+
+See also [`AL_Multiple_simpleCone`](@ref) and [`AL_simpleCone`](@ref)
+"""
+function getHessC_ALTerm(r::AL_Multiple_simpleCone, x, rho = 1)
+    #=
+    The augmented lagrangian constraint term is of the form:
+    ρ c(x)'c(x) + λ c(x)
+
+    where c(x) = x / ||x||.
+
+    The Hessian matrix is then
+    Htot = ρ (c.H + J.J + H.c) + λ H
+
+    But H = 0 for Affine equalities, so
+    Htot = ρ (J.J) = ρ s * s' / norm(s)^2
+
+    For each constraint!
+    =#
+
+    # Use the parsed steps to separate our each constraint
+    steps = parseRelevantSteps(r, x)
+
+    # Use the AL_simpleCone to get the total hessian for each constraint
+    hessList = [Symmetric(getHessC_ALTerm(r.sc, s)) for s in steps]
+
+    # Stitch it back together.
+    hessStitched = spzeros(size(x, 1), size(x, 1))
+
+    for (ind, pos) in enumerate(r.indicatorList)
+        posEnd = pos + r.nDim - 1
+        hessStitched[pos:posEnd, pos:posEnd] = hessList[ind]
+    end
+
+    return hessStitched
+
 end
