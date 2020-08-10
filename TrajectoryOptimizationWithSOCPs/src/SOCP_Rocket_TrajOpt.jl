@@ -2,12 +2,13 @@
 """
     SOCP_Rocket_TrajOpt
 
-A native Julia library to solve trajectory optimization problems which
+A native Julia library to solve trajectory optimization problems that
 contain second-order cone constraints.
 
 Author: Daniel Neamati (Summer 2020)
 
-Funding graciously provided by Caltech SURF and Homer J. Stewart Fellowship
+Funding graciously provided by Caltech SURF program and the Homer J. Stewart
+Fellowship.
 """
 module SOCP_Rocket_TrajOpt
 
@@ -44,6 +45,6 @@ export augLag, solverParams, constraintManager_Dynamics, LQR_QP_Referenced,
        rocket_simple
 
 # Export Functions
-export ALPrimalNewtonMain
+export ALPrimalNewtonMain, makeLQR_TrajReferenced
 
 end  # module SOCP_TrajOpt

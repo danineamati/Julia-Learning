@@ -37,18 +37,22 @@ at `(0.0, 0.0)`. Moreover, we start the rocket in a freefall with velocity of
 `(0.0, -15.0)` and expect it to softly land with zero velocity `(0.0, 0.0)`.
 ```@example
 const rocketStart = [2.0; 20.0; 0.0; -15.0]
-const rocketEnd = [0.0; 0.0; 0.0; 0.0];
+const rocketEnd = [0.0; 0.0; 0.0; 0.0]
+nothing #hide
 ```
 
 We can also initialize a base thrust, which is most simply the hover thrust.
 ```@example
+mass = 1; grav = 1; #hide
 uHover = mass * grav
+nothing #hide
 ```
 
 Lastly, we specify the number of steps in the simulation (combined with the `deltaTime` parameter above, this implies an a priori flight time).
 ```@example
 # Number of time steps to discretize the trajectory
 const NSteps = 60
+nothing #hide
 ```
 
 With the information above, we now have the information to build a guess
