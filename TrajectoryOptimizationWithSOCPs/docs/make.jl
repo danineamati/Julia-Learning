@@ -4,10 +4,12 @@ using Documenter
 
 # include("C:\\Users\\Daniel N\\Desktop\\GitHub\\Julia-Learning\\SolversWithProjections\\SolversWithProjections")
 
-include("..\\src\\SOCP_TrajOpt.jl")
+include("..\\src\\SOCP_Rocket_TrajOpt.jl")
 
 
 # using SolversWithProjections
 
-makedocs(modules = [SOCP_TrajOpt],
-         sitename = "SOCP Trajectory Optimization Documentation")
+makedocs(modules = [SOCP_Rocket_TrajOpt],
+         sitename = "SOCP Trajectory Optimization Documentation",
+         pages = ["Home" => "index.md",
+                  "User Interface" => "ui.md"])
