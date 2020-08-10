@@ -59,8 +59,9 @@ function initializeTraj(x0::Array{Int64, 1}, xN::Array{Int64, 1},
 end
 
 """
-    initializeTraj(x0::Array{Float64, 1}, xN::Array{Float64, 1},
-                   NSteps::Int64, baseControls::Array{Float, 1})
+initializeTraj(x0::Array{Float64, 1}, xN::Array{Float64, 1},
+               u0::Array{Float64, 1}, uN::Array{Float64, 1},
+               NSteps::Int64)
 
 Initializes the full `XU` vector (see example below) using a linear
 interpolation from the initial point `x0` to the final point `xN`.

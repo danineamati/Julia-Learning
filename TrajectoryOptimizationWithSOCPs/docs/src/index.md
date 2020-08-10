@@ -19,6 +19,11 @@ The SOCP trajectory optimization problem is formulated as follows.
 \end{aligned}
 ```
 
+Table of Contents:
+```@contents
+Pages   = ["UI/ui.md"]
+```
+
 
 ```@docs
 SOCP_Rocket_TrajOpt

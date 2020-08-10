@@ -23,7 +23,7 @@ using SparseArrays, LinearAlgebra
 
 
 """
-    rocket_simple
+    rocket_simple(mass, isp, grav, deltaTime)
 
 Barebones "spherical" rocket. This is to say, this struct only holds the mass
 and the isp (specific impulse) of the rocket.
