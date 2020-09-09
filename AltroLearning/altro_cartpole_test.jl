@@ -1,4 +1,4 @@
-# Altro Tests
+# Altro Cartpole Tests
 
 using TrajectoryOptimization
 using Altro
@@ -19,7 +19,7 @@ n,m = size(model)
 # m is the size of the control (move the cart back and forth along x)
 
 # Trajectory Discretization
-N = 101
+N = 151
 tf = 5.
 dt = tf/(N-1)
 
@@ -28,9 +28,9 @@ x0 = @SVector zeros(n) # Start at rest, pendulum down
 xf = @SVector [0, pi, 0, 0]  # Swing pendulum up and end at rest
 
 # LQR Objective Set Up
-Q = 1.0e-2*Diagonal(@SVector ones(n))
+Q = 1.0e-1*Diagonal(@SVector ones(n))
 Qf = 100.0*Diagonal(@SVector ones(n))
-R = 1.0e-1*Diagonal(@SVector ones(m))
+R = 1.0*Diagonal(@SVector ones(m))
 obj = LQRObjective(Q,R,Qf,xf,N)
 
 
