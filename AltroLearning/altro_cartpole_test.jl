@@ -7,6 +7,8 @@ using StaticArrays, LinearAlgebra
 
 using Plots
 pyplot()
+using TrajOptPlots
+using MeshCat
 
 println("Running the Cartpole example...")
 
@@ -80,18 +82,18 @@ ycart = zeros(size(x1))
 
 plt = plot(xball, yball, label = "Ball")
 plot!(xcart, ycart, label = "Cart")
-scatter!([xvals[1]], [yvals[1]], label = "Initial State")
-scatter!([xvals[end]], [yvals[end]], label = "Final State")
+scatter!([xball[1]], [yball[1]], label = "Initial State")
+scatter!([xball[end]], [yball[end]], label = "Final State")
 
 display(plt)
 
-println("Starting GIF")
+println("\nStarting GIF")
 
 @gif for i in 1:N
     plot(xball[1:i], yball[1:i], label = "Ball")
     plot!(xcart[1:i], ycart[1:i], label = "Cart")
-    scatter!([xvals[1]], [yvals[1]], label = "Initial State")
-    scatter!([xvals[end]], [yvals[end]], label = "Final State")
+    scatter!([xball[1]], [yball[1]], label = "Initial State")
+    scatter!([xball[end]], [yball[end]], label = "Final State")
 end
 
 println("Starting pole GIF")
@@ -99,10 +101,18 @@ println("Starting pole GIF")
 @gif for i in 1:N
     plot([xcart[i], xball[i]], [ycart[i], yball[i]], label = "Pole")
     scatter!([xcart[i]], [ycart[i]], label = "Cart")
-    scatter!([xvals[1]], [yvals[1]], label = "Initial State")
-    scatter!([xvals[end]], [yvals[end]], label = "Final State")
+    scatter!([xball[1]], [yball[1]], label = "Initial State")
+    scatter!([xball[end]], [yball[end]], label = "Final State")
     xlims!(minimum(xball), maximum(xball))
     ylims!(minimum(yball), maximum(yball))
 end
+
+println("Starting MeshCat")
+
+vis = Visualizer()
+render(vis)
+
+TrajOptPlots.set_mesh!(vis, model)
+visualize!(vis, altro);
 
 println("Complete")
